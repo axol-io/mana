@@ -51,7 +51,8 @@ defmodule Blockchain.State.VerkleAdapter do
   # Configuration for state mode
   # Start in migration mode by default
   @default_mode :migration
-  @verkle_enabled Application.compile_env(:blockchain, :verkle_enabled, true)
+  # Feature flag for conditional Verkle tree enablement
+  # @verkle_enabled Application.compile_env(:blockchain, :verkle_enabled, true)
 
   @doc """
   Creates a new state with the specified storage backend.
@@ -146,10 +147,10 @@ defmodule Blockchain.State.VerkleAdapter do
     account_key = account_key(address)
 
     case Migration.get_with_migration(migration, account_key) do
-      {nil, _} ->
+      {:not_found, _} ->
         :not_found
 
-      {encoded, updated_migration} ->
+      {{:ok, encoded}, _updated_migration} ->
         # Note: In production, we'd need to track the updated migration
         {:ok, Account.decode(encoded)}
     end

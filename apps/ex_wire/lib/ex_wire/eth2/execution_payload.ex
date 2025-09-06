@@ -79,4 +79,57 @@ defmodule ExWire.Eth2.ExecutionPayload do
   def has_blobs?(payload) do
     payload.blob_gas_used > 0
   end
+
+  @doc """
+  Validate execution payload blob gas fields for Deneb compliance.
+  """
+  @spec validate_blob_gas_fields(t(), non_neg_integer()) :: :ok | {:error, term()}
+  def validate_blob_gas_fields(payload, expected_blob_gas) do
+    alias Blockchain.BlobGasMarket
+
+    with :ok <- BlobGasMarket.validate_block_blob_gas(payload.blob_gas_used),
+         :ok <- validate_blob_gas_consistency(payload, expected_blob_gas),
+         :ok <- validate_excess_blob_gas(payload) do
+      :ok
+    end
+  end
+
+  @doc """
+  Update execution payload with blob gas market state.
+  """
+  @spec update_blob_gas_state(t(), map()) :: t()
+  def update_blob_gas_state(payload, blob_gas_state) do
+    %{
+      payload
+      | blob_gas_used: blob_gas_state.blob_gas_used,
+        excess_blob_gas: blob_gas_state.excess_blob_gas
+    }
+  end
+
+  @doc """
+  Calculate blob base fee from execution payload.
+  """
+  @spec calculate_blob_basefee(t()) :: non_neg_integer()
+  def calculate_blob_basefee(payload) do
+    Blockchain.BlobGasMarket.calculate_blob_basefee(payload.excess_blob_gas)
+  end
+
+  # Private validation functions
+
+  defp validate_blob_gas_consistency(payload, expected_blob_gas) do
+    if payload.blob_gas_used == expected_blob_gas do
+      :ok
+    else
+      {:error, {:blob_gas_mismatch, payload.blob_gas_used, expected_blob_gas}}
+    end
+  end
+
+  defp validate_excess_blob_gas(payload) do
+    # Excess blob gas must be non-negative
+    if payload.excess_blob_gas >= 0 do
+      :ok
+    else
+      {:error, {:invalid_excess_blob_gas, payload.excess_blob_gas}}
+    end
+  end
 end

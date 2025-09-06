@@ -90,7 +90,7 @@ defmodule ExWire.Layer2.ProofVerifier do
     end
   end
 
-  defp verify_invalid_execution(batch, proof) do
+  defp verify_invalid_execution(_batch, _proof) do
     # Verify that transaction execution is invalid
     # This would involve re-executing the transaction
     # and comparing results
@@ -99,7 +99,7 @@ defmodule ExWire.Layer2.ProofVerifier do
     :rand.uniform() > 0.5
   end
 
-  defp verify_transaction_signature(tx) do
+  defp verify_transaction_signature(_tx) do
     # Verify ECDSA signature
     # In production, would use actual crypto
     true
@@ -122,7 +122,7 @@ defmodule ExWire.Layer2.ProofVerifier do
     :crypto.hash(:sha256, data)
   end
 
-  defp simulate_crypto_verification(decoded_proof) do
+  defp simulate_crypto_verification(_decoded_proof) do
     # Simulate cryptographic verification
     # In production, this would call native verification functions
     # for the specific proof system (Groth16, PLONK, STARK, etc.)

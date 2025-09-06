@@ -135,7 +135,7 @@ defmodule ExWire.Packet.Protocol.Hello do
 
       {:disconnect, :useless_peer, packet.caps, packet.p2p_version}
     else
-      # TODO: Add a bunch more checks
+      # Additional validation (network ID, genesis hash, etc.) can be added here
       {:activate, packet.caps, packet.p2p_version}
     end
   end

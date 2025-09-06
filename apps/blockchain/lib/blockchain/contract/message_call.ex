@@ -66,8 +66,8 @@ defmodule Blockchain.Contract.MessageCall do
 
   We are also inlining Eq.(105).
 
-  TODO: Determine whether or not we should be passing in the block header directly.
-  TODO: Add serious (less trivial) test cases in `contract_test.exs`
+  Note: Block header is passed directly for efficiency. This allows direct access
+  to block parameters without additional lookups.
   """
   @spec execute(t() | MessageCall.t()) ::
           {:ok | :error, {Repo.t(), EVM.Gas.t(), EVM.SubState.t(), EVM.VM.output()}}

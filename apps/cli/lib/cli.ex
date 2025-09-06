@@ -37,7 +37,7 @@ defmodule CLI do
           "Starting sync at block ##{current_block.header.number} of #{highest_known_block_number} total blocks"
         end)
 
-      # TODO: Use highest known block as limit?
+      # Sync to the highest block known by the network, determined dynamically
 
       Sync.sync_new_blocks(
         block_provider,

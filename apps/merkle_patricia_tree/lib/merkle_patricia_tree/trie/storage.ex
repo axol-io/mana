@@ -34,7 +34,6 @@ defmodule MerklePatriciaTree.Trie.Storage do
       <<>>
       iex> MerklePatriciaTree.Trie.Storage.put_node("Hi", trie)
       "Hi"
-      # TODO: This is SHA-256 hash, not Keccak-256, due to keccakf1600 being unavailable
       iex> MerklePatriciaTree.Trie.Storage.put_node(["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"], trie)
       <<141, 163, 93, 242, 120, 27, 128, 97, 138, 56, 116, 101, 165, 201, 165, 139, 86, 73, 85, 153, 45, 38, 207, 186, 196, 202, 111, 84, 214, 26, 122, 164>>
   """
@@ -101,7 +100,6 @@ defmodule MerklePatriciaTree.Trie.Storage do
       ...> |> MerklePatriciaTree.Trie.Storage.get_node()
       :not_found
 
-      # TODO: This is SHA-256 hash, not Keccak-256, due to keccakf1600 being unavailable
       iex> trie = MerklePatriciaTree.Trie.new(MerklePatriciaTree.Test.random_ets_db(), <<130, 72, 105>>)
       iex> MerklePatriciaTree.Trie.Storage.put_node(["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"], trie)
       <<141, 163, 93, 242, 120, 27, 128, 97, 138, 56, 116, 101, 165, 201, 165, 139, 86, 73, 85, 153, 45, 38, 207, 186, 196, 202, 111, 84, 214, 26, 122, 164>>

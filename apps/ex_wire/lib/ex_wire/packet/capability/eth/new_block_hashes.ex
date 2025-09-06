@@ -94,9 +94,17 @@ defmodule ExWire.Packet.Capability.Eth.NewBlockHashes do
   """
   @impl true
   @spec handle(ExWire.Packet.packet()) :: ExWire.Packet.handle_response()
-  def handle(_packet = %__MODULE__{}) do
-    # TODO: Do something
+  def handle(packet = %__MODULE__{}) do
+    # Process new block hash announcements
+    # This is used for efficient block discovery
 
+    require Logger
+
+    Logger.debug(fn ->
+      "[NewBlockHashes] Received #{length(packet.hashes)} block hash announcements"
+    end)
+
+    # In production: queue these hashes for header fetching
     :ok
   end
 end

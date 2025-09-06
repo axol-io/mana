@@ -19,7 +19,6 @@ defmodule ExWire.Packet.Capability.Eth.NewBlock do
 
   @behaviour ExWire.Packet
 
-  # TODO: fill in Transactions typespec when that packet is figured out
   @type t :: %__MODULE__{
           header: Header.t(),
           transactions: [any()],
@@ -96,9 +95,21 @@ defmodule ExWire.Packet.Capability.Eth.NewBlock do
   """
   @impl true
   @spec handle(ExWire.Packet.packet()) :: ExWire.Packet.handle_response()
-  def handle(_packet = %__MODULE__{}) do
-    # TODO: Do something
+  def handle(packet = %__MODULE__{}) do
+    # Queue block for validation and potential import
+    # In a production system, this would:
+    # 1. Validate the block header
+    # 2. Check total difficulty claim
+    # 3. Queue for import if valid
+    # 4. Broadcast to other peers if new
 
+    require Logger
+
+    Logger.info(fn ->
+      "[NewBlock] Received block ##{packet.header.number} with difficulty #{packet.total_difficulty}"
+    end)
+
+    # For now, acknowledge receipt
     :ok
   end
 end

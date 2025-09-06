@@ -49,7 +49,7 @@ defmodule CLI.Sync do
 
               updated_trie =
                 if rem(block_number, @save_block_interval) == 0 do
-                  # TODO: Does this log mess up our progress tracker?
+                  # Save state to disk at regular intervals for recovery
 
                   committed_trie = TrieStorage.commit!(updated_trie)
 

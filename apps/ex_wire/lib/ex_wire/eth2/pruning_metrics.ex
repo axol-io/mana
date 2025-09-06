@@ -17,7 +17,6 @@ defmodule ExWire.Eth2.PruningMetrics do
   use GenServer
   require Logger
 
-
   defstruct [
     :metrics_store,
     :config,

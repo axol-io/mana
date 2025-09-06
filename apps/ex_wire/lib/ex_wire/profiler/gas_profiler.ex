@@ -36,7 +36,6 @@ defmodule ExWire.Profiler.GasProfiler do
 
   alias EVM.Gas
   alias Blockchain.Contract
-  alias ExWire.Consensus.CRDTConsensusManager
   alias ExWire.Debugger.TransactionDebugger
 
   @type gas_profile :: %{
@@ -672,7 +671,7 @@ defmodule ExWire.Profiler.GasProfiler do
     end
   end
 
-  defp generate_optimization_suggestions(contract_address, state) do
+  defp generate_optimization_suggestions(_contract_address, _state) do
     # Generate suggestions based on historical data and patterns
     [
       %{
@@ -694,7 +693,7 @@ defmodule ExWire.Profiler.GasProfiler do
     ]
   end
 
-  defp analyze_transaction_patterns(tx_hashes, state) do
+  defp analyze_transaction_patterns(_tx_hashes, _state) do
     # Analyze patterns across multiple transactions
     %{
       common_opcodes: [:SSTORE, :SLOAD, :CALL],
@@ -704,7 +703,7 @@ defmodule ExWire.Profiler.GasProfiler do
     }
   end
 
-  defp compile_network_gas_statistics(state) do
+  defp compile_network_gas_statistics(_state) do
     %{
       average_gas_price: 25_000_000_000,
       median_gas_used: 150_000,
@@ -714,7 +713,7 @@ defmodule ExWire.Profiler.GasProfiler do
     }
   end
 
-  defp compare_gas_costs_across_datacenters(tx_hash, datacenters, state) do
+  defp compare_gas_costs_across_datacenters(tx_hash, datacenters, _state) do
     %{
       transaction_hash: tx_hash,
       datacenter_costs:
@@ -733,7 +732,7 @@ defmodule ExWire.Profiler.GasProfiler do
     }
   end
 
-  defp perform_comprehensive_gas_audit(contract_address, state) do
+  defp perform_comprehensive_gas_audit(contract_address, _state) do
     %{
       contract_address: contract_address,
       overall_efficiency_score: 0.82,
@@ -825,11 +824,11 @@ defmodule ExWire.Profiler.GasProfiler do
 
   # Analysis tasks
 
-  defp analyze_network_gas_trends(state) do
+  defp analyze_network_gas_trends(_state) do
     Logger.debug("[GasProfiler] Analyzing network gas trends")
   end
 
-  defp update_optimization_database(state) do
+  defp update_optimization_database(_state) do
     Logger.debug("[GasProfiler] Updating optimization suggestions")
   end
 

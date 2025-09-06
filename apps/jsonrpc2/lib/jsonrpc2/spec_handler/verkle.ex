@@ -20,7 +20,7 @@ defmodule JSONRPC2.SpecHandler.Verkle do
 
   import JSONRPC2.Response.Helpers
 
-  @sync Application.get_env(:jsonrpc2, :bridge_mock, Sync)
+  @sync Application.compile_env(:jsonrpc2, :bridge_mock, Sync)
 
   @doc """
   Generates a verkle witness for the given addresses at a specific block.

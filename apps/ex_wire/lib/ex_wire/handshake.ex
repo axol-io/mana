@@ -153,7 +153,12 @@ defmodule ExWire.Handshake do
   Given an incoming message, let's try to accept it as an ack resp. If that works,
   we'll derive our secrets from it.
 
-  # TODO: Add examples
+  ## Examples
+
+      iex> handshake = %Handshake{initiator: true, remote_ephemeral_public_key: <<1, 2, 3...>>}
+      iex> {:ok, updated_handshake, secrets, frame_rest} = Handshake.handle_ack(handshake, ack_data)
+      iex> is_binary(secrets.aes_secret)
+      true
   """
   @spec handle_ack(t(), binary()) ::
           {:ok, t(), Secrets.t(), binary()}
@@ -190,7 +195,12 @@ defmodule ExWire.Handshake do
   Give an incoming msg, let's try to accept it as an auth msg. If that works,
   we'll prepare an ack response to send back and derive our secrets.
 
-  TODO: Add examples
+  ## Examples
+
+      iex> handshake = %Handshake{initiator: false}
+      iex> {:ok, updated_handshake, secrets, ack_resp, frame_rest} = Handshake.handle_auth(handshake, auth_data)
+      iex> byte_size(ack_resp) > 0
+      true
   """
   @spec handle_auth(t(), binary()) ::
           {:ok, t(), Secrets.t()}
@@ -344,8 +354,9 @@ defmodule ExWire.Handshake do
 
         {:ok, ack_resp, ack_resp_bin, frame_rest}
 
-      {:error, _reason} ->
-        # TODO: reason?
+      {:error, reason} ->
+        # EIP-8 decoding failed, try plain format
+        Logger.debug("EIP-8 unwrap failed: #{inspect(reason)}, trying plain format")
 
         # unwrap plain
         with {:ok, plaintext} <-

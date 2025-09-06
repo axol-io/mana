@@ -118,8 +118,7 @@ defmodule ExWire.Network do
         :no_action
 
       response_message ->
-        # TODO: This is a simple way to determine who to send the message to,
-        #       but we may want to revise.
+        # Simple message routing - can be enhanced with routing tables if needed
         to = response_message.__struct__.to(response_message) || remote_host
 
         send(response_message, server_pid, to, Keyword.get(options, :private_key, nil))

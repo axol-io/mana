@@ -158,7 +158,7 @@ defmodule Blockchain.TransactionPool do
   end
 
   @impl true
-  def handle_call({:send_transaction, params}, _from, state) do
+  def handle_call({:send_transaction, _params}, _from, state) do
     # This would require wallet functionality to sign transactions
     # For now, return not supported
     {:reply, {:error, "Wallet functionality not implemented"}, state}
@@ -247,7 +247,7 @@ defmodule Blockchain.TransactionPool do
     # 1 hour
     cutoff_time = current_time - 3600
 
-    {old_txs, current_txs} =
+    {old_txs, _current_txs} =
       Enum.split_with(state.transactions, fn {_hash, tx} ->
         Map.get(tx, :timestamp, current_time) < cutoff_time
       end)

@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mana-config
+  namespace: mana-ethereum
+  labels:
+    app: mana-ethereum
+data:
+  config.exs: |
+    import Config
+    
+    # Node configuration
+    config :ex_wire,
+      network_id: System.get_env("NETWORK_ID", "1") |> String.to_integer(),
+      chain: :mainnet,
+      sync_mode: System.get_env("SYNC_MODE", "fast"),
+      max_peers: System.get_env("MAX_PEERS", "50") |> String.to_integer(),
+      discovery: true,
+      bootnode_list: [
+        "enode://d860a01f9722d78051619d1e2351aba3f43f943f6f00718d1b9baa4101932a1f5011f16bb2b1bb35db20d6fe28fa0bf09636d26a87d31de9ec6203eeedb1f666@18.138.108.67:30303",
+        "enode://22a8232c3abc76a16ae9d6c3b164f98775fe226f0917b0ca871128a74a8e9630b458460865bab457221f1d448dd9791d24c4e5d88786180ac185df813a68d4de@3.209.45.79:30303"
+      ]
+    
+    # Storage configuration
+    config :merkle_patricia_tree,
+      db_type: :antidote,
+      antidote_nodes: [
+        {"antidote@mana-ethereum-0.mana-ethereum-headless.mana-ethereum.svc.cluster.local", 8087},
+        {"antidote@mana-ethereum-1.mana-ethereum-headless.mana-ethereum.svc.cluster.local", 8087},
+        {"antidote@mana-ethereum-2.mana-ethereum-headless.mana-ethereum.svc.cluster.local", 8087}
+      ]
+    
+    # JSON-RPC configuration
+    config :jsonrpc2,
+      http_enabled: true,
+      http_port: 8545,
+      ws_enabled: true,
+      ws_port: 8546,
+      allowed_origins: "*",
+      max_batch_size: 100,
+      rate_limit: 1000
+    
+    # Telemetry configuration
+    config :ex_wire, ExWire.Telemetry.PrometheusExporter,
+      enabled: System.get_env("ENABLE_METRICS", "true") == "true",
+      port: System.get_env("METRICS_PORT", "9568") |> String.to_integer()
+    
+    # Layer 2 configuration
+    config :ex_wire, :layer2,
+      optimism_enabled: true,
+      optimism_sequencer_url: System.get_env("OPTIMISM_SEQUENCER_URL"),
+      arbitrum_enabled: true,
+      arbitrum_sequencer_url: System.get_env("ARBITRUM_SEQUENCER_URL"),
+      zksync_enabled: true,
+      zksync_prover_url: System.get_env("ZKSYNC_PROVER_URL")
+    
+    # Consensus configuration
+    config :ex_wire, :eth2,
+      beacon_node_url: System.get_env("BEACON_NODE_URL"),
+      validator_enabled: false,
+      checkpoint_sync_url: System.get_env("CHECKPOINT_SYNC_URL")
+    
+    # Logging configuration
+    config :logger,
+      level: System.get_env("LOG_LEVEL", "info") |> String.to_atom(),
+      backends: [:console],
+      compile_time_purge_matching: [
+        [level_lower_than: :info]
+      ]
+    
+    config :logger, :console,
+      format: "$time $metadata[$level] $message\n",
+      metadata: [:request_id, :node_id, :module]
+
+  vm.args: |
+    ## Name of the node
+    -name mana@${POD_IP}
+    
+    ## Cookie for distributed erlang
+    -setcookie ${ERLANG_COOKIE}
+    
+    ## Increase number of concurrent ports/sockets
+    -env ERL_MAX_PORTS 65536
+    
+    ## Tweak GC to reduce latency
+    +K true
+    +A 128
+    +SDio 128
+    
+    ## Load code at startup
+    -mode embedded
+    
+    ## Increase distribution buffer size
+    +zdbbl 32768
+    
+    ## Enable time correction
+    +c true
+    
+    ## Set scheduler bind type
+    +sbt db

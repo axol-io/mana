@@ -271,7 +271,7 @@ defmodule Blockchain.BlobPool do
 
   defp insert_sorted([], item), do: [item]
 
-  defp insert_sorted([{_hash, fee} = head | tail], {new_hash, new_fee} = new_item) do
+  defp insert_sorted([{_hash, fee} = head | tail], {_new_hash, new_fee} = new_item) do
     if new_fee >= fee do
       [new_item, head | tail]
     else
@@ -368,8 +368,12 @@ defmodule Blockchain.BlobPool do
   defp unzip_blob_data(blob_data_list) do
     {blobs, commitments, proofs} =
       blob_data_list
-      |> Enum.map(fn {blob, commitment, proof} -> {blob, commitment, proof} end)
-      |> Enum.unzip3()
+      |> Enum.reduce({[], [], []}, fn {blob, commitment, proof}, {blobs, commitments, proofs} ->
+        {[blob | blobs], [commitment | commitments], [proof | proofs]}
+      end)
+      |> then(fn {blobs, commitments, proofs} ->
+        {Enum.reverse(blobs), Enum.reverse(commitments), Enum.reverse(proofs)}
+      end)
 
     {blobs, commitments, proofs}
   end

@@ -7,6 +7,7 @@ type Commitment = [u8; 32];
 type Proof = Vec<u8>;
 
 #[derive(Debug, Error)]
+#[allow(dead_code)]
 pub enum ProofError {
     #[error("Invalid proof format")]
     InvalidProof,
@@ -124,6 +125,7 @@ pub fn verify_proof(
 }
 
 /// Batch verify multiple proofs for efficiency
+#[allow(dead_code)]
 pub fn batch_verify(
     proofs: &[(Proof, Commitment, Vec<(Vec<u8>, Vec<u8>)>)]
 ) -> Result<bool, ProofError> {
@@ -139,6 +141,7 @@ pub fn batch_verify(
 }
 
 /// Create a compact witness from multiple proofs
+#[allow(dead_code)]
 pub fn create_witness(
     proofs: &[VerkleProof],
     keys: &[Vec<u8>]

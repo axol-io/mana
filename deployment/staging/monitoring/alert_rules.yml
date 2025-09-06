@@ -1,0 +1,158 @@
+groups:
+- name: mana-critical-alerts
+  rules:
+  - alert: ManaNodeDown
+    expr: up{job="mana-node"} == 0
+    for: 30s
+    labels:
+      severity: critical
+      service: mana-node
+    annotations:
+      summary: "Mana node is down"
+      description: "Mana node {{ $labels.instance }} has been down for more than 30 seconds"
+      
+  - alert: ManaJSONRPCDown
+    expr: up{job="mana-node"} == 0 or mana_jsonrpc_requests_total == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: mana-jsonrpc
+    annotations:
+      summary: "Mana JSON-RPC endpoint is not responding"
+      description: "JSON-RPC endpoint on {{ $labels.instance }} is not responding for over 1 minute"
+
+  - alert: AntidoteDBDown
+    expr: up{job="antidote"} == 0
+    for: 30s
+    labels:
+      severity: critical
+      service: antidote
+    annotations:
+      summary: "AntidoteDB is down"
+      description: "AntidoteDB instance {{ $labels.instance }} has been down for more than 30 seconds"
+
+- name: mana-performance-alerts
+  rules:
+  - alert: VerklePerformanceDegradation
+    expr: rate(verkle_tree_operations_total[5m]) < 20000
+    for: 2m
+    labels:
+      severity: warning
+      service: mana-ultra-performance
+    annotations:
+      summary: "Verkle tree performance below threshold"
+      description: "Verkle operations on {{ $labels.instance }} below 20k ops/sec: {{ $value }}"
+      current_value: "{{ $value }}"
+      threshold: "20000"
+
+  - alert: EVMExecutionSlowdown
+    expr: rate(evm_opcodes_executed_total[5m]) < 1000000
+    for: 2m
+    labels:
+      severity: warning
+      service: mana-ultra-performance
+    annotations:
+      summary: "EVM execution performance degraded"
+      description: "EVM opcode execution on {{ $labels.instance }} below 1M ops/sec: {{ $value }}"
+      current_value: "{{ $value }}"
+      threshold: "1000000"
+
+  - alert: NetworkLatencyHigh
+    expr: histogram_quantile(0.95, rate(libp2p_message_latency_seconds_bucket[5m])) > 0.025
+    for: 1m
+    labels:
+      severity: warning
+      service: mana-network
+    annotations:
+      summary: "High network latency detected"
+      description: "95th percentile message latency on {{ $labels.instance }} above 25ms: {{ $value }}s"
+      current_value: "{{ $value }}s"
+      threshold: "0.025s"
+
+  - alert: WitnessGenerationSlow
+    expr: rate(verkle_witness_generated_total[5m]) < 10000
+    for: 2m
+    labels:
+      severity: warning
+      service: mana-ultra-performance
+    annotations:
+      summary: "Witness generation below target"
+      description: "Witness generation on {{ $labels.instance }} below 10k/sec: {{ $value }}"
+      current_value: "{{ $value }}"
+      threshold: "10000"
+
+- name: mana-resource-alerts
+  rules:
+  - alert: HighMemoryUsage
+    expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 90
+    for: 2m
+    labels:
+      severity: warning
+      service: system
+    annotations:
+      summary: "High memory usage"
+      description: "Memory usage on {{ $labels.instance }} above 90%: {{ $value }}%"
+
+  - alert: HighDiskUsage
+    expr: (node_filesystem_size_bytes - node_filesystem_avail_bytes) / node_filesystem_size_bytes * 100 > 85
+    for: 2m
+    labels:
+      severity: warning
+      service: system
+    annotations:
+      summary: "High disk usage"
+      description: "Disk usage on {{ $labels.instance }} above 85%: {{ $value }}%"
+
+  - alert: HighCPUUsage
+    expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+    for: 5m
+    labels:
+      severity: warning
+      service: system
+    annotations:
+      summary: "High CPU usage"
+      description: "CPU usage on {{ $labels.instance }} above 90%: {{ $value }}%"
+
+- name: mana-hsm-alerts
+  rules:
+  - alert: HSMConnectionFailure
+    expr: rate(hsm_connection_errors_total[5m]) > 0.1
+    for: 1m
+    labels:
+      severity: critical
+      service: mana-hsm
+    annotations:
+      summary: "HSM connection errors detected"
+      description: "HSM connection errors on {{ $labels.instance }}: {{ $value }} errors/sec"
+
+  - alert: HSMLatencyHigh
+    expr: histogram_quantile(0.95, rate(hsm_operation_latency_seconds_bucket[5m])) > 0.01
+    for: 2m
+    labels:
+      severity: warning
+      service: mana-hsm
+    annotations:
+      summary: "HSM operation latency high"
+      description: "95th percentile HSM latency on {{ $labels.instance }} above 10ms: {{ $value }}s"
+
+- name: mana-consensus-alerts
+  rules:
+  - alert: ConsensusParticipationLow
+    expr: rate(consensus_attestations_total[5m]) < 100
+    for: 2m
+    labels:
+      severity: warning
+      service: mana-consensus
+    annotations:
+      summary: "Low consensus participation"
+      description: "Attestation rate on {{ $labels.instance }} below 100/sec: {{ $value }}"
+
+  - alert: ForkChoiceErrors
+    expr: rate(consensus_fork_choice_errors_total[5m]) > 0
+    for: 30s
+    labels:
+      severity: critical
+      service: mana-consensus
+    annotations:
+      summary: "Fork choice errors detected"
+      description: "Fork choice errors on {{ $labels.instance }}: {{ $value }} errors/sec"

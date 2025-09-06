@@ -1,0 +1,460 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mana-system
+  labels:
+    name: mana-system
+    ultra-performance: "true"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mana-ultra-config
+  namespace: mana-system
+data:
+  ultra_performance.config: |
+    export MIX_ENV=prod
+    export MANA_ULTRA_PERFORMANCE=true
+    export VERKLE_SIMD_ENABLED=true
+    export EVM_SIMD_ENABLED=true
+    export LIBP2P_MESH_OPTIMIZATION=true
+    export HSM_ULTRA_OPTIMIZATION=true
+    export ENABLE_TELEMETRY=true
+    export PROMETHEUS_ENABLED=true
+    export LOG_LEVEL=info
+    export MAX_PEER_CONNECTIONS=10000
+    export NETWORK_BUFFER_SIZE=1048576
+    export DATACENTER_ID=${DATACENTER_ID}
+    export REGION=${REGION}
+    export ANTIDOTE_CLUSTER_NODES=${ANTIDOTE_CLUSTER_NODES}
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mana-secrets
+  namespace: mana-system
+type: Opaque
+data:
+  # Base64 encoded secrets
+  hsm-api-key: ""  # Add your HSM API key
+  monitoring-password: c3RhZ2luZzEyMw==  # staging123
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mana-node
+  namespace: mana-system
+  labels:
+    app: mana-node
+    component: blockchain
+    performance-tier: ultra
+spec:
+  serviceName: mana-node
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mana-node
+  template:
+    metadata:
+      labels:
+        app: mana-node
+        component: blockchain
+        performance-tier: ultra
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      affinity:
+        # Spread pods across nodes for high availability
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values: ["mana-node"]
+              topologyKey: kubernetes.io/hostname
+        # Prefer nodes with ultra-performance capabilities
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: node-type
+                operator: In
+                values: ["ultra-performance"]
+      
+      tolerations:
+      - key: "ultra-performance"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+      
+      containers:
+      - name: mana
+        image: mana:ultra-performance-latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8545
+          name: jsonrpc
+          protocol: TCP
+        - containerPort: 8546
+          name: websocket
+          protocol: TCP
+        - containerPort: 30303
+          name: p2p
+          protocol: TCP
+        - containerPort: 9090
+          name: metrics
+          protocol: TCP
+        
+        env:
+        - name: DATACENTER_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['datacenter.mana.io/id']
+        - name: REGION
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['datacenter.mana.io/region']
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: ANTIDOTE_CLUSTER_NODES
+          value: "antidote-0.antidote.mana-system.svc.cluster.local:8087,antidote-1.antidote.mana-system.svc.cluster.local:8087,antidote-2.antidote.mana-system.svc.cluster.local:8087"
+        
+        envFrom:
+        - configMapRef:
+            name: mana-ultra-config
+        - secretRef:
+            name: mana-secrets
+        
+        resources:
+          requests:
+            memory: "8Gi"
+            cpu: "4"
+            ephemeral-storage: "20Gi"
+          limits:
+            memory: "16Gi"
+            cpu: "8"
+            ephemeral-storage: "50Gi"
+        
+        volumeMounts:
+        - name: data
+          mountPath: /opt/mana/data
+        - name: logs
+          mountPath: /opt/mana/logs
+        - name: config
+          mountPath: /opt/mana/config
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 9090
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 9090
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 2
+        
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 9090
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 12
+      
+      volumes:
+      - name: config
+        configMap:
+          name: mana-ultra-config
+  
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: "ultra-performance-ssd"
+      resources:
+        requests:
+          storage: 500Gi
+  - metadata:
+      name: logs
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: "fast-ssd"
+      resources:
+        requests:
+          storage: 50Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mana-node
+  namespace: mana-system
+  labels:
+    app: mana-node
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+spec:
+  type: LoadBalancer
+  selector:
+    app: mana-node
+  ports:
+  - name: jsonrpc
+    port: 8545
+    targetPort: 8545
+    protocol: TCP
+  - name: websocket
+    port: 8546
+    targetPort: 8546
+    protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mana-p2p
+  namespace: mana-system
+  labels:
+    app: mana-node
+    service: p2p
+spec:
+  type: NodePort
+  selector:
+    app: mana-node
+  ports:
+  - name: p2p
+    port: 30303
+    targetPort: 30303
+    protocol: TCP
+    nodePort: 30303
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mana-metrics
+  namespace: mana-system
+  labels:
+    app: mana-node
+    service: metrics
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+spec:
+  type: ClusterIP
+  selector:
+    app: mana-node
+  ports:
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: antidote
+  namespace: mana-system
+  labels:
+    app: antidote
+    component: database
+spec:
+  serviceName: antidote
+  replicas: 3
+  selector:
+    matchLabels:
+      app: antidote
+  template:
+    metadata:
+      labels:
+        app: antidote
+        component: database
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values: ["antidote"]
+              topologyKey: kubernetes.io/hostname
+      
+      containers:
+      - name: antidote
+        image: antidotedb/antidote:latest
+        ports:
+        - containerPort: 8087
+          name: antidote
+        - containerPort: 4369
+          name: epmd
+        - containerPort: 9100
+          name: metrics
+        
+        env:
+        - name: NODE_NAME
+          value: "antidote@$(POD_IP)"
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: ANTIDOTE_TXN_CERT
+          value: "true"
+        - name: ANTIDOTE_RECOVERY_ENABLED
+          value: "true"
+        - name: ANTIDOTE_META_DATA_ON_START
+          value: "true"
+        
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+          limits:
+            memory: "8Gi"
+            cpu: "4"
+        
+        volumeMounts:
+        - name: data
+          mountPath: /opt/antidote/data
+        
+        livenessProbe:
+          tcpSocket:
+            port: 8087
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        
+        readinessProbe:
+          tcpSocket:
+            port: 8087
+          initialDelaySeconds: 30
+          periodSeconds: 15
+  
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: "fast-ssd"
+      resources:
+        requests:
+          storage: 200Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: antidote
+  namespace: mana-system
+  labels:
+    app: antidote
+spec:
+  clusterIP: None
+  selector:
+    app: antidote
+  ports:
+  - name: antidote
+    port: 8087
+    targetPort: 8087
+  - name: epmd
+    port: 4369
+    targetPort: 4369
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mana-node-pdb
+  namespace: mana-system
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: mana-node
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: antidote-pdb
+  namespace: mana-system
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: antidote
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: mana-node-hpa
+  namespace: mana-system
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: mana-node
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  - type: Pods
+    pods:
+      metric:
+        name: verkle_operations_per_second
+      target:
+        type: AverageValue
+        averageValue: "20000"
+  
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60

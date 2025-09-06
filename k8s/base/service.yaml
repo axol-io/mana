@@ -1,0 +1,83 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mana-ethereum-headless
+  namespace: mana-ethereum
+  labels:
+    app: mana-ethereum
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app: mana-ethereum
+    component: node
+  ports:
+  - name: p2p
+    port: 30303
+    targetPort: 30303
+    protocol: TCP
+  - name: p2p-udp
+    port: 30303
+    targetPort: 30303
+    protocol: UDP
+  - name: erlang
+    port: 4369
+    targetPort: 4369
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mana-ethereum-rpc
+  namespace: mana-ethereum
+  labels:
+    app: mana-ethereum
+    component: rpc
+spec:
+  type: ClusterIP
+  selector:
+    app: mana-ethereum
+    component: node
+  ports:
+  - name: rpc
+    port: 8545
+    targetPort: 8545
+    protocol: TCP
+  - name: ws
+    port: 8546
+    targetPort: 8546
+    protocol: TCP
+  - name: metrics
+    port: 9568
+    targetPort: 9568
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mana-ethereum-lb
+  namespace: mana-ethereum
+  labels:
+    app: mana-ethereum
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
+spec:
+  type: LoadBalancer
+  selector:
+    app: mana-ethereum
+    component: node
+  ports:
+  - name: p2p
+    port: 30303
+    targetPort: 30303
+    protocol: TCP
+  - name: p2p-udp
+    port: 30303
+    targetPort: 30303
+    protocol: UDP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800

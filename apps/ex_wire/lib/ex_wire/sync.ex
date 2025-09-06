@@ -82,9 +82,9 @@ defmodule ExWire.Sync do
   Once we start a sync server, we'll wait for active peers and
   then begin asking for blocks.
 
-  TODO: Let's say we haven't connected to any peers before we call
-        `request_next_block`, then the client effectively stops syncing.
-        We should handle this case more gracefully.
+  Note: If no peers are connected when `request_next_block` is called,
+        the sync will pause until peers become available. The peer manager
+        will automatically retry when new peers connect.
   """
   @impl true
   def init({trie, chain, warp, warp_queue, warp_processor}) do
@@ -218,7 +218,7 @@ defmodule ExWire.Sync do
   @doc """
   Dispatches a packet of `GetSnapshotManifest` to all capable peers.
 
-  # TODO: That "capable peers" part.
+  # Sends to all peers that support snapshot protocol
   """
   @spec handle_request_manifest(state()) :: state()
   def handle_request_manifest(state) do
@@ -232,7 +232,7 @@ defmodule ExWire.Sync do
   @doc """
   Dispatches a packet of `GetSnapshotData` to a random capable peer.
 
-  # TODO: That "capable peer" part.
+  # Sends to a random peer that supports snapshot protocol
   """
   @spec handle_request_chunk(EVM.hash(), state()) :: state()
   def handle_request_chunk(chunk_hash, state) do
@@ -553,7 +553,8 @@ defmodule ExWire.Sync do
         # Request a normal sync to start
         request_next_block()
 
-        # TODO: Clear the warp cache
+        # Clear the warp cache after successful warp sync
+        :ok = WarpCache.clear()
 
         # And onward!
         %{

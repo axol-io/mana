@@ -10,10 +10,12 @@ defmodule ExWire.Crypto.KZG do
   Uses Rust NIF with blst library for performance-critical operations.
   """
 
-  use Rustler,
-    otp_app: :ex_wire,
-    crate: "kzg_nif"
-  
+  if System.get_env("RUSTLER_SKIP_COMPILE") != "1" do
+    use Rustler,
+      otp_app: :ex_wire,
+      crate: "kzg_nif"
+  end
+
   require Logger
 
   # EIP-4844 Constants

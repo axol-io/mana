@@ -13,7 +13,8 @@ defmodule ExWire.Eth2.StateTransition do
   @doc """
   Full state transition function: processes slots and blocks.
   """
-  @spec state_transition(BeaconState.t(), BeaconBlock.t()) :: {:ok, BeaconState.t()} | {:error, term()}
+  @spec state_transition(BeaconState.t(), BeaconBlock.t()) ::
+          {:ok, BeaconState.t()} | {:error, term()}
   def state_transition(state, block) do
     with {:ok, state} <- process_slots_until_block(state, block.slot),
          {:ok, state} <- process_block(state, block) do
@@ -24,14 +25,17 @@ defmodule ExWire.Eth2.StateTransition do
   @doc """
   Process empty slots until the target slot.
   """
-  @spec process_slots_until_block(BeaconState.t(), non_neg_integer()) :: {:ok, BeaconState.t()} | {:error, term()}
+  @spec process_slots_until_block(BeaconState.t(), non_neg_integer()) ::
+          {:ok, BeaconState.t()} | {:error, term()}
   def process_slots_until_block(state, target_slot) when target_slot > state.slot do
     # Process each slot individually
     process_slots_range(state, state.slot + 1, target_slot)
   end
+
   def process_slots_until_block(state, target_slot) when target_slot == state.slot do
     {:ok, state}
   end
+
   def process_slots_until_block(_state, target_slot) do
     {:error, {:invalid_target_slot, target_slot}}
   end
@@ -39,7 +43,8 @@ defmodule ExWire.Eth2.StateTransition do
   @doc """
   Process a beacon block and return the new state.
   """
-  @spec process_block(BeaconState.t(), BeaconBlock.t()) :: {:ok, BeaconState.t()} | {:error, term()}
+  @spec process_block(BeaconState.t(), BeaconBlock.t()) ::
+          {:ok, BeaconState.t()} | {:error, term()}
   def process_block(state, block) do
     # Use the BeaconBlock module's process_block function
     ExWire.Eth2.BeaconBlock.Operations.process_block(state, block)
@@ -57,7 +62,8 @@ defmodule ExWire.Eth2.StateTransition do
   @doc """
   Validate a state transition.
   """
-  @spec validate_state_transition(BeaconState.t(), BeaconBlock.t(), BeaconState.t()) :: :ok | {:error, term()}
+  @spec validate_state_transition(BeaconState.t(), BeaconBlock.t(), BeaconState.t()) ::
+          :ok | {:error, term()}
   def validate_state_transition(pre_state, block, post_state) do
     with {:ok, expected_state} <- state_transition(pre_state, block) do
       if states_equal?(expected_state, post_state) do
@@ -99,11 +105,12 @@ defmodule ExWire.Eth2.StateTransition do
   def advance_to_next_epoch(state) do
     current_epoch = ExWire.Eth2.BeaconState.Operations.get_current_epoch(state)
     next_epoch_start_slot = get_epoch_start_slot(current_epoch + 1)
-    
+
     # Process slots up to the next epoch
     case process_slots_until_block(state, next_epoch_start_slot) do
       {:ok, new_state} -> new_state
-      {:error, _} -> state  # Fallback
+      # Fallback
+      {:error, _} -> state
     end
   end
 
@@ -112,19 +119,19 @@ defmodule ExWire.Eth2.StateTransition do
   defp process_slots_range(state, current_slot, target_slot) when current_slot > target_slot do
     {:ok, state}
   end
-  
+
   defp process_slots_range(state, current_slot, target_slot) do
     # Process single slot
     new_state = process_single_slot(state, current_slot)
-    
+
     # Check if we need epoch processing
-    final_state = 
+    final_state =
       if is_epoch_boundary?(current_slot) and current_slot > 0 do
         process_epoch_transition(new_state)
       else
         new_state
       end
-    
+
     # Continue to next slot
     process_slots_range(final_state, current_slot + 1, target_slot)
   end
@@ -138,8 +145,8 @@ defmodule ExWire.Eth2.StateTransition do
 
   defp states_equal?(state1, state2) do
     # Simplified state comparison - in production would compare all fields
-    state1.slot == state2.slot and 
-    state1.finalized_checkpoint == state2.finalized_checkpoint and
-    state1.current_justified_checkpoint == state2.current_justified_checkpoint
+    state1.slot == state2.slot and
+      state1.finalized_checkpoint == state2.finalized_checkpoint and
+      state1.current_justified_checkpoint == state2.current_justified_checkpoint
   end
 end

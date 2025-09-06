@@ -754,7 +754,7 @@ defmodule Blockchain.Compliance.Alerting do
       Logger.info("Sending Slack notification for alert #{alert.id}")
 
       # Format message for Slack
-      message = format_alert_for_slack(alert)
+      _message = format_alert_for_slack(alert)
 
       # Simulate Slack webhook call
       :ok
@@ -792,7 +792,7 @@ defmodule Blockchain.Compliance.Alerting do
     # Ticketing system integration (ServiceNow, Jira, etc.)
     Logger.info("Creating ticket for alert #{alert.id}")
 
-    ticket_data = %{
+    _ticket_data = %{
       title: "[Compliance] #{alert.title}",
       description: alert.description,
       severity: map_severity_to_ticket_priority(alert.severity),
@@ -805,7 +805,7 @@ defmodule Blockchain.Compliance.Alerting do
     :ok
   end
 
-  defp send_regulatory_notification(alert, config) do
+  defp send_regulatory_notification(alert, _config) do
     # Regulatory notification for specific violations (e.g., GDPR 72-hour breach notification)
     if requires_regulatory_notification?(alert) do
       Logger.warning("Regulatory notification required for alert #{alert.id}")
@@ -840,10 +840,40 @@ defmodule Blockchain.Compliance.Alerting do
     end
   end
 
+  @doc """
+  Run all compliance checks and return any violations found.
+  This function is typically called by scheduled monitoring jobs.
+  """
+  def run_compliance_checks do
+    checks = [
+      {:sox, &check_sox_control_failures/0},
+      {:pci, &check_pci_data_exposure/0},
+      {:gdpr, &check_gdpr_data_breaches/0},
+      {:fips, &check_fips_crypto_failures/0},
+      {:audit, &check_audit_integrity_violations/0},
+      {:segregation, &check_segregation_of_duties/0},
+      {:access, &check_privileged_access_review/0},
+      {:logs, &check_log_completeness/0},
+      {:key_rotation, &check_key_rotation_schedule/0},
+      {:hsm, &check_hsm_key_storage/0},
+      {:comprehensive, &check_comprehensive_logging/0}
+    ]
+
+    Enum.reduce(checks, %{violations: [], passed: []}, fn {name, check_fn}, acc ->
+      case check_fn.() do
+        :no_violation ->
+          %{acc | passed: [name | acc.passed]}
+
+        {:violation, details} ->
+          %{acc | violations: [{name, details} | acc.violations]}
+      end
+    end)
+  end
+
   defp check_sox_control_failures() do
     # Check SOX internal control compliance
     case Framework.get_violations(%{standard: :sox}) do
-      {:ok, violations} when length(violations) > 0 ->
+      {:ok, violations} when violations != [] ->
         {:violation, %{sox_violations: violations, violation_count: length(violations)}}
 
       {:ok, []} ->
@@ -906,6 +936,68 @@ defmodule Blockchain.Compliance.Alerting do
     end
   end
 
+  defp check_segregation_of_duties() do
+    # Check if critical operations have proper segregation
+    case Framework.get_violations(%{standard: :sox, control: :segregation_of_duties}) do
+      {:ok, violations} when violations != [] ->
+        {:violation, %{segregation_violations: violations}}
+
+      _ ->
+        :no_violation
+    end
+  end
+
+  defp check_privileged_access_review() do
+    # Check if privileged access is being properly reviewed
+    case Framework.get_violations(%{standard: :sox, control: :privileged_access}) do
+      {:ok, violations} when violations != [] ->
+        {:violation, %{access_review_violations: violations}}
+
+      _ ->
+        :no_violation
+    end
+  end
+
+  defp check_log_completeness() do
+    # Check if logging is complete and unmodified
+    case AuditEngine.verify_log_integrity() do
+      {:ok, :verified} ->
+        :no_violation
+
+      {:error, reason} ->
+        {:violation, %{log_integrity_issue: reason}}
+
+      _ ->
+        :no_violation
+    end
+  end
+
+  defp check_key_rotation_schedule() do
+    # Check if cryptographic keys are rotated on schedule
+    # In production, this would check actual key rotation dates
+    :no_violation
+  end
+
+  defp check_hsm_key_storage() do
+    # Check if sensitive keys are properly stored in HSM
+    # In production, this would verify HSM usage for critical keys
+    :no_violation
+  end
+
+  defp check_comprehensive_logging() do
+    # Check if all required events are being logged
+    case AuditEngine.check_logging_completeness() do
+      {:ok, :complete} ->
+        :no_violation
+
+      {:ok, {:missing, events}} ->
+        {:violation, %{missing_logs: events}}
+
+      _ ->
+        :no_violation
+    end
+  end
+
   # Helper functions
 
   defp find_duplicate_or_correlated_alert(new_alert, active_alerts) do
@@ -952,7 +1044,7 @@ defmodule Blockchain.Compliance.Alerting do
     alert_level >= threshold_level
   end
 
-  defp within_rate_limit?(config) do
+  defp within_rate_limit?(_config) do
     # Simple rate limiting - in production would use more sophisticated logic
     true
   end

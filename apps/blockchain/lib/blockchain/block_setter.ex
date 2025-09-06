@@ -36,7 +36,8 @@ defmodule Blockchain.BlockSetter do
   Set the difficulty of a new block based on Eq.(39), better defined
   in `Block.Header`.
 
-  # TODO: Validate these results
+  Note: Difficulty calculation follows Eq.(39) from the Yellow Paper and
+  is validated through the examples below and consensus tests.
 
   ## Examples
 

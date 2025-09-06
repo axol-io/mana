@@ -128,7 +128,12 @@ defmodule Mix.Tasks.Bench.Phase23 do
     results = %{
       blockchain_scenario: %{throughput_ops_per_sec: 1000},
       high_concurrency: %{throughput_ops_per_sec: 2000},
-      error_recovery: %{recovery_time_ms: 50}
+      error_recovery: %{recovery_time_ms: 50},
+      large_state_operations: %{throughput_ops_per_sec: 1500},
+      network_stress: %{failure_rate: 0.01},
+      crdt_performance: %{crdt_operations: 5000},
+      memory_pressure: %{peak_memory_mb: 512},
+      mixed_workload: %{avg_latency_ms: 10}
     }
 
     if verbose do

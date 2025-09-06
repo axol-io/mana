@@ -5,9 +5,9 @@ defmodule Blockchain.Utils.EnumHelpers do
 
   @doc """
   Unzips a list of 3-tuples into three separate lists.
-  
+
   ## Examples
-  
+
       iex> Blockchain.Utils.EnumHelpers.unzip3([{1, 2, 3}, {4, 5, 6}, {7, 8, 9}])
       {[1, 4, 7], [2, 5, 8], [3, 6, 9]}
       

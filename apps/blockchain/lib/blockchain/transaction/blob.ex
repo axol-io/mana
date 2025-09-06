@@ -14,9 +14,6 @@ defmodule Blockchain.Transaction.Blob do
   @blob_tx_type 0x03
 
   # Constants from EIP-4844
-  @bytes_per_field_element 32
-  @field_elements_per_blob 4096
-  @blob_size @bytes_per_field_element * @field_elements_per_blob
   @versioned_hash_version_kzg 0x01
 
   @type versioned_hash :: <<_::256>>
@@ -367,26 +364,27 @@ defmodule Blockchain.Transaction.Blob do
       blob_tx.max_fee_per_blob_gas,
       blob_tx.blob_versioned_hashes
     ]
-    
-    message_hash = 
+
+    message_hash =
       signing_data
       |> ExRLP.encode()
       |> ExthCrypto.Hash.Keccak.kec()
-    
+
     # Recover public key from signature
-    case Blockchain.Transaction.Signature.get_public_key(
-      message_hash,
-      blob_tx.v,
-      blob_tx.r,
-      blob_tx.s
-    ) do
+    case Blockchain.Transaction.Signature.recover_public(
+           message_hash,
+           blob_tx.v,
+           blob_tx.r,
+           blob_tx.s
+         ) do
       {:ok, public_key} ->
-        address = 
+        address =
           public_key
           |> ExthCrypto.Hash.Keccak.kec()
           |> Binary.take(-20)
+
         {:ok, address}
-        
+
       error ->
         error
     end

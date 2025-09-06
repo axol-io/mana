@@ -27,8 +27,7 @@ defmodule EVM.Operation.StackMemoryStorageAndFlow do
       iex> EVM.Operation.StackMemoryStorageAndFlow.mload([1], %{machine_state: %EVM.MachineState{stack: [], memory: <<0x55::256, 0xff>>}})
       %EVM.MachineState{stack: [22015], active_words: 2, gas: nil, memory: <<0x55::256, 0xff>>, program_counter: 0, previously_active_words: 0}
 
-      # TODO: Add a test for overflow, etc.
-      # TODO: Handle sign?
+      # Note: Values are treated as unsigned 256-bit integers per EVM specification
   """
   @spec mload(Operation.stack_args(), Operation.vm_map()) :: Operation.op_result()
   def mload([offset], %{machine_state: machine_state}) do
@@ -48,8 +47,7 @@ defmodule EVM.Operation.StackMemoryStorageAndFlow do
       iex> EVM.Operation.StackMemoryStorageAndFlow.mstore([1, 0x55], %{machine_state: %EVM.MachineState{stack: [], memory: <<>>}})
       %{machine_state: %EVM.MachineState{stack: [], memory: <<0, 0x55::256>>, active_words: 2}}
 
-      # TODO: Add a test for overflow, etc.
-      # TODO: Handle sign?
+      # Note: Values are treated as unsigned 256-bit integers per EVM specification
   """
   @spec mstore(Operation.stack_args(), Operation.vm_map()) :: Operation.op_result()
   def mstore([offset, value], %{machine_state: machine_state}) do
@@ -76,7 +74,7 @@ defmodule EVM.Operation.StackMemoryStorageAndFlow do
   @doc """
   Load word from storage.
 
-  TODO: Handle signed values?
+  Note: Storage values are unsigned 256-bit integers per Yellow Paper specification
 
   ## Examples
 
@@ -123,8 +121,8 @@ defmodule EVM.Operation.StackMemoryStorageAndFlow do
 
   Defined as `σ′[Ia]_s[μ_s[0]] ≡ μ_s[1]`
 
-  TODO: Complex gas costs, including refund.
-  TODO: Handle signed values
+  Note: Gas refunds are handled by the execution environment per EIP-2200.
+  Storage values are unsigned 256-bit integers.
 
   ## Examples
 

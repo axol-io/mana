@@ -92,45 +92,8 @@ defmodule Blockchain.Compliance.AuditEngine do
         }
 
   # Standardized audit event schemas for different compliance frameworks
-  @audit_schemas %{
-    # SOX - Financial Controls
-    sox_financial_transaction: %{
-      required_fields: [:transaction_id, :amount, :account, :approval_status, :approver],
-      compliance_tags: ["SOX", "FINANCIAL_CONTROL", "TRANSACTION"],
-      retention_period: %{years: 7}
-    },
-    sox_access_control: %{
-      required_fields: [:user_id, :resource, :privilege_level, :approval_required],
-      compliance_tags: ["SOX", "ACCESS_CONTROL", "SEGREGATION_DUTIES"],
-      retention_period: %{years: 7}
-    },
-
-    # PCI-DSS - Payment Card Industry
-    pci_card_data_access: %{
-      required_fields: [:user_id, :cardholder_data_type, :access_method, :justification],
-      compliance_tags: ["PCI_DSS", "CARDHOLDER_DATA", "DATA_ACCESS"],
-      retention_period: %{years: 1}
-    },
-    pci_cryptographic_operation: %{
-      required_fields: [:key_id, :operation_type, :hsm_session, :authentication_method],
-      compliance_tags: ["PCI_DSS", "CRYPTOGRAPHIC", "KEY_MANAGEMENT"],
-      retention_period: %{years: 3}
-    },
-
-    # FIPS 140-2 - Cryptographic Module Security
-    fips_key_lifecycle: %{
-      required_fields: [:key_id, :lifecycle_event, :security_level, :authentication],
-      compliance_tags: ["FIPS_140_2", "KEY_LIFECYCLE", "CRYPTOGRAPHIC_MODULE"],
-      retention_period: %{years: 5}
-    },
-
-    # GDPR - Data Protection
-    gdpr_data_processing: %{
-      required_fields: [:data_subject, :processing_purpose, :legal_basis, :data_categories],
-      compliance_tags: ["GDPR", "DATA_PROCESSING", "PRIVACY"],
-      retention_period: %{years: 6}
-    }
-  }
+  # Schemas available for validation in full audit framework implementation
+  # (removed unused @audit_schemas module attribute to reduce warnings)
 
   # Default configuration
   @default_config %{
@@ -595,7 +558,7 @@ defmodule Blockchain.Compliance.AuditEngine do
       # Simulate CRDT storage - in production this would use AntidoteDB
       storage_key = "audit_events_#{DateTime.utc_now() |> DateTime.to_unix()}"
 
-      events_data =
+      _events_data =
         Enum.map(events, fn event ->
           Jason.encode!(event)
         end)
@@ -654,9 +617,9 @@ defmodule Blockchain.Compliance.AuditEngine do
     # Query implementation would depend on storage backend
     # Support for filtering by category, severity, time range, etc.
 
-    filters = Map.get(query, :filters, %{})
+    _filters = Map.get(query, :filters, %{})
     limit = Map.get(query, :limit, 100)
-    offset = Map.get(query, :offset, 0)
+    _offset = Map.get(query, :offset, 0)
 
     # Simulate query results
     sample_events = generate_sample_events(limit)

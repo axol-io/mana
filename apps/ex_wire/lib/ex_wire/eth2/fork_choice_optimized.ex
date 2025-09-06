@@ -122,10 +122,11 @@ defmodule ExWire.Eth2.ForkChoiceOptimized do
   def on_attestation(store, %Attestation{data: %AttestationData{slot: slot}} = attestation) do
     # Validate attestation slot
     current_slot = get_current_slot(store)
-    
+
     # Allow attestations from the previous two epochs
-    oldest_valid_slot = max(0, current_slot - 64)  # 32 slots per epoch * 2 epochs
-    
+    # 32 slots per epoch * 2 epochs
+    oldest_valid_slot = max(0, current_slot - 64)
+
     if slot >= oldest_valid_slot and slot <= current_slot do
       # Add to pending buffer for batch processing
       store = %{store | pending_attestations: [attestation | store.pending_attestations]}

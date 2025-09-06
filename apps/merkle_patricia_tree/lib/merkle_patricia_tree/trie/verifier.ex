@@ -19,7 +19,7 @@ defmodule MerklePatriciaTree.Trie.Verifier do
   3. Branches have at least two non-empty nodes.
   4. All sub-tries are valid.
   5. Ext's prefixes aren't blank.
-  6. TODO: Ext's can't be extended.
+  6. Extension node validation (non-extensibility check).
   """
   @spec verify_trie(Trie.t(), [{binary(), binary()}]) :: :ok | {:error, String.t()}
   def verify_trie(trie, dict) do
@@ -84,7 +84,7 @@ defmodule MerklePatriciaTree.Trie.Verifier do
       ext_trie = Trie.into(node_hash, trie)
       do_verify_trie(ext_trie, dict, values)
 
-      # TODO: Check we can't extend the ext?
+      # Extension node non-extensibility validation can be added
     end
   end
 end

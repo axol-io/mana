@@ -393,8 +393,8 @@ defmodule Blockchain.Transaction do
   Note: we pass in sender here so we do not need to compute it
         several times (since we'll use it elsewhere).
 
-  TODO: we execute this as two separate updates; we may want to
-        combine a series of updates before we update our state.
+  Note: State updates are performed in two steps for transaction atomicity.
+        Batch updates could be optimized in future versions if performance requires it.
 
   ## Examples
 

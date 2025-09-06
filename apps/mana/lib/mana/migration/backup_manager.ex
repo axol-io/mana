@@ -1,7 +1,7 @@
 defmodule Mana.Migration.BackupManager do
   @moduledoc """
   Manages backups for safe V1 to V2 migrations.
-  
+
   This module provides:
   - State backup creation and restoration
   - Backup validation and integrity checking
@@ -14,19 +14,20 @@ defmodule Mana.Migration.BackupManager do
 
   @backup_version "1.0.0"
   @default_retention_days 30
-  @compression_threshold 1024 * 1024  # 1MB
+  # 1MB
+  @compression_threshold 1024 * 1024
 
   @type backup_ref :: reference()
   @type backup_metadata :: map()
 
   @doc """
   Creates a backup of module state.
-  
+
   ## Parameters
   - module_type: The type of module being backed up
   - state: The state to backup
   - metadata: Additional backup metadata
-  
+
   ## Returns
   - {:ok, backup_ref} on success
   - {:error, reason} on failure
@@ -35,33 +36,34 @@ defmodule Mana.Migration.BackupManager do
   def create_backup(module_type, state, metadata \\ %{}) do
     backup_ref = make_ref()
     timestamp = System.system_time(:second)
-    
+
     Logger.info("Creating backup", %{
       module_type: module_type,
       backup_ref: backup_ref,
       state_size: estimate_state_size(state)
     })
-    
+
     start_time = :os.system_time(:microsecond)
-    
-    with {:ok, backup_data} <- safe_prepare_backup_data(module_type, state, metadata, timestamp, backup_ref),
+
+    with {:ok, backup_data} <-
+           safe_prepare_backup_data(module_type, state, metadata, timestamp, backup_ref),
          :ok <- store_backup(backup_ref, backup_data) do
       duration_ms = (:os.system_time(:microsecond) - start_time) / 1000
-      
+
       Logger.info("Backup created successfully", %{
         module_type: module_type,
         backup_ref: backup_ref,
         duration_ms: duration_ms,
         compressed: backup_data.compression
       })
-      
+
       emit_telemetry(:backup_created, %{
         module_type: module_type,
         backup_ref: backup_ref,
         duration_ms: duration_ms,
         compressed: backup_data.compression
       })
-      
+
       {:ok, backup_ref}
     else
       {:error, reason} = error ->
@@ -70,17 +72,17 @@ defmodule Mana.Migration.BackupManager do
           backup_ref: backup_ref,
           reason: reason
         })
-        
+
         error
     end
   end
 
   @doc """
   Restores state from a backup.
-  
+
   ## Parameters
   - backup_ref: Reference to the backup to restore
-  
+
   ## Returns
   - {:ok, state} on successful restoration
   - {:error, reason} on failure
@@ -88,27 +90,27 @@ defmodule Mana.Migration.BackupManager do
   @spec restore_backup(backup_ref()) :: {:ok, map()} | {:error, term()}
   def restore_backup(backup_ref) do
     Logger.info("Restoring backup", %{backup_ref: backup_ref})
-    
+
     start_time = :os.system_time(:microsecond)
-    
+
     with {:ok, backup_data} <- load_backup(backup_ref),
          :ok <- validate_backup_integrity(backup_data) do
       state = backup_data.state
       duration_ms = (:os.system_time(:microsecond) - start_time) / 1000
-      
-      Logger.info("Backup restored successfully", %{  
+
+      Logger.info("Backup restored successfully", %{
         backup_ref: backup_ref,
         module_type: backup_data.module_type,
         duration_ms: duration_ms,
         state_size: estimate_state_size(state)
       })
-      
+
       emit_telemetry(:backup_restored, %{
         backup_ref: backup_ref,
         module_type: backup_data.module_type,
         duration_ms: duration_ms
       })
-      
+
       {:ok, state}
     else
       {:error, reason} = error ->
@@ -116,14 +118,14 @@ defmodule Mana.Migration.BackupManager do
           backup_ref: backup_ref,
           reason: reason
         })
-        
+
         error
     end
   end
 
   @doc """
   Lists all available backups.
-  
+
   ## Returns
   List of backup information maps.
   """
@@ -138,7 +140,7 @@ defmodule Mana.Migration.BackupManager do
       case get_backup_metadata(backup_ref) do
         {:ok, metadata} ->
           Map.merge(metadata, %{backup_ref: backup_ref})
-          
+
         {:error, _reason} ->
           %{
             backup_ref: backup_ref,
@@ -156,10 +158,10 @@ defmodule Mana.Migration.BackupManager do
 
   @doc """
   Gets detailed information about a specific backup.
-  
+
   ## Parameters
   - backup_ref: Reference to the backup
-  
+
   ## Returns
   - {:ok, backup_info} on success
   - {:error, reason} if backup not found or corrupted
@@ -178,9 +180,9 @@ defmodule Mana.Migration.BackupManager do
           storage_size: get_storage_size(backup_ref),
           integrity_status: validate_backup_integrity(backup_data)
         }
-        
+
         {:ok, info}
-        
+
       {:error, reason} = error ->
         error
     end
@@ -188,10 +190,10 @@ defmodule Mana.Migration.BackupManager do
 
   @doc """
   Deletes a backup.
-  
+
   ## Parameters
   - backup_ref: Reference to the backup to delete
-  
+
   ## Returns
   - :ok on successful deletion
   - {:error, reason} on failure
@@ -199,31 +201,31 @@ defmodule Mana.Migration.BackupManager do
   @spec delete_backup(backup_ref()) :: :ok | {:error, term()}
   def delete_backup(backup_ref) do
     Logger.info("Deleting backup", %{backup_ref: backup_ref})
-    
+
     case remove_backup_storage(backup_ref) do
       :ok ->
         Logger.info("Backup deleted successfully", %{backup_ref: backup_ref})
-        
+
         emit_telemetry(:backup_deleted, %{backup_ref: backup_ref})
-        
+
         :ok
-        
+
       {:error, reason} = error ->
         Logger.error("Backup deletion failed", %{
           backup_ref: backup_ref,
           reason: reason
         })
-        
+
         error
     end
   end
 
   @doc """
   Cleans up old backups based on retention policy.
-  
+
   ## Parameters
   - retention_days: Number of days to retain backups (default: 30)
-  
+
   ## Returns
   - {:ok, deleted_count} on success
   - {:error, reason} on failure
@@ -231,56 +233,57 @@ defmodule Mana.Migration.BackupManager do
   @spec cleanup_old_backups(non_neg_integer()) :: {:ok, non_neg_integer()} | {:error, term()}
   def cleanup_old_backups(retention_days \\ @default_retention_days) do
     Logger.info("Starting backup cleanup", %{retention_days: retention_days})
-    
-    cutoff_time = System.system_time(:second) - (retention_days * 24 * 60 * 60)
-    
+
+    cutoff_time = System.system_time(:second) - retention_days * 24 * 60 * 60
+
     with {:ok, deleted_count} <- safe_cleanup_old_backups(cutoff_time) do
       Logger.info("Cleanup completed", %{
         retention_days: retention_days,
         deleted_count: deleted_count
       })
-      
+
       emit_telemetry(:cleanup_completed, %{
         retention_days: retention_days,
         deleted_count: deleted_count
       })
-      
+
       {:ok, deleted_count}
     else
       {:error, reason} = error ->
         Logger.error("Cleanup failed", %{
           reason: reason
         })
-        
+
         error
     end
   end
 
   defp safe_cleanup_old_backups(cutoff_time) do
-    old_backups = 
+    old_backups =
       list_backups()
       |> Enum.filter(fn backup ->
         created_at = Map.get(backup, :created_at, 0)
         created_at < cutoff_time
       end)
-    
-    deleted_count = 
+
+    deleted_count =
       Enum.reduce(old_backups, 0, fn backup, acc ->
         backup_ref = Map.get(backup, :backup_ref)
-        
+
         case delete_backup(backup_ref) do
           :ok ->
             acc + 1
-            
+
           {:error, reason} ->
             Logger.warning("Failed to delete old backup", %{
               backup_ref: backup_ref,
               reason: reason
             })
+
             acc
         end
       end)
-    
+
     {:ok, deleted_count}
   rescue
     exception ->
@@ -289,7 +292,7 @@ defmodule Mana.Migration.BackupManager do
 
   @doc """
   Validates the integrity of all stored backups.
-  
+
   ## Returns
   - {:ok, validation_report} with details of validation results
   - {:error, reason} on failure
@@ -297,9 +300,9 @@ defmodule Mana.Migration.BackupManager do
   @spec validate_all_backups() :: {:ok, map()} | {:error, term()}
   def validate_all_backups do
     Logger.info("Starting backup validation")
-    
+
     start_time = :os.system_time(:microsecond)
-    
+
     with {:ok, validation_report} <- safe_validate_all_backups(start_time) do
       Logger.info("Backup validation completed", %{
         total_backups: validation_report.total_backups,
@@ -307,34 +310,34 @@ defmodule Mana.Migration.BackupManager do
         invalid_backups: validation_report.invalid_backups,
         duration_ms: validation_report.validation_duration_ms
       })
-      
+
       emit_telemetry(:backup_validation_completed, %{
         total_backups: validation_report.total_backups,
         valid_backups: validation_report.valid_backups,
         invalid_backups: validation_report.invalid_backups,
         duration_ms: validation_report.validation_duration_ms
       })
-      
+
       {:ok, validation_report}
     else
       {:error, reason} = error ->
         Logger.error("Backup validation failed", %{
           reason: reason
         })
-        
+
         error
     end
   end
 
   defp safe_validate_all_backups(start_time) do
     backup_refs = get_all_backup_refs()
-    
-    validation_results = 
+
+    validation_results =
       Enum.map(backup_refs, fn backup_ref ->
         case load_backup(backup_ref) do
           {:ok, backup_data} ->
             integrity_result = validate_backup_integrity(backup_data)
-            
+
             %{
               backup_ref: backup_ref,
               module_type: backup_data.module_type,
@@ -342,7 +345,7 @@ defmodule Mana.Migration.BackupManager do
               integrity_status: integrity_result,
               valid: integrity_result == :ok
             }
-            
+
           {:error, reason} ->
             %{
               backup_ref: backup_ref,
@@ -353,13 +356,13 @@ defmodule Mana.Migration.BackupManager do
             }
         end
       end)
-    
+
     total_backups = length(validation_results)
     valid_backups = Enum.count(validation_results, & &1.valid)
     invalid_backups = total_backups - valid_backups
-    
+
     duration_ms = (:os.system_time(:microsecond) - start_time) / 1000
-    
+
     validation_report = %{
       total_backups: total_backups,
       valid_backups: valid_backups,
@@ -368,7 +371,7 @@ defmodule Mana.Migration.BackupManager do
       details: validation_results,
       validated_at: System.system_time(:second)
     }
-    
+
     {:ok, validation_report}
   rescue
     exception ->
@@ -397,21 +400,22 @@ defmodule Mana.Migration.BackupManager do
   defp store_backup(backup_ref, backup_data) do
     # Use ETS as simple storage backend (in production, would use persistent storage)
     table_name = ensure_backup_table()
-    
+
     # Optionally compress the data
-    final_data = if backup_data.compression do
-      compressed_state = :zlib.compress(:erlang.term_to_binary(backup_data.state))
-      %{backup_data | state: compressed_state}
-    else
-      backup_data
-    end
-    
+    final_data =
+      if backup_data.compression do
+        compressed_state = :zlib.compress(:erlang.term_to_binary(backup_data.state))
+        %{backup_data | state: compressed_state}
+      else
+        backup_data
+      end
+
     safe_ets_insert(table_name, backup_ref, final_data)
   end
 
   defp load_backup(backup_ref) do
     table_name = ensure_backup_table()
-    
+
     safe_load_backup_internal(table_name, backup_ref)
   end
 
@@ -419,19 +423,20 @@ defmodule Mana.Migration.BackupManager do
     case :ets.lookup(table_name, backup_ref) do
       [{^backup_ref, backup_data}] ->
         # Decompress if necessary
-        final_data = if backup_data.compression do
-          decompressed_state = 
-            backup_data.state
-            |> :zlib.uncompress()
-            |> :erlang.binary_to_term()
-          
-          %{backup_data | state: decompressed_state}
-        else
-          backup_data
-        end
-        
+        final_data =
+          if backup_data.compression do
+            decompressed_state =
+              backup_data.state
+              |> :zlib.uncompress()
+              |> :erlang.binary_to_term()
+
+            %{backup_data | state: decompressed_state}
+          else
+            backup_data
+          end
+
         {:ok, final_data}
-        
+
       [] ->
         {:error, :backup_not_found}
     end
@@ -451,18 +456,19 @@ defmodule Mana.Migration.BackupManager do
         # Validate checksum if present
         case get_in(backup_data, [:metadata, :state_checksum]) do
           nil ->
-            :ok  # No checksum to validate
-            
+            # No checksum to validate
+            :ok
+
           expected_checksum ->
             actual_checksum = calculate_checksum(backup_data.state)
-            
+
             if actual_checksum == expected_checksum do
               :ok
             else
               {:error, :checksum_mismatch}
             end
         end
-        
+
       other_version ->
         {:error, {:unsupported_version, other_version}}
     end
@@ -475,7 +481,7 @@ defmodule Mana.Migration.BackupManager do
     case load_backup(backup_ref) do
       {:ok, backup_data} ->
         {:ok, backup_data.metadata}
-        
+
       {:error, reason} ->
         {:error, reason}
     end
@@ -483,7 +489,7 @@ defmodule Mana.Migration.BackupManager do
 
   defp get_all_backup_refs do
     table_name = ensure_backup_table()
-    
+
     :ets.select(table_name, [{{:"$1", :"$2"}, [], [:"$1"]}])
   end
 
@@ -491,7 +497,7 @@ defmodule Mana.Migration.BackupManager do
     case load_backup(backup_ref) do
       {:ok, backup_data} ->
         :erlang.external_size(backup_data)
-        
+
       {:error, _reason} ->
         0
     end
@@ -499,7 +505,7 @@ defmodule Mana.Migration.BackupManager do
 
   defp remove_backup_storage(backup_ref) do
     table_name = ensure_backup_table()
-    
+
     safe_ets_delete(table_name, backup_ref)
   end
 
@@ -508,17 +514,16 @@ defmodule Mana.Migration.BackupManager do
     :ok
   rescue
     error ->
-        {:error, {:deletion_error, error}}
-    end
+      {:error, {:deletion_error, error}}
   end
 
   defp ensure_backup_table do
     table_name = :mana_migration_backups
-    
+
     case :ets.whereis(table_name) do
       :undefined ->
         :ets.new(table_name, [:named_table, :public, :set])
-        
+
       _ ->
         table_name
     end
@@ -531,14 +536,15 @@ defmodule Mana.Migration.BackupManager do
       version: @backup_version,
       module_type: module_type,
       state: state,
-      metadata: Map.merge(metadata, %{
-        created_at: timestamp,
-        backup_ref: backup_ref,
-        state_checksum: calculate_checksum(state)
-      }),
+      metadata:
+        Map.merge(metadata, %{
+          created_at: timestamp,
+          backup_ref: backup_ref,
+          state_checksum: calculate_checksum(state)
+        }),
       compression: should_compress?(state)
     }
-    
+
     {:ok, backup_data}
   rescue
     exception ->

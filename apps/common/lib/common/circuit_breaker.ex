@@ -1,10 +1,10 @@
 defmodule Common.CircuitBreaker do
   @moduledoc """
   Simple circuit breaker implementation for network operations.
-  
+
   Provides basic circuit breaker functionality without external dependencies.
   """
-  
+
   @doc """
   Executes a function through the circuit breaker.
   For now, this is a passthrough implementation.
@@ -18,11 +18,11 @@ defmodule Common.CircuitBreaker do
       :exit, reason -> {:error, {:exit, reason}}
     end
   end
-  
+
   def call(fun, _opts) when is_function(fun, 0) do
     call(nil, fun)
   end
-  
+
   @doc """
   Gets the current state of the circuit breaker.
   Currently always returns :closed (operational).
@@ -30,7 +30,7 @@ defmodule Common.CircuitBreaker do
   def get_state(_circuit_name) do
     {:ok, :closed}
   end
-  
+
   @doc """
   Starts the circuit breaker (no-op for now).
   """

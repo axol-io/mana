@@ -1,0 +1,263 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mana-ethereum
+  namespace: mana-ethereum
+  labels:
+    app: mana-ethereum
+    component: node
+spec:
+  serviceName: mana-ethereum-headless
+  replicas: 3
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0
+  selector:
+    matchLabels:
+      app: mana-ethereum
+      component: node
+  template:
+    metadata:
+      labels:
+        app: mana-ethereum
+        component: node
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9568"
+        prometheus.io/path: "/metrics"
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - mana-ethereum
+            topologyKey: kubernetes.io/hostname
+      initContainers:
+      - name: init-permissions
+        image: busybox:1.36
+        command: ['sh', '-c', 'chown -R 1000:1000 /data /antidote-data']
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: antidote-data
+          mountPath: /antidote-data
+        securityContext:
+          runAsUser: 0
+      containers:
+      - name: mana
+        image: mana-ethereum:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: p2p-tcp
+          containerPort: 30303
+          protocol: TCP
+        - name: p2p-udp
+          containerPort: 30303
+          protocol: UDP
+        - name: rpc
+          containerPort: 8545
+          protocol: TCP
+        - name: ws
+          containerPort: 8546
+          protocol: TCP
+        - name: metrics
+          containerPort: 9568
+          protocol: TCP
+        - name: erlang-epmd
+          containerPort: 4369
+          protocol: TCP
+        - name: erlang-dist
+          containerPort: 9000
+          protocol: TCP
+        env:
+        - name: RELEASE_NODE
+          value: "mana@$(POD_IP)"
+        - name: RELEASE_COOKIE
+          valueFrom:
+            secretKeyRef:
+              name: mana-secrets
+              key: erlang-cookie
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: NETWORK_ID
+          value: "1"
+        - name: SYNC_MODE
+          value: "fast"
+        - name: MAX_PEERS
+          value: "50"
+        - name: ENABLE_METRICS
+          value: "true"
+        - name: METRICS_PORT
+          value: "9568"
+        - name: LOG_LEVEL
+          value: "info"
+        - name: DATA_DIR
+          value: "/data"
+        - name: ANTIDOTE_NODES
+          value: "antidote@localhost:8087"
+        resources:
+          requests:
+            cpu: "2"
+            memory: "8Gi"
+            ephemeral-storage: "100Gi"
+          limits:
+            cpu: "4"
+            memory: "16Gi"
+            ephemeral-storage: "500Gi"
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: config
+          mountPath: /etc/mana
+          readOnly: true
+        - name: secrets
+          mountPath: /etc/mana/secrets
+          readOnly: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_BIND_SERVICE
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: metrics
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: metrics
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health
+            port: metrics
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 30
+      - name: antidote
+        image: antidotedb/antidote:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: antidote-pb
+          containerPort: 8087
+          protocol: TCP
+        - name: antidote-peer
+          containerPort: 8099
+          protocol: TCP
+        env:
+        - name: NODE_NAME
+          value: "antidote@localhost"
+        - name: COOKIE
+          valueFrom:
+            secretKeyRef:
+              name: mana-secrets
+              key: erlang-cookie
+        - name: ANTIDOTE_DATA_DIR
+          value: "/antidote-data"
+        - name: ANTIDOTE_TXN_CERT
+          value: "true"
+        - name: ANTIDOTE_TXN_PROT
+          value: "clocksi"
+        - name: ANTIDOTE_RECOVER_FROM_LOG
+          value: "true"
+        resources:
+          requests:
+            cpu: "1"
+            memory: "4Gi"
+          limits:
+            cpu: "2"
+            memory: "8Gi"
+        volumeMounts:
+        - name: antidote-data
+          mountPath: /antidote-data
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+        livenessProbe:
+          tcpSocket:
+            port: antidote-pb
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          tcpSocket:
+            port: antidote-pb
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: config
+        configMap:
+          name: mana-config
+          defaultMode: 0644
+      - name: secrets
+        secret:
+          secretName: mana-secrets
+          defaultMode: 0400
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+      labels:
+        app: mana-ethereum
+        component: storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: fast-ssd
+      resources:
+        requests:
+          storage: 1Ti
+  - metadata:
+      name: antidote-data
+      labels:
+        app: mana-ethereum
+        component: antidote-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: fast-ssd
+      resources:
+        requests:
+          storage: 500Gi

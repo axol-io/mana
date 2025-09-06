@@ -516,7 +516,7 @@ defmodule Blockchain.Compliance.Reporting do
 
   defp collect_sox_404_data(period_start, period_end, _options) do
     # Collect SOX 404 compliance data
-    {:ok, compliance_status} = Framework.get_compliance_status()
+    {:ok, _compliance_status} = Framework.get_compliance_status()
     {:ok, violations} = Framework.get_violations(%{standard: :sox})
 
     sox_data = %{
@@ -705,7 +705,7 @@ defmodule Blockchain.Compliance.Reporting do
     }
   end
 
-  defp generate_executive_summary(compliance_data, _options) do
+  defp generate_executive_summary(_compliance_data, _options) do
     %{
       overview:
         "This report provides a comprehensive assessment of compliance controls and their effectiveness during the reporting period.",

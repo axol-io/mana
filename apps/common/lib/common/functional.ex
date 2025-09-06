@@ -1,7 +1,7 @@
 defmodule Common.Functional do
   @moduledoc """
   Functional programming utilities and patterns for the Mana codebase.
-  
+
   This module provides:
   - Function composition operators
   - Pipeline helpers
@@ -12,11 +12,11 @@ defmodule Common.Functional do
 
   # Result Monad Pattern
   @type result(ok, error) :: {:ok, ok} | {:error, error}
-  
+
   @doc """
   Compose multiple functions into a single function.
   Functions are applied from right to left.
-  
+
   ## Example
       iex> add_one = &(&1 + 1)
       iex> double = &(&1 * 2)
@@ -45,7 +45,7 @@ defmodule Common.Functional do
 
   @doc """
   Maps over a successful result, leaving errors unchanged.
-  
+
   ## Example
       iex> map_ok({:ok, 5}, &(&1 * 2))
       {:ok, 10}
@@ -65,7 +65,7 @@ defmodule Common.Functional do
 
   @doc """
   Chains multiple result-returning functions together.
-  
+
   ## Example
       iex> chain_results({:ok, 5}, [
       ...>   &({:ok, &1 * 2}),
@@ -73,7 +73,8 @@ defmodule Common.Functional do
       ...> ])
       {:ok, 11}
   """
-  @spec chain_results(result(a, e), [(a -> result(b, e))]) :: result(b, e) when a: var, b: var, e: var
+  @spec chain_results(result(a, e), [(a -> result(b, e))]) :: result(b, e)
+        when a: var, b: var, e: var
   def chain_results(initial, functions) do
     Enum.reduce(functions, initial, &flat_map_ok(&2, &1))
   end
@@ -131,18 +132,19 @@ defmodule Common.Functional do
   def memoize(fun, opts \\ []) do
     cache_name = Keyword.get(opts, :cache_name, :memoize_cache)
     ttl = Keyword.get(opts, :ttl, :infinity)
-    
+
     unless :ets.whereis(cache_name) do
       :ets.new(cache_name, [:set, :public, :named_table])
     end
-    
+
     fn args ->
       key = :erlang.phash2(args)
       now = System.system_time(:second)
-      
+
       case :ets.lookup(cache_name, key) do
         [{^key, result, timestamp}] when ttl == :infinity or now - timestamp < ttl ->
           result
+
         _ ->
           result = apply(fun, args)
           :ets.insert(cache_name, {key, result, now})
@@ -170,7 +172,7 @@ defmodule Common.Functional do
   defp curry_helper(fun, 0, args) do
     apply(fun, Enum.reverse(args))
   end
-  
+
   defp curry_helper(fun, arity, args) do
     fn arg -> curry_helper(fun, arity - 1, [arg | args]) end
   end
@@ -184,8 +186,6 @@ defmodule Common.Functional do
     {:ok, apply(fun, args)}
   rescue
     error -> {:error, Exception.message(error)}
-  catch
-    :error, reason -> {:error, inspect(reason)}
   end
 
   @doc """
@@ -229,18 +229,20 @@ defmodule Common.Functional do
   def retry(fun, opts \\ []) do
     max_attempts = Keyword.get(opts, :max_attempts, 3)
     base_delay = Keyword.get(opts, :base_delay, 100)
-    
+
     retry_helper(fun, max_attempts, base_delay, 1)
   end
 
   defp retry_helper(fun, max_attempts, base_delay, attempt) do
     case safe_apply(fun) do
-      {:ok, _} = success -> 
+      {:ok, _} = success ->
         success
-      {:error, _} = error when attempt >= max_attempts -> 
+
+      {:error, _} = error when attempt >= max_attempts ->
         error
+
       {:error, _} ->
-        delay = base_delay * :math.pow(2, attempt - 1) |> round()
+        delay = (base_delay * :math.pow(2, attempt - 1)) |> round()
         Process.sleep(delay)
         retry_helper(fun, max_attempts, base_delay, attempt + 1)
     end
@@ -298,7 +300,7 @@ defmodule Common.Functional do
   """
   defmacro pipeline(initial, do: block) do
     steps = extract_pipeline_steps(block)
-    
+
     quote do
       unquote(steps)
       |> Common.Functional.chain_results(unquote(initial))

@@ -1,0 +1,48 @@
+# Orbstack-specific development configuration for Mana Ethereum
+# Use with k9s for local development
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: orbstack-config
+  namespace: mana-ethereum
+data:
+  # Orbstack-specific settings
+  ORBSTACK_DOMAIN: "mana.orb.local"
+  DEVELOPMENT_MODE: "true"
+  
+  # Local development optimizations
+  SYNC_MODE: "light"
+  MAX_PEERS: "10"
+  LOG_LEVEL: "debug"
+  
+  # Use local storage paths in Orbstack
+  DATA_DIR: "/var/lib/orbstack/volumes/mana/data"
+  
+  # Faster startup for development
+  SKIP_GENESIS_VALIDATION: "true"
+  ENABLE_DEV_APIS: "true"
+  
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mana-dev
+  namespace: mana-ethereum
+  annotations:
+    # Orbstack will automatically create *.orb.local domains
+    dev.orbstack.io/alias: "mana.ethereum"
+spec:
+  type: LoadBalancer
+  selector:
+    app: mana-ethereum
+  ports:
+  - name: rpc
+    port: 8545
+    targetPort: 8545
+  - name: ws
+    port: 8546
+    targetPort: 8546
+  - name: metrics
+    port: 9568
+    targetPort: 9568

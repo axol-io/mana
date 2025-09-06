@@ -239,12 +239,16 @@ defmodule ExWire.Eth2.ParallelAttestationProcessorSimplified do
     if length(participating_indices) == 0 do
       {:error, :no_participants}
     else
-      # For testing: simulate signature verification with 95% success rate
-      # In production, this would do actual BLS signature verification
-      if :rand.uniform(100) <= 95 do
-        {:ok, attestation}
-      else
-        {:error, :invalid_signature}
+      # Actual BLS signature verification for Deneb compliance
+      case verify_attestation_signature(attestation, beacon_state) do
+        {:ok, true} ->
+          {:ok, attestation}
+
+        {:ok, false} ->
+          {:error, :invalid_signature}
+
+        {:error, reason} ->
+          {:error, {:signature_verification_failed, reason}}
       end
     end
   end
@@ -333,6 +337,85 @@ defmodule ExWire.Eth2.ParallelAttestationProcessorSimplified do
     })
   end
 
+  defp verify_attestation_signature(attestation, state) do
+    # Get participating validator indices
+    committee = get_beacon_committee(state, attestation.data.slot, attestation.data.index)
+    participating_indices = get_attesting_indices(committee, attestation.aggregation_bits)
+
+    if Enum.empty?(participating_indices) do
+      {:error, :no_participants}
+    else
+      # Get public keys for participating validators
+      pubkeys =
+        participating_indices
+        |> Enum.map(&Enum.at(state.validators, &1))
+        |> Enum.map(& &1.pubkey)
+
+      # Compute signing root
+      domain = compute_domain_for_attestation(attestation.data, state)
+      signing_root = compute_signing_root(attestation.data, domain)
+
+      # Aggregate public keys
+      case ExWire.Crypto.BLS.aggregate_pubkeys(pubkeys) do
+        {:ok, aggregated_pubkey} ->
+          # Verify aggregated signature
+          ExWire.Crypto.BLS.verify(aggregated_pubkey, signing_root, attestation.signature)
+
+        {:error, reason} ->
+          {:error, {:pubkey_aggregation_failed, reason}}
+      end
+    end
+  end
+
+  defp compute_domain_for_attestation(attestation_data, state) do
+    # Get current fork version
+    fork_version = get_fork_version(state, attestation_data.target.epoch)
+
+    # Domain for beacon attestation
+    # DOMAIN_BEACON_ATTESTER
+    domain_type = <<0x01, 0x00, 0x00, 0x00>>
+
+    fork_data = %{
+      current_version: fork_version,
+      genesis_validators_root: state.genesis_validators_root
+    }
+
+    fork_data_root = SSZ.hash_tree_root(fork_data)
+    # First 28 bytes
+    domain_type <> binary_part(fork_data_root, 0, 28)
+  end
+
+  defp compute_signing_root(object, domain) do
+    signing_data = %{
+      object_root: SSZ.hash_tree_root(object),
+      domain: domain
+    }
+
+    SSZ.hash_tree_root(signing_data)
+  end
+
+  defp get_fork_version(state, epoch) do
+    # Simplified fork version logic - would need actual fork schedule
+    cond do
+      epoch >= get_deneb_fork_epoch() ->
+        # DENEB_FORK_VERSION
+        <<0x04, 0x00, 0x00, 0x00>>
+
+      epoch >= get_capella_fork_epoch() ->
+        # CAPELLA_FORK_VERSION
+        <<0x03, 0x00, 0x00, 0x00>>
+
+      true ->
+        # BELLATRIX_FORK_VERSION
+        <<0x02, 0x00, 0x00, 0x00>>
+    end
+  end
+
+  # Mainnet Deneb fork epoch
+  defp get_deneb_fork_epoch, do: 269_568
+  # Mainnet Capella fork epoch
+  defp get_capella_fork_epoch, do: 194_048
+
   defp get_participating_indices(aggregation_bits, committee) do
     aggregation_bits
     |> :binary.bin_to_list()
@@ -396,5 +479,23 @@ defmodule ExWire.Eth2.ParallelAttestationProcessorSimplified do
 
   defp schedule_batch_processing do
     Process.send_after(self(), :process_batch, @batch_timeout_ms)
+  end
+
+  # Missing helper functions
+  defp get_attesting_indices(attestation, committee) do
+    get_participating_indices(attestation.aggregation_bits, committee)
+  end
+
+  defp get_beacon_committee(beacon_state, slot, committee_index) do
+    epoch = compute_epoch_at_slot(slot)
+    committees_per_slot = 1  # Simplified - normally would calculate based on active validators
+    
+    active_validators = get_active_validator_indices(beacon_state, epoch)
+    committee_count = div(length(active_validators), 128)  # Target committee size of 128
+    
+    start_idx = rem(slot * committees_per_slot + committee_index, committee_count) * 128
+    committee_size = min(128, length(active_validators) - start_idx)
+    
+    Enum.slice(active_validators, start_idx, committee_size)
   end
 end

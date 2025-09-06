@@ -888,10 +888,13 @@ defmodule ExWire.Eth2.PruningLargeScaleTest do
   end
 
   defp verify_chain_loop(_pruned_store, <<0::256>>, chain_length), do: chain_length
-  defp verify_chain_loop(_pruned_store, _current_root, chain_length) when chain_length >= 10000, do: chain_length
+
+  defp verify_chain_loop(_pruned_store, _current_root, chain_length) when chain_length >= 10000,
+    do: chain_length
+
   defp verify_chain_loop(pruned_store, current_root, chain_length) do
     block_info = Map.get(pruned_store.blocks, current_root)
-    
+
     if block_info == nil do
       chain_length
     else

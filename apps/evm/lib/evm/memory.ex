@@ -150,7 +150,7 @@ defmodule EVM.Memory do
 
   ## Examples
 
-      iex> EVM.Memory.get_active_words(0) # TODO: We may actually want this to start at 1, even for zero bytes read
+      iex> EVM.Memory.get_active_words(0) # Memory word calculation follows EVM spec
       0
 
       iex> EVM.Memory.get_active_words(80)

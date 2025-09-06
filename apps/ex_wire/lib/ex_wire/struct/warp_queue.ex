@@ -6,8 +6,7 @@ defmodule ExWire.Struct.WarpQueue do
   during a warp sync, so that if interrupted, we can resume a warp where we
   left off.
 
-  TODO: This will likely need to be updated to handle warping from more than
-        one direct peer.
+  NOTE: Currently handles warping from single peer. Multi-peer warping can be added later.
   """
   require Logger
 

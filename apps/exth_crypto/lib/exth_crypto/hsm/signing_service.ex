@@ -567,10 +567,14 @@ defmodule ExthCrypto.HSM.SigningService do
     case Code.ensure_loaded(Blockchain.Transaction.Signature) do
       {:module, module} ->
         apply(module, :transaction_hash, [tx, chain_id])
+
       {:error, _} ->
         # Fallback: basic hash calculation without full transaction context
         # This is a simplified version for HSM operations when blockchain module isn't available
-        Logger.warning("Blockchain.Transaction.Signature not available, using simplified hash calculation")
+        Logger.warning(
+          "Blockchain.Transaction.Signature not available, using simplified hash calculation"
+        )
+
         tx_data = inspect(tx) <> to_string(chain_id || "")
         Keccak.kec(tx_data)
     end

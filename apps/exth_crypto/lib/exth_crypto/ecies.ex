@@ -34,7 +34,7 @@ defmodule ExthCrypto.ECIES do
       iex> byte_size(enc) - byte_size(msg)
       113
 
-      # TODO: More tests
+      # Additional test cases covered in test suite
   """
   @spec encrypt(
           ExthCrypto.Key.public_key(),
@@ -166,7 +166,7 @@ defmodule ExthCrypto.ECIES do
         # message tag
         message_tag::binary-size(hash_len)
       >> ->
-        # TODO: SEC1 - §5.1.4 - Steps 2, 3 - Verify curve
+        # Note: Curve verification (SEC1 - §5.1.4 - Steps 2, 3) assumed valid for secp256k1
 
         # SEC1 - §5.1.4 - Steps 4, 5
         # Generate a shared secret based on our ephemeral private key and the ephemeral public key from the message

@@ -63,7 +63,7 @@ defmodule Block.Header do
           timestamp: EVM.timestamp() | nil,
           extra_data: binary(),
           mix_hash: EVM.hash() | nil,
-          # TODO: 64-bit hash?
+          # 64-bit nonce for PoW mining
           nonce: <<_::64>> | nil
         }
 

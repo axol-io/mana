@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mana-ethereum
+spec:
+  replicas: 5
+  template:
+    spec:
+      containers:
+      - name: mana
+        resources:
+          requests:
+            cpu: "4"
+            memory: "16Gi"
+            ephemeral-storage: "500Gi"
+          limits:
+            cpu: "8"
+            memory: "32Gi"
+            ephemeral-storage: "2Ti"
+        env:
+        - name: NETWORK_ID
+          value: "1"
+        - name: SYNC_MODE
+          value: "full"
+        - name: MAX_PEERS
+          value: "100"
+        - name: LOG_LEVEL
+          value: "warn"
+        - name: ENABLE_SNAPSHOTS
+          value: "true"
+        - name: PRUNING_MODE
+          value: "archive"
+      - name: antidote
+        resources:
+          requests:
+            cpu: "2"
+            memory: "8Gi"
+          limits:
+            cpu: "4"
+            memory: "16Gi"
+      nodeSelector:
+        node-type: blockchain
+        storage-type: nvme
+      tolerations:
+      - key: "blockchain-workload"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"

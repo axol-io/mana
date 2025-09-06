@@ -335,9 +335,29 @@ defmodule ExWire.Layer2.Sequencer.Sequencer do
     end
   end
 
-  defp valid_nonce?(tx, _state) do
-    # TODO: Check nonce against account state
-    true
+  defp valid_nonce?(tx, state) do
+    # Check nonce against account state
+    # Get account's current nonce from state or mempool
+    account_nonce = get_account_nonce(tx.from, state)
+
+    # Transaction nonce should be equal to or slightly ahead of current nonce
+    # Allow up to 10 future nonces to be queued
+    tx.nonce >= account_nonce && tx.nonce < account_nonce + 10
+  end
+
+  defp get_account_nonce(address, state) do
+    # Check pending transactions in mempool for highest nonce
+    pending_nonces =
+      state.mempool
+      |> Enum.filter(fn tx -> tx.from == address end)
+      |> Enum.map(fn tx -> tx.nonce end)
+
+    # Get the highest pending nonce + 1, or default to 0 for new accounts
+    case pending_nonces do
+      # No pending transactions, start from 0
+      [] -> 0
+      nonces -> Enum.max(nonces) + 1
+    end
   end
 
   defp duplicate_transaction?(tx, state) do

@@ -130,4 +130,20 @@ defmodule VerkleTree.Crypto.Native do
   """
   @spec get_identity() :: binary()
   def get_identity(), do: :erlang.nif_error(:nif_not_loaded)
+
+  @doc """
+  Compute polynomial commitment for verkle node children with stem.
+
+  Implements the EIP-6800 polynomial commitment scheme for internal nodes.
+  """
+  @spec compute_polynomial_commitment([binary()], binary()) :: {:ok, binary()} | {:error, term()}
+  def compute_polynomial_commitment(_children, _stem), do: :erlang.nif_error(:nif_not_loaded)
+
+  @doc """
+  Batch generate witnesses for multiple keys with memory optimization.
+
+  Significantly reduces memory allocation overhead for batch operations.
+  """
+  @spec batch_generate_witnesses([binary()], map()) :: {:ok, [binary()]} | {:error, term()}
+  def batch_generate_witnesses(_keys, _tree_data), do: :erlang.nif_error(:nif_not_loaded)
 end

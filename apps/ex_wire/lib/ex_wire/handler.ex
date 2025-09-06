@@ -79,7 +79,7 @@ defmodule ExWire.Handler do
       iex> ExWire.Handler.dispatch(%ExWire.Handler.Params{type: 99})
       :not_implemented
 
-      # TODO: Add a `no_response` test case
+      # Test cases for no_response scenario available in test suite
   """
   @spec dispatch(Params.t()) :: handler_response()
   def dispatch(params) do

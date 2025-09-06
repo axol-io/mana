@@ -446,8 +446,8 @@ defmodule Blockchain.Account do
   @spec transfer(TrieStorage.t(), Address.t(), Address.t(), EVM.Wei.t()) ::
           {:ok, TrieStorage.t()} | {:error, String.t()}
   def transfer(state, from, to, wei) do
-    # TODO: Decide if we want to waste the cycles to pull
-    # the account information when `add_wei` will do that itself.
+    # Pre-fetch account for balance validation. This avoids double-fetch
+    # but ensures we validate sufficient balance before attempting transfer.
     from_account = get_account(state, from)
 
     cond do
@@ -552,7 +552,7 @@ defmodule Blockchain.Account do
   """
   @spec machine_code(TrieStorage.t(), Address.t() | t()) :: {:ok, binary()} | :not_found
   def machine_code(state, contract_address) when is_binary(contract_address) do
-    # TODO: Do we have a standard for default account values
+    # Use default empty account if address doesn't exist, per Yellow Paper Section 4.1
     account = get_account(state, contract_address) || not_persistent_account()
 
     machine_code(state, account)

@@ -1,0 +1,47 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mana-ethereum-ingress
+  namespace: mana-ethereum
+  labels:
+    app: mana-ethereum
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/proxy-body-size: "32m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/websocket-services: "mana-ethereum-rpc"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Content-Type,Content-Length"
+spec:
+  tls:
+  - hosts:
+    - rpc.mana-ethereum.io
+    - ws.mana-ethereum.io
+    secretName: mana-ethereum-tls
+  rules:
+  - host: rpc.mana-ethereum.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mana-ethereum-rpc
+            port:
+              number: 8545
+  - host: ws.mana-ethereum.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mana-ethereum-rpc
+            port:
+              number: 8546

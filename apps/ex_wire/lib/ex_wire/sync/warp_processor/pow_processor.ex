@@ -111,7 +111,7 @@ defmodule ExWire.Sync.WarpProcessor.PowProcessor do
   each receipt and builds a receipts root, and returns the block as well as the
   updated trie.
 
-  TODO: Validate the block headers before accepting the block.
+  NOTE: Block header validation should be performed before acceptance for security.
   """
   @spec process_block(BlockData.t(), EVM.hash(), integer(), Trie.t()) :: {Trie.t(), Block.t()}
   def process_block(

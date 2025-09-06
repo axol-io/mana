@@ -1,0 +1,183 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mana-ethereum
+  namespace: mana-ethereum
+  labels:
+    app: mana-ethereum
+    component: node
+spec:
+  serviceName: mana-ethereum-headless
+  replicas: 3
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: mana-ethereum
+      component: node
+  template:
+    metadata:
+      labels:
+        app: mana-ethereum
+        component: node
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9568"
+        prometheus.io/path: "/metrics"
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - mana-ethereum
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - name: mana
+        image: mana-ethereum:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: p2p
+          containerPort: 30303
+          protocol: TCP
+        - name: p2p-udp
+          containerPort: 30303
+          protocol: UDP
+        - name: rpc
+          containerPort: 8545
+          protocol: TCP
+        - name: ws
+          containerPort: 8546
+          protocol: TCP
+        - name: metrics
+          containerPort: 9568
+          protocol: TCP
+        - name: erlang
+          containerPort: 4369
+          protocol: TCP
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: NETWORK_ID
+          value: "1"  # Mainnet
+        - name: SYNC_MODE
+          value: "fast"
+        - name: MAX_PEERS
+          value: "50"
+        - name: ENABLE_METRICS
+          value: "true"
+        - name: METRICS_PORT
+          value: "9568"
+        - name: LOG_LEVEL
+          value: "info"
+        resources:
+          requests:
+            cpu: "2"
+            memory: "8Gi"
+            ephemeral-storage: "100Gi"
+          limits:
+            cpu: "4"
+            memory: "16Gi"
+            ephemeral-storage: "500Gi"
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: config
+          mountPath: /etc/mana
+        - name: secrets
+          mountPath: /etc/mana/secrets
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: metrics
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: metrics
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health
+            port: metrics
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
+      - name: antidote
+        image: antidotedb/antidote:latest
+        ports:
+        - name: antidote-pb
+          containerPort: 8087
+          protocol: TCP
+        - name: antidote-peer
+          containerPort: 8099
+          protocol: TCP
+        env:
+        - name: NODE_NAME
+          value: "antidote@$(POD_IP)"
+        - name: COOKIE
+          valueFrom:
+            secretKeyRef:
+              name: mana-secrets
+              key: erlang-cookie
+        resources:
+          requests:
+            cpu: "1"
+            memory: "4Gi"
+          limits:
+            cpu: "2"
+            memory: "8Gi"
+        volumeMounts:
+        - name: antidote-data
+          mountPath: /antidote-data
+      volumes:
+      - name: config
+        configMap:
+          name: mana-config
+      - name: secrets
+        secret:
+          secretName: mana-secrets
+          defaultMode: 0600
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+      labels:
+        app: mana-ethereum
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: fast-ssd
+      resources:
+        requests:
+          storage: 1Ti
+  - metadata:
+      name: antidote-data
+      labels:
+        app: mana-ethereum
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: fast-ssd
+      resources:
+        requests:
+          storage: 500Gi

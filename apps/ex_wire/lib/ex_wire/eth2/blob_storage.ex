@@ -21,8 +21,8 @@ defmodule ExWire.Eth2.BlobStorage do
   @default_cache_ttl 3600
   # Compress blobs larger than 32KB
   @default_compression_threshold 32_768
-  # Days to retain blobs on disk
-  @blob_retention_days 30
+  # EIP-4844: Minimum 18-day retention period
+  @blob_retention_days 18
 
   defstruct [
     # LRU cache for hot blobs
@@ -83,10 +83,24 @@ defmodule ExWire.Eth2.BlobStorage do
   end
 
   @doc """
-  Prune old blobs based on retention policy.
+  Prune old blobs based on EIP-4844 retention policy (18 days minimum).
   """
   def prune_old_blobs do
     GenServer.cast(__MODULE__, :prune_old_blobs)
+  end
+
+  @doc """
+  Check if a blob is still within the retention period.
+  """
+  def is_blob_available?(slot) do
+    # Calculate if blob is within 18-day retention period
+    current_time = System.system_time(:second)
+    # 12 seconds per slot
+    blob_time = slot * 12
+    age_seconds = current_time - blob_time
+    age_days = age_seconds / (24 * 60 * 60)
+
+    age_days <= @blob_retention_days
   end
 
   @doc """

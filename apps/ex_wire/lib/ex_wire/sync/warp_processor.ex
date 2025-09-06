@@ -285,7 +285,7 @@ defmodule ExWire.Sync.WarpProcessor do
          queued_block_chunks = [{chunk_hash, block_chunk, pid} | rest_queued_block_chunks],
          queued_state_chunks
        ) do
-    # TODO: We should probably keep track of children ourselves, but for now,
+    # Child process tracking via supervisor - can be enhanced with direct tracking
     # we just query the supervisor. This actually restricts parallelism since
     # our account state processor counts here.
     if current_child_count(sup) <= parallelism do

@@ -11,11 +11,13 @@ defmodule ExWire.Eth2.ForkChoiceOptimizedTest do
       genesis_state = create_genesis_state()
       genesis_root = <<0::256>>
       # Use a fixed genesis time in the past to allow test blocks with low slot numbers
-      genesis_time = 1_600_000_000  # September 2020
+      # September 2020
+      genesis_time = 1_600_000_000
 
       store = ForkChoice.init(genesis_state, genesis_root, genesis_time)
       # Advance time to allow for blocks at slots 1-1000
-      store = %{store | time: genesis_time + (1000 * 12)}  # Allow up to slot 1000
+      # Allow up to slot 1000
+      store = %{store | time: genesis_time + 1000 * 12}
 
       {:ok, store: store, genesis_root: genesis_root, genesis_state: genesis_state}
     end
@@ -290,9 +292,11 @@ defmodule ExWire.Eth2.ForkChoiceOptimizedTest do
 
       genesis_state = create_genesis_state()
       genesis_root = <<0::256>>
-      genesis_time = 1_600_000_000  # Fixed genesis time
+      # Fixed genesis time
+      genesis_time = 1_600_000_000
       store = ForkChoice.init(genesis_state, genesis_root, genesis_time)
-      store = %{store | time: genesis_time + (1000 * 12)}  # Allow up to slot 1000
+      # Allow up to slot 1000
+      store = %{store | time: genesis_time + 1000 * 12}
 
       # Add blocks with specific weights
       blocks = [
@@ -441,9 +445,11 @@ defmodule ExWire.Eth2.ForkChoiceOptimizedTest do
   defp create_large_tree(block_count, branching_factor) do
     genesis_state = create_genesis_state()
     genesis_root = <<0::256>>
-    genesis_time = 1_600_000_000  # Fixed genesis time
+    # Fixed genesis time
+    genesis_time = 1_600_000_000
     store = ForkChoice.init(genesis_state, genesis_root, genesis_time)
-    store = %{store | time: genesis_time + (1000 * 12)}  # Allow up to slot 1000
+    # Allow up to slot 1000
+    store = %{store | time: genesis_time + 1000 * 12}
 
     # Create blocks with branching
     {store, _} =
@@ -473,9 +479,11 @@ defmodule ExWire.Eth2.ForkChoiceOptimizedTest do
   defp create_simple_chain(length) do
     genesis_state = create_genesis_state()
     genesis_root = <<0::256>>
-    genesis_time = 1_600_000_000  # Fixed genesis time
+    # Fixed genesis time
+    genesis_time = 1_600_000_000
     store = ForkChoice.init(genesis_state, genesis_root, genesis_time)
-    store = %{store | time: genesis_time + (1000 * 12)}  # Allow up to slot 1000
+    # Allow up to slot 1000
+    store = %{store | time: genesis_time + 1000 * 12}
 
     Enum.reduce(1..length, {store, genesis_root}, fn i, {acc_store, parent} ->
       block = create_block(i, parent)

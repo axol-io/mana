@@ -198,7 +198,7 @@ defmodule MerklePatriciaTree.DB.Migration.ETSToAntidote do
 
         # Since process_batch always returns {:ok, stats}, we can simplify this
         {:ok, batch_stats} = batch_result
-        
+
         new_stats = %{
           acc
           | processed: acc.processed + batch_stats.count,

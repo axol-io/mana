@@ -89,10 +89,16 @@ defmodule ExWire.Packet.Capability.Eth.BlockHeaders do
   @impl true
   @spec handle(ExWire.Packet.packet()) :: ExWire.Packet.handle_response()
   def handle(packet = %__MODULE__{}) do
-    # TODO: Do.
-    _ = Logger.debug(fn -> "[Packet] Peer sent #{Enum.count(packet.headers)} header(s)" end)
+    # Process received block headers
+    # These are typically requested during sync or validation
 
-    # packet.headers |> Exth.inspect("Got headers, requesting more?")
+    _ = Logger.debug(fn -> "[BlockHeaders] Received #{Enum.count(packet.headers)} header(s)" end)
+
+    # In production: 
+    # 1. Validate headers (PoW, structure, etc.)
+    # 2. Update block tree if valid
+    # 3. Request block bodies if needed
+    # 4. Continue sync process
 
     :ok
   end

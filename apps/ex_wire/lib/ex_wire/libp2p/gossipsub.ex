@@ -118,8 +118,18 @@ defmodule ExWire.LibP2P.GossipSub do
   Publish a blob sidecar to the appropriate gossip topic
   """
   def publish_blob_sidecar(server \\ __MODULE__, blob_sidecar) do
-    topic = blob_sidecar_topic(blob_sidecar.index)
-    GenServer.cast(server, {:publish, topic, blob_sidecar})
+    # Validate blob sidecar before publishing
+    case ExWire.Eth2.BlobVerification.validate_blob_sidecar_for_gossip(blob_sidecar) do
+      {:ok, :valid} ->
+        topic = blob_sidecar_topic(blob_sidecar.index)
+        # Serialize with SSZ and compress
+        serialized = SSZ.encode(blob_sidecar) |> compress_snappy()
+        GenServer.cast(server, {:publish, topic, serialized})
+
+      {:error, reason} ->
+        Logger.warning("Invalid blob sidecar for gossip: #{inspect(reason)}")
+        {:error, reason}
+    end
   end
 
   @doc """
@@ -596,28 +606,40 @@ defmodule ExWire.LibP2P.GossipSub do
     if Map.has_key?(state.seen, message_id) do
       state
     else
-      # Mark as seen
-      new_seen = Map.put(state.seen, message_id, System.system_time(:millisecond))
+      # Validate message based on topic type
+      case validate_gossip_message(topic, data, peer_id) do
+        :ok ->
+          # Mark as seen
+          new_seen = Map.put(state.seen, message_id, System.system_time(:millisecond))
 
-      # Add to cache
-      new_mcache = add_to_cache(state.mcache, {topic, message_id, data})
+          # Add to cache
+          new_mcache = add_to_cache(state.mcache, {topic, message_id, data})
 
-      # Update peer score (first message delivery)
-      new_state = update_peer_score(peer_id, topic, :first_delivery, state)
+          # Update peer score (first message delivery)
+          new_state = update_peer_score(peer_id, topic, :first_delivery, state)
 
-      # Deliver to application
-      deliver_message(topic, data, state)
+          # Deliver to application
+          deliver_message(topic, data, state)
 
-      # Forward to mesh (except source)
-      mesh_peers =
-        Map.get(new_state.mesh, topic, MapSet.new())
-        |> MapSet.delete(peer_id)
+          # Forward to mesh (except source)
+          mesh_peers =
+            Map.get(new_state.mesh, topic, MapSet.new())
+            |> MapSet.delete(peer_id)
 
-      Enum.each(mesh_peers, fn forward_peer ->
-        send_message(forward_peer, topic, data)
-      end)
+          Enum.each(mesh_peers, fn forward_peer ->
+            send_message(forward_peer, topic, data)
+          end)
 
-      %{new_state | seen: new_seen, mcache: new_mcache}
+          %{new_state | seen: new_seen, mcache: new_mcache}
+
+        {:error, reason} ->
+          # Invalid message - penalize peer
+          Logger.warning(
+            "Invalid message from peer #{inspect(peer_id)} on topic #{topic}: #{inspect(reason)}"
+          )
+
+          penalize_peer(peer_id, :invalid_message, state)
+      end
     end
   end
 
@@ -711,7 +733,7 @@ defmodule ExWire.LibP2P.GossipSub do
     %{state | scores: new_scores}
   end
 
-  defp calculate_peer_score(peer_id, peer_info, state, now) do
+  defp calculate_peer_score(peer_id, peer_info, _state, now) do
     # P1: Time in mesh
     p1_score =
       Enum.reduce(peer_info.time_in_mesh, 0.0, fn {_topic, time}, acc ->
@@ -885,5 +907,127 @@ defmodule ExWire.LibP2P.GossipSub do
 
   defp schedule_cleanup do
     Process.send_after(self(), :cleanup, @seen_ttl)
+  end
+
+  # Private Functions - Message Validation
+
+  defp validate_gossip_message(topic, data, _peer_id) do
+    cond do
+      String.starts_with?(topic, @blob_sidecar_topic_prefix) ->
+        validate_blob_sidecar_message(topic, data)
+
+      String.contains?(topic, "/beacon_block/") ->
+        validate_beacon_block_message(data)
+
+      String.contains?(topic, "/attestation_") ->
+        validate_attestation_message(data)
+
+      true ->
+        # For other topics, basic validation
+        # 1MB limit
+        if byte_size(data) > 0 and byte_size(data) < 1_048_576 do
+          :ok
+        else
+          {:error, :invalid_message_size}
+        end
+    end
+  end
+
+  defp validate_blob_sidecar_message(topic, data) do
+    with {:ok, decompressed} <- decompress_snappy(data),
+         {:ok, blob_sidecar} <- SSZ.decode(decompressed),
+         {:ok, expected_index} <- extract_blob_index_from_topic(topic),
+         :ok <- validate_blob_sidecar_index(blob_sidecar, expected_index),
+         {:ok, :valid} <-
+           ExWire.Eth2.BlobVerification.validate_blob_sidecar_for_gossip(blob_sidecar) do
+      :ok
+    else
+      {:error, reason} -> {:error, {:blob_sidecar_validation, reason}}
+    end
+  end
+
+  defp validate_beacon_block_message(data) do
+    with {:ok, decompressed} <- decompress_snappy(data),
+         {:ok, _block} <- SSZ.decode(decompressed) do
+      # Basic structural validation - full validation done by consensus layer
+      :ok
+    else
+      {:error, reason} -> {:error, {:beacon_block_validation, reason}}
+    end
+  end
+
+  defp validate_attestation_message(data) do
+    with {:ok, decompressed} <- decompress_snappy(data),
+         {:ok, _attestation} <- SSZ.decode(decompressed) do
+      # Basic structural validation - full validation done by consensus layer
+      :ok
+    else
+      {:error, reason} -> {:error, {:attestation_validation, reason}}
+    end
+  end
+
+  defp validate_blob_sidecar_index(blob_sidecar, expected_index) do
+    if Map.get(blob_sidecar, :index) == expected_index do
+      :ok
+    else
+      {:error, {:index_mismatch, expected_index, Map.get(blob_sidecar, :index)}}
+    end
+  end
+
+  defp extract_blob_index_from_topic(topic) do
+    case Regex.run(~r/blob_sidecar_(\d+)/, topic) do
+      [_, index_str] ->
+        case Integer.parse(index_str) do
+          {index, ""} when index >= 0 and index < @max_blobs_per_block ->
+            {:ok, index}
+
+          _ ->
+            {:error, :invalid_blob_index}
+        end
+
+      _ ->
+        {:error, :invalid_topic_format}
+    end
+  end
+
+  defp penalize_peer(peer_id, reason, state) do
+    case Map.get(state.peers, peer_id) do
+      nil ->
+        state
+
+      peer_info ->
+        penalty =
+          case reason do
+            :invalid_message -> 10.0
+            :malformed_data -> 5.0
+            _ -> 1.0
+          end
+
+        new_penalty = peer_info.behaviour_penalty + penalty
+        new_invalid_count = peer_info.invalid_messages + 1
+
+        new_peer_info = %{
+          peer_info
+          | behaviour_penalty: new_penalty,
+            invalid_messages: new_invalid_count
+        }
+
+        new_peers = Map.put(state.peers, peer_id, new_peer_info)
+        %{state | peers: new_peers}
+    end
+  end
+
+  # Private Functions - Compression
+
+  defp compress_snappy(data) do
+    # Placeholder for snappy compression
+    # In production, would use :snappyer or similar
+    data
+  end
+
+  defp decompress_snappy(data) do
+    # Placeholder for snappy decompression
+    # In production, would use :snappyer or similar
+    {:ok, data}
   end
 end

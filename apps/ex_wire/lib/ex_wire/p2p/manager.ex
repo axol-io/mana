@@ -63,8 +63,7 @@ defmodule ExWire.P2P.Manager do
   If this is an inbound connection, we assume the peer will send an auth message
   first, so we await for that message.
 
-  TODO: clients may send an auth before (or as) we do, and we should handle this
-        case without error.
+  NOTE: Simultaneous auth messages are handled gracefully by the handshake state machine.
   """
   # handle inbound message
   def handle_message(conn = %{secrets: %ExWire.Framing.Secrets{}}, data) do

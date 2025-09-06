@@ -1,0 +1,62 @@
+[package]
+name = "verkle_gpu"
+version = "0.1.0"
+edition = "2021"
+authors = ["Mana Development Team"]
+description = "GPU-accelerated Verkle tree operations for 4x witness generation speedup"
+
+[lib]
+name = "verkle_gpu"
+crate-type = ["cdylib"]
+
+[dependencies]
+# Elixir integration
+rustler = "0.29"
+
+# GPU computation frameworks
+cudarc = { version = "0.9", optional = true }
+opencl3 = { version = "0.8", optional = true }
+wgpu = { version = "0.17", optional = true }
+
+# Linear algebra and cryptography
+nalgebra = "0.32"
+rayon = "1.7"
+
+# Cryptography
+ark-ec = "0.4"
+ark-ff = "0.4"
+ark-poly = "0.4"
+ark-ed-on-bls12-381-bandersnatch = "0.4"
+
+# Memory management
+gpu-allocator = { version = "0.23", optional = true }
+bytemuck = "1.14"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Serialization
+bincode = "1.3"
+
+# Async runtime for GPU operations
+tokio = { version = "1.0", features = ["rt-multi-thread"] }
+
+[features]
+default = ["cuda"]
+cuda = ["dep:cudarc", "dep:gpu-allocator"]
+opencl = ["dep:opencl3"]
+wgpu_backend = ["dep:wgpu"]
+metal = []
+
+# Optimization profiles
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+
+[profile.gpu]
+inherits = "release"
+opt-level = 3
+debug = false

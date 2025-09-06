@@ -22,8 +22,6 @@ defmodule Blockchain.Monitoring.StructuredLogger do
   # Log levels following standard conventions
   @log_levels [:trace, :debug, :info, :notice, :warn, :error, :critical, :alert, :emergency]
 
-  # Standard fields for all log entries
-  @standard_fields [:timestamp, :level, :message, :component, :node_id, :version]
 
   # Component identifiers
   @components %{

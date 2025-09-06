@@ -7,15 +7,17 @@ defmodule ExWire.Eth2.BeaconState.Operations do
   """
 
   alias ExWire.Eth2.{Validator, BeaconBlock, Checkpoint}
-  
+
   # Import the actual struct definition from types.ex
   # The BeaconState struct is defined in ExWire.Eth2.BeaconState via types.ex
 
   @slots_per_epoch 32
   @epochs_per_slashings_vector 8192
-  @max_effective_balance 32_000_000_000  # 32 ETH in Gwei
-  @ejection_balance 16_000_000_000       # 16 ETH in Gwei
-  
+  # 32 ETH in Gwei
+  @max_effective_balance 32_000_000_000
+  # 16 ETH in Gwei
+  @ejection_balance 16_000_000_000
+
   @doc """
   Creates a new genesis beacon state.
   """
@@ -83,7 +85,9 @@ defmodule ExWire.Eth2.BeaconState.Operations do
   @doc """
   Gets active validator indices for a given epoch.
   """
-  @spec get_active_validator_indices(ExWire.Eth2.BeaconState.t(), non_neg_integer()) :: [non_neg_integer()]
+  @spec get_active_validator_indices(ExWire.Eth2.BeaconState.t(), non_neg_integer()) :: [
+          non_neg_integer()
+        ]
   def get_active_validator_indices(%{validators: validators}, epoch) do
     validators
     |> Enum.with_index()
@@ -109,13 +113,10 @@ defmodule ExWire.Eth2.BeaconState.Operations do
     # Update state root in block roots
     new_slot = slot + 1
     block_roots_index = rem(slot, length(state.block_roots))
-    
+
     new_block_roots = List.replace_at(state.block_roots, block_roots_index, hash_tree_root(state))
-    
-    %{state | 
-      slot: new_slot,
-      block_roots: new_block_roots
-    }
+
+    %{state | slot: new_slot, block_roots: new_block_roots}
   end
 
   @doc """
@@ -153,7 +154,9 @@ defmodule ExWire.Eth2.BeaconState.Operations do
     end
   end
 
-  defp validate_block_parent(%{latest_block_header: %{body_root: expected_parent}}, %{parent_root: parent_root}) do
+  defp validate_block_parent(%{latest_block_header: %{body_root: expected_parent}}, %{
+         parent_root: parent_root
+       }) do
     if parent_root == expected_parent do
       :ok
     else
@@ -162,8 +165,9 @@ defmodule ExWire.Eth2.BeaconState.Operations do
   end
 
   defp validate_proposer(%{slot: slot, validators: validators}, %{proposer_index: proposer_index}) do
-    active_validators = get_active_validator_indices(%{validators: validators}, div(slot, @slots_per_epoch))
-    
+    active_validators =
+      get_active_validator_indices(%{validators: validators}, div(slot, @slots_per_epoch))
+
     if proposer_index in active_validators do
       :ok
     else

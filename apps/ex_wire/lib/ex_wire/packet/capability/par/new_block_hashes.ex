@@ -94,9 +94,16 @@ defmodule ExWire.Packet.Capability.Par.NewBlockHashes do
   """
   @impl true
   @spec handle(ExWire.Packet.packet()) :: ExWire.Packet.handle_response()
-  def handle(_packet = %__MODULE__{}) do
-    # TODO: Do something
+  def handle(packet = %__MODULE__{}) do
+    # Process new block hash announcements for Parity protocol
 
+    require Logger
+
+    Logger.debug(fn ->
+      "[Par.NewBlockHashes] Received #{length(packet.hashes)} block hash announcements"
+    end)
+
+    # In production: queue these hashes for header fetching
     :ok
   end
 end

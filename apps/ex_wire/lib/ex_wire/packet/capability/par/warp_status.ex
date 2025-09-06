@@ -46,7 +46,7 @@ defmodule ExWire.Packet.Capability.Par.WarpStatus do
   best chain found in the block header, the best hash, and the genesis hash of
   our blockchain.
 
-  TODO: Don't parrot the same data back to sender
+  NOTE: Warp status response should be tailored to avoid echoing sender's data.
   """
   @spec new(t()) :: t()
   def new(packet) do

@@ -19,7 +19,7 @@ defmodule ExWire.Packet.Capability.Eth.GetBlockHeaders do
 
   @behaviour ExWire.Packet
 
-  @sync Application.get_env(:ex_wire, :sync_mock, Sync)
+  @sync Application.compile_env(:ex_wire, :sync_mock, Sync)
   @max_headers_supported 100
 
   @type t :: %__MODULE__{

@@ -198,13 +198,16 @@ defmodule Blockchain.Monitoring.PrometheusMetrics do
     # Initialize P2P metrics
     Enum.each(@p2p_metrics, fn metric ->
       case metric do
-        "mana_p2p_peers_connected" -> 
+        "mana_p2p_peers_connected" ->
           :ets.insert(table, {{metric, :gauge, %{"protocol" => "eth"}}, 0})
           :ets.insert(table, {{metric, :gauge, %{"protocol" => "libp2p"}}, 0})
+
         "mana_p2p_messages_total" ->
           :ets.insert(table, {{metric, :counter, %{"direction" => "inbound"}}, 0})
           :ets.insert(table, {{metric, :counter, %{"direction" => "outbound"}}, 0})
-        _ -> :ets.insert(table, {{metric, :gauge, %{}}, 0})
+
+        _ ->
+          :ets.insert(table, {{metric, :gauge, %{}}, 0})
       end
     end)
 
@@ -212,7 +215,7 @@ defmodule Blockchain.Monitoring.PrometheusMetrics do
     Enum.each(@system_metrics, fn metric ->
       :ets.insert(table, {{metric, :gauge, %{}}, 0})
     end)
-    
+
     update_system_metrics_in_table(table)
   end
 

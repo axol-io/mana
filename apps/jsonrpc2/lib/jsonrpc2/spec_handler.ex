@@ -10,7 +10,7 @@ defmodule JSONRPC2.SpecHandler do
 
   import JSONRPC2.Response.Helpers
 
-  @sync Application.get_env(:jsonrpc2, :bridge_mock, Sync)
+  @sync Application.compile_env(:jsonrpc2, :bridge_mock, Sync)
 
   # web3 Methods
   def handle_request("web3_clientVersion", _),
@@ -133,7 +133,7 @@ defmodule JSONRPC2.SpecHandler do
 
   def handle_request("eth_sign", _), do: {:error, :not_supported}
 
-  def handle_request("eth_sendTransaction", [transaction_params]) do
+  def handle_request("eth_sendTransaction", [_transaction_params]) do
     # This requires wallet functionality to sign transactions
     # Currently not supported as it requires private key management
     {:error, "eth_sendTransaction requires wallet functionality which is not implemented"}

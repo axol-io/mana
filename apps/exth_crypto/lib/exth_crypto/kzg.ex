@@ -1,10 +1,10 @@
 defmodule ExthCrypto.KZG do
   @moduledoc """
   KZG cryptography stub module that provides placeholder KZG operations.
-  
+
   This module provides stub implementations for KZG operations to avoid
   circular dependencies. The actual implementations are in ExWire.Crypto.KZG.
-  
+
   In production, these functions should be invoked through the ex_wire app.
   """
 
@@ -42,10 +42,10 @@ defmodule ExthCrypto.KZG do
   @doc """
   Verify blob KZG proof (stub).
   """
-  def verify_blob_kzg_proof(blob, commitment, proof) 
-      when byte_size(blob) == @blob_size and 
-           byte_size(commitment) == @commitment_size and
-           byte_size(proof) == @proof_size do
+  def verify_blob_kzg_proof(blob, commitment, proof)
+      when byte_size(blob) == @blob_size and
+             byte_size(commitment) == @commitment_size and
+             byte_size(proof) == @proof_size do
     # Stub implementation - always returns true for valid sizes
     true
   end
@@ -53,9 +53,9 @@ defmodule ExthCrypto.KZG do
   @doc """
   Verify blob KZG proof batch (stub).
   """
-  def verify_blob_kzg_proof_batch(blobs, commitments, proofs) 
-      when length(blobs) == length(commitments) and 
-           length(commitments) == length(proofs) do
+  def verify_blob_kzg_proof_batch(blobs, commitments, proofs)
+      when length(blobs) == length(commitments) and
+             length(commitments) == length(proofs) do
     # Stub implementation
     true
   end

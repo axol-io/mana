@@ -18,7 +18,7 @@ defmodule ExWire.Packet.Capability.Eth.GetBlockBodies do
   alias ExWire.Struct.Block
   require Logger
 
-  @sync Application.get_env(:ex_wire, :sync_mock, Sync)
+  @sync Application.compile_env(:ex_wire, :sync_mock, Sync)
 
   @type t :: %__MODULE__{
           hashes: [binary()]

@@ -320,7 +320,7 @@ defmodule EVM.Debugger do
        )
 
   defp handle_prompt(:help, _args, breakpoint, machine_state, sub_state, exec_env, input_sequence) do
-    # TODO: Handle args, make nicer
+    # Command argument handling and formatting can be enhanced
 
     IO.puts("")
 

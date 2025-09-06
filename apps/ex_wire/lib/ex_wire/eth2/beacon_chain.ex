@@ -712,7 +712,7 @@ defmodule ExWire.Eth2.BeaconChain do
     |> Enum.take(128)
   end
 
-  defp build_sync_aggregate(state) do
+  defp build_sync_aggregate(_state) do
     # This would aggregate sync committee signatures
     %ExWire.Eth2.SyncAggregate{
       sync_committee_bits: <<0::512>>,
@@ -920,7 +920,7 @@ defmodule ExWire.Eth2.BeaconChain do
     :crypto.hash(:sha256, mix <> <<epoch::64>> <> Atom.to_string(domain_type))
   end
 
-  defp compute_proposer_index(beacon_state, indices, seed) do
+  defp compute_proposer_index(_beacon_state, indices, seed) do
     # Simplified proposer selection
     if length(indices) == 0 do
       nil
@@ -930,7 +930,7 @@ defmodule ExWire.Eth2.BeaconChain do
     end
   end
 
-  defp compute_committee(indices, seed, index, count) do
+  defp compute_committee(indices, _seed, index, count) do
     # Simplified committee computation
     start = div(length(indices) * index, count)
     finish = div(length(indices) * (index + 1), count)

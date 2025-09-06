@@ -1,0 +1,61 @@
+# Dependencies
+deps/
+_build/
+.elixir_ls/
+.fetch
+
+# Test files
+test/
+apps/*/test/
+coverage/
+.coverdata
+
+# Development files
+.git/
+.github/
+.gitignore
+.formatter.exs
+.credo.exs
+.dialyzer_ignore.exs
+
+# Documentation
+docs/
+README.md
+TODO.md
+CHANGELOG.md
+LICENSE
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs and temp files
+*.log
+logs/
+tmp/
+*.dump
+
+# Native build artifacts
+apps/ex_wire/native/*/target/
+*.so
+*.dylib
+*.dll
+
+# Environment files
+.env
+.env.*
+secrets/
+
+# Monitoring
+monitoring/
+k8s/
+scripts/
+
+# Build artifacts from host
+_build/dev/
+_build/test/
+priv/plts/

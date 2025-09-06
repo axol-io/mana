@@ -1,5 +1,4 @@
 defmodule Blockchain.Transaction.Receipt do
-  import Bitwise
   alias Blockchain.Transaction.Receipt.Bloom
 
   @moduledoc """

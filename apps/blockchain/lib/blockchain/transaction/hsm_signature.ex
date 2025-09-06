@@ -69,7 +69,8 @@ defmodule Blockchain.Transaction.HSMSignature do
   """
   @spec sign_hash(Keccak.keccak_hash(), private_key | key_id, integer() | nil) ::
           {hash_v, hash_r, hash_s}
-  def sign_hash(hash, <<_::256>> = private_key, chain_id \\ nil) do
+  def sign_hash(hash, key, chain_id \\ nil)
+  def sign_hash(hash, <<_::256>> = private_key, chain_id) do
     # Raw private key - use enhanced signing service for consistency
     case hsm_available?() do
       true ->
@@ -171,7 +172,8 @@ defmodule Blockchain.Transaction.HSMSignature do
   """
   @spec sign_transaction(Transaction.t(), private_key | key_id, non_neg_integer() | nil) ::
           Transaction.t()
-  def sign_transaction(tx, <<_::256>> = private_key, chain_id \\ nil) do
+  def sign_transaction(tx, key, chain_id \\ nil)
+  def sign_transaction(tx, <<_::256>> = private_key, chain_id) do
     # Raw private key - use enhanced signing service
     case hsm_available?() do
       true ->
@@ -422,7 +424,7 @@ defmodule Blockchain.Transaction.HSMSignature do
   """
   @spec migrate_private_key_to_hsm(private_key, String.t(), atom()) ::
           {:ok, key_id} | {:error, String.t()}
-  def migrate_private_key_to_hsm(private_key, label, role \\ :transaction_signer) do
+  def migrate_private_key_to_hsm(_private_key, label, role \\ :transaction_signer) do
     case hsm_available?() do
       true ->
         # Most HSMs don't allow key import for security reasons

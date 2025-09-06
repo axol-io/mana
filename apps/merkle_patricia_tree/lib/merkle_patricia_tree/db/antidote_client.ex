@@ -438,7 +438,7 @@ defmodule MerklePatriciaTree.DB.AntidoteClient do
 
   @doc """
   Lists all keys in a bucket.
-  
+
   Note: This should be used with caution on large buckets as it may return
   a large amount of data. Consider implementing pagination for production use.
   """
@@ -450,12 +450,12 @@ defmodule MerklePatriciaTree.DB.AntidoteClient do
         # In a real implementation, this would use a specific protocol message
         # For now, we'll simulate with a special message type
         result = list_keys_internal(client, bucket, tx_id)
-        
+
         # Always commit the read transaction
         _ = commit_transaction(client, tx_id)
-        
+
         result
-        
+
       {:error, _reason} = error ->
         error
     end
@@ -472,7 +472,7 @@ defmodule MerklePatriciaTree.DB.AntidoteClient do
         result = get(client, bucket, key, tx_id)
         _ = commit_transaction(client, tx_id)
         result
-        
+
       {:error, _reason} = error ->
         error
     end
@@ -489,16 +489,18 @@ defmodule MerklePatriciaTree.DB.AntidoteClient do
         case put(client, bucket, key, value, tx_id) do
           :ok ->
             case commit_transaction(client, tx_id) do
-              :ok -> :ok
-              {:error, reason} -> 
+              :ok ->
+                :ok
+
+              {:error, reason} ->
                 raise "Failed to commit transaction: #{inspect(reason)}"
             end
-            
+
           {:error, reason} ->
             _ = abort_transaction(client, tx_id)
             raise "Failed to put value: #{inspect(reason)}"
         end
-        
+
       {:error, reason} ->
         raise "Failed to start transaction: #{inspect(reason)}"
     end
@@ -507,12 +509,12 @@ defmodule MerklePatriciaTree.DB.AntidoteClient do
   @doc """
   Starts a connection process linked to the current process.
   This is a convenience function for process supervision.
-  
+
   ## Parameters
   - hosts: List of host tuples like [{127, 0, 0, 1}]
   - port: Port number (default 8087)
   """
-  @spec start_link([{byte(), byte(), byte(), byte()}], non_neg_integer()) :: 
+  @spec start_link([{byte(), byte(), byte(), byte()}], non_neg_integer()) ::
           {:ok, client()} | error()
   def start_link(hosts, port \\ 8087) when is_list(hosts) and is_integer(port) do
     # For simplicity, we'll use the first host
@@ -521,10 +523,10 @@ defmodule MerklePatriciaTree.DB.AntidoteClient do
       [{a, b, c, d} | _rest] ->
         host = "#{a}.#{b}.#{c}.#{d}"
         connect(host, port)
-        
+
       [] ->
         {:error, "No hosts provided"}
-        
+
       _ ->
         {:error, "Invalid host format"}
     end
@@ -692,13 +694,13 @@ defmodule MerklePatriciaTree.DB.AntidoteClient do
     # In a real AntidoteDB implementation, this would use a specific protocol message
     # For now, we'll implement a placeholder that would need to be replaced
     # with actual AntidoteDB protocol support
-    
+
     # This is a simplified implementation
     # In production, this would need to:
     # 1. Send a list_keys message to AntidoteDB
     # 2. Handle pagination for large key sets
     # 3. Deal with CRDT-specific key structures
-    
+
     with_retry(client, fn ->
       # For now, return an empty list as a placeholder
       # This prevents the undefined function error

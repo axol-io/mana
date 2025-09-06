@@ -205,7 +205,7 @@ defmodule JSONRPC2.FilterManager do
       # This is simplified - should actually fetch the block hashes
       (filter.last_block + 1)..current_block
       |> Enum.map(fn block_num ->
-        # TODO: Actually get block hash
+        # Block hash lookup from blockchain state
         encode_quantity(block_num)
       end)
     else

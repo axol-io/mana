@@ -183,13 +183,15 @@ defmodule ExWire.Eth2.BlobVerification do
   end
 
   defp verify_blob_gas_consistency(execution_payload, blob_kzg_commitments) do
-    # Calculate expected blob gas based on number of commitments
-    expected_blob_gas = length(blob_kzg_commitments) * gas_per_blob()
+    # Calculate expected blob gas based on number of commitments using proper market
+    expected_blob_gas =
+      Blockchain.BlobGasMarket.calculate_total_blob_gas([
+        %{blob_versioned_hashes: blob_kzg_commitments}
+      ])
 
-    if execution_payload.blob_gas_used == expected_blob_gas do
-      {:ok, :valid}
-    else
-      {:error, :blob_gas_mismatch}
+    case ExecutionPayload.validate_blob_gas_fields(execution_payload, expected_blob_gas) do
+      :ok -> {:ok, :valid}
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -217,16 +219,16 @@ defmodule ExWire.Eth2.BlobVerification do
     end
   end
 
-  # Helper function to compute tree hash root (simplified)
-  defp hash_tree_root(_block) do
-    # In production, this would compute the actual SSZ tree hash root
-    :crypto.hash(:sha256, "block_root_placeholder")
+  # Helper function to compute tree hash root using proper SSZ
+  defp hash_tree_root(block) do
+    # Use proper SSZ hash_tree_root for Deneb compliance
+    SSZ.hash_tree_root(block)
   end
 
-  # EIP-4844 gas calculation
+  # EIP-4844 gas calculation using the market module
   defp gas_per_blob do
-    # Each blob consumes a fixed amount of blob gas
-    # 2^17 gas per blob
+    # Delegate to the blob gas market for consistency
+    # Keep inline for performance, matches BlobGasMarket constant
     131_072
   end
 
@@ -274,9 +276,113 @@ defmodule ExWire.Eth2.BlobVerification do
     }
   end
 
-  defp generate_inclusion_proof(_block, _index) do
-    # In production, this would generate the actual Merkle inclusion proof
-    # Placeholder proof path
-    [<<0::32*8>>, <<0::32*8>>, <<0::32*8>>]
+  defp generate_inclusion_proof(block, index) do
+    # Generate Merkle proof that blob KZG commitment is included in block
+    # The proof path from blob_kzg_commitments[index] to body_root
+
+    # Get the commitments list
+    commitments = block.body.blob_kzg_commitments
+
+    # Build Merkle tree of commitments
+    commitment_leaves =
+      commitments
+      |> Enum.map(&SSZ.hash_tree_root/1)
+      |> pad_to_power_of_2()
+
+    # Generate proof path for the specific index
+    proof_path = generate_merkle_proof(commitment_leaves, index)
+
+    # Add intermediate nodes up to body_root
+    # This includes the path through the BeaconBlockBody structure
+    body_fields_proof = generate_body_fields_proof(block.body, :blob_kzg_commitments)
+
+    proof_path ++ body_fields_proof
+  end
+
+  defp generate_merkle_proof(leaves, index) do
+    # Generate proof path from leaf at index to root
+    proof = []
+    current_index = index
+    current_level = leaves
+
+    generate_proof_recursive(current_level, current_index, proof)
+  end
+
+  defp generate_proof_recursive([_single], _index, proof), do: proof
+
+  defp generate_proof_recursive(level, index, proof) do
+    # Get sibling node
+    sibling_index = if rem(index, 2) == 0, do: index + 1, else: index - 1
+    sibling = Enum.at(level, sibling_index, <<0::256>>)
+
+    # Add sibling to proof
+    new_proof = proof ++ [sibling]
+
+    # Build next level
+    next_level =
+      level
+      |> Enum.chunk_every(2)
+      |> Enum.map(fn
+        [left, right] -> :crypto.hash(:sha256, left <> right)
+        [single] -> single
+      end)
+
+    # Continue with parent index
+    parent_index = div(index, 2)
+    generate_proof_recursive(next_level, parent_index, new_proof)
+  end
+
+  defp generate_body_fields_proof(body, field_name) do
+    # Generate proof from field to body_root
+    # This would need the actual SSZ structure path
+    # For now, return the hash of adjacent fields as proof nodes
+
+    # BeaconBlockBody fields in order (simplified)
+    fields = [
+      :randao_reveal,
+      :eth1_data,
+      :graffiti,
+      :proposer_slashings,
+      :attester_slashings,
+      :attestations,
+      :deposits,
+      :voluntary_exits,
+      :sync_aggregate,
+      :execution_payload,
+      :bls_to_execution_changes,
+      :blob_kzg_commitments
+    ]
+
+    field_index = Enum.find_index(fields, &(&1 == field_name))
+
+    # Generate proof nodes for SSZ container
+    field_hashes =
+      Enum.map(fields, fn f ->
+        SSZ.hash_tree_root(Map.get(body, f))
+      end)
+
+    # Pad to power of 2
+    padded_fields = pad_to_power_of_2(field_hashes)
+
+    # Generate proof for field position
+    generate_merkle_proof(padded_fields, field_index)
+  end
+
+  defp pad_to_power_of_2(list) do
+    count = length(list)
+    next_power = next_power_of_2(count)
+
+    if next_power == count do
+      list
+    else
+      padding_count = next_power - count
+      list ++ List.duplicate(<<0::256>>, padding_count)
+    end
+  end
+
+  defp next_power_of_2(n) when n <= 1, do: 1
+
+  defp next_power_of_2(n) do
+    trunc(1 * :math.pow(2, ceil(:math.log2(n))))
   end
 end

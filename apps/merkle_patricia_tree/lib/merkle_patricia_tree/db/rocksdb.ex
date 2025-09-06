@@ -2,13 +2,13 @@ defmodule MerklePatriciaTree.DB.RocksDB do
   @moduledoc """
   Implementation of MerklePatriciaTree.DB which
   is backed by rocksdb.
-  
+
   NOTE: This is ONLY used for benchmarking comparisons.
   Production uses AntidoteDB. The :rocksdb dependency is optional.
-  
+
   To use this module, add {:rocksdb, "~> 1.6"} to your deps.
   """
-  
+
   # Disable warnings for optional rocksdb dependency
   @dialyzer {:nowarn_function, [init: 1, get: 2, put!: 3, delete!: 2, batch_put!: 3]}
   @compile {:no_warn_undefined, [:rocksdb]}

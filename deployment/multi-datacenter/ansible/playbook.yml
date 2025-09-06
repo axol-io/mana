@@ -1,0 +1,226 @@
+---
+# Ansible Playbook for Mana Ethereum Deployment at axol.io
+- name: Deploy Mana Ethereum to Production
+  hosts: k8s_cluster
+  become: yes
+  vars:
+    namespace: mana-ethereum
+    image_registry: "registry.axol.io"
+    image_name: "mana-ethereum"
+    image_tag: "{{ lookup('env', 'IMAGE_TAG') | default('latest', true) }}"
+    cluster_size: 3
+    storage_class: "fast-nvme"
+    
+  tasks:
+    - name: Ensure namespace exists
+      kubernetes.core.k8s:
+        name: "{{ namespace }}"
+        api_version: v1
+        kind: Namespace
+        state: present
+      tags: [setup]
+
+    - name: Create image pull secret
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: axol-registry
+            namespace: "{{ namespace }}"
+          type: kubernetes.io/dockerconfigjson
+          data:
+            .dockerconfigjson: "{{ docker_config | to_json | b64encode }}"
+      tags: [secrets]
+
+    - name: Generate secure secrets
+      set_fact:
+        erlang_cookie: "{{ lookup('password', '/dev/null length=64 chars=ascii_letters,digits') }}"
+        node_key: "{{ lookup('password', '/dev/null length=64 chars=hexdigits') }}"
+        jwt_secret: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}"
+      tags: [secrets]
+
+    - name: Deploy secrets
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: mana-secrets
+            namespace: "{{ namespace }}"
+          type: Opaque
+          stringData:
+            erlang-cookie: "{{ erlang_cookie }}"
+            node-key: "{{ node_key }}"
+            jwt-secret: "{{ jwt_secret }}"
+      tags: [secrets]
+
+    - name: Deploy ConfigMap
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: mana-config
+            namespace: "{{ namespace }}"
+          data:
+            config.exs: |
+              import Config
+              
+              config :ex_wire,
+                network_id: {{ network_id | default(1) }},
+                chain: :{{ chain | default('mainnet') }},
+                sync_mode: :"{{ sync_mode | default('fast') }}",
+                max_peers: {{ max_peers | default(50) }}
+              
+              config :merkle_patricia_tree,
+                db_type: :antidote,
+                antidote_nodes: [
+                  {% for i in range(cluster_size) %}
+                  {"antidote@mana-ethereum-{{ i }}.mana-ethereum-headless.{{ namespace }}.svc.cluster.local", 8087}{{ "," if not loop.last }}
+                  {% endfor %}
+                ]
+      tags: [config]
+
+    - name: Deploy StatefulSet
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: apps/v1
+          kind: StatefulSet
+          metadata:
+            name: mana-ethereum
+            namespace: "{{ namespace }}"
+          spec:
+            serviceName: mana-ethereum-headless
+            replicas: "{{ cluster_size }}"
+            selector:
+              matchLabels:
+                app: mana-ethereum
+            template:
+              metadata:
+                labels:
+                  app: mana-ethereum
+                  version: "{{ image_tag }}"
+              spec:
+                imagePullSecrets:
+                - name: axol-registry
+                containers:
+                - name: mana
+                  image: "{{ image_registry }}/{{ image_name }}:{{ image_tag }}"
+                  imagePullPolicy: Always
+                  ports:
+                  - containerPort: 30303
+                    name: p2p
+                  - containerPort: 8545
+                    name: rpc
+                  - containerPort: 8546
+                    name: ws
+                  - containerPort: 9568
+                    name: metrics
+                  env:
+                  - name: RELEASE_NODE
+                    value: "mana@$(POD_IP)"
+                  - name: RELEASE_COOKIE
+                    valueFrom:
+                      secretKeyRef:
+                        name: mana-secrets
+                        key: erlang-cookie
+                  - name: POD_IP
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: status.podIP
+                  resources:
+                    requests:
+                      cpu: "{{ cpu_request | default('2') }}"
+                      memory: "{{ memory_request | default('8Gi') }}"
+                    limits:
+                      cpu: "{{ cpu_limit | default('4') }}"
+                      memory: "{{ memory_limit | default('16Gi') }}"
+                  volumeMounts:
+                  - name: data
+                    mountPath: /data
+                  livenessProbe:
+                    httpGet:
+                      path: /health
+                      port: 9568
+                    initialDelaySeconds: 60
+                    periodSeconds: 30
+                  readinessProbe:
+                    httpGet:
+                      path: /ready
+                      port: 9568
+                    initialDelaySeconds: 30
+                    periodSeconds: 10
+            volumeClaimTemplates:
+            - metadata:
+                name: data
+              spec:
+                accessModes: ["ReadWriteOnce"]
+                storageClassName: "{{ storage_class }}"
+                resources:
+                  requests:
+                    storage: "{{ storage_size | default('1Ti') }}"
+      tags: [deploy]
+
+    - name: Create Services
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: "{{ item.name }}"
+            namespace: "{{ namespace }}"
+          spec:
+            type: "{{ item.type }}"
+            selector:
+              app: mana-ethereum
+            ports: "{{ item.ports }}"
+      loop:
+        - name: mana-ethereum-headless
+          type: ClusterIP
+          ports:
+            - port: 30303
+              name: p2p
+            - port: 4369
+              name: erlang
+        - name: mana-ethereum-rpc
+          type: ClusterIP
+          ports:
+            - port: 8545
+              name: rpc
+            - port: 8546
+              name: ws
+      tags: [services]
+
+    - name: Wait for pods to be ready
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        namespace: "{{ namespace }}"
+        label_selectors:
+          - app=mana-ethereum
+        wait: true
+        wait_condition:
+          type: Ready
+          status: "True"
+        wait_timeout: 600
+      tags: [verify]
+
+    - name: Verify deployment health
+      uri:
+        url: "http://mana-ethereum-rpc.{{ namespace }}.svc.cluster.local:9568/health"
+      register: health_check
+      until: health_check.status == 200
+      retries: 10
+      delay: 30
+      tags: [verify]
+
+    - name: Display deployment status
+      debug:
+        msg:
+          - "Deployment completed successfully!"
+          - "Namespace: {{ namespace }}"
+          - "Image: {{ image_registry }}/{{ image_name }}:{{ image_tag }}"
+          - "Replicas: {{ cluster_size }}"
+          - "RPC Endpoint: mana-ethereum-rpc.{{ namespace }}.svc.cluster.local:8545"
+      tags: [verify]

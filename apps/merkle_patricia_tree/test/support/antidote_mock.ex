@@ -1,16 +1,16 @@
 defmodule MerklePatriciaTree.Test.AntiodoteMock do
   @moduledoc """
   Mock implementation of AntidoteDB for testing.
-  
+
   Provides in-memory storage that mimics AntidoteDB behavior without
   requiring actual network connections or distributed infrastructure.
   This significantly speeds up tests and removes external dependencies.
   """
-  
+
   @behaviour MerklePatriciaTree.DB
-  
+
   use Agent
-  
+
   @doc """
   Starts the mock storage agent.
   """
@@ -18,7 +18,7 @@ defmodule MerklePatriciaTree.Test.AntiodoteMock do
     name = opts[:name] || __MODULE__
     Agent.start_link(fn -> %{} end, name: name)
   end
-  
+
   @doc """
   Initializes the mock database.
   Returns a reference that includes the agent name.
@@ -27,18 +27,20 @@ defmodule MerklePatriciaTree.Test.AntiodoteMock do
   def init(db_name) do
     # Create a unique agent for this database
     agent_name = :"#{__MODULE__}_#{db_name}"
-    
+
     case Agent.start_link(fn -> %{} end, name: agent_name) do
-      {:ok, _pid} -> 
+      {:ok, _pid} ->
         {__MODULE__, agent_name}
+
       {:error, {:already_started, _pid}} ->
         # If already started, just return the reference
         {__MODULE__, agent_name}
+
       error ->
         error
     end
   end
-  
+
   @doc """
   Gets a value from the mock storage.
   """
@@ -51,7 +53,7 @@ defmodule MerklePatriciaTree.Test.AntiodoteMock do
   rescue
     _ -> :not_found
   end
-  
+
   @doc """
   Stores a value in the mock storage.
   """
@@ -62,7 +64,7 @@ defmodule MerklePatriciaTree.Test.AntiodoteMock do
   rescue
     _ -> raise "Failed to put value in mock storage"
   end
-  
+
   @doc """
   Deletes a value from the mock storage.
   """
@@ -73,7 +75,7 @@ defmodule MerklePatriciaTree.Test.AntiodoteMock do
   rescue
     _ -> raise "Failed to delete value from mock storage"
   end
-  
+
   @doc """
   Clears all data from the mock storage.
   Useful for test cleanup.
@@ -82,7 +84,7 @@ defmodule MerklePatriciaTree.Test.AntiodoteMock do
     Agent.update(agent_name, fn _ -> %{} end)
     :ok
   end
-  
+
   @doc """
   Gets all keys from the mock storage.
   Useful for debugging tests.
@@ -90,7 +92,7 @@ defmodule MerklePatriciaTree.Test.AntiodoteMock do
   def all_keys({__MODULE__, agent_name}) do
     Agent.get(agent_name, &Map.keys(&1))
   end
-  
+
   @doc """
   Gets the entire storage map.
   Useful for test assertions.
@@ -98,7 +100,7 @@ defmodule MerklePatriciaTree.Test.AntiodoteMock do
   def get_all({__MODULE__, agent_name}) do
     Agent.get(agent_name, & &1)
   end
-  
+
   @doc """
   Stops the mock storage agent.
   """
@@ -112,47 +114,48 @@ end
 defmodule MerklePatriciaTree.Test.AntidoteClientMock do
   @moduledoc """
   Mock implementation of the AntidoteClient for testing.
-  
+
   Provides transaction-like behavior without actual distributed transactions.
   """
-  
+
   @doc """
   Mock connection - always succeeds.
   """
   def connect(_host, _port) do
     {:ok, :mock_client}
   end
-  
+
   @doc """
   Mock transaction start - returns a simple transaction ID.
   """
   def start_transaction(_client) do
     {:ok, :erlang.unique_integer([:positive])}
   end
-  
+
   @doc """
   Mock transaction commit - always succeeds.
   """
   def commit_transaction(_client, _tx_id) do
     :ok
   end
-  
+
   @doc """
   Mock transaction abort - always succeeds.
   """
   def abort_transaction(_client, _tx_id) do
     :ok
   end
-  
+
   @doc """
   Mock get operation - delegates to the mock storage.
   """
   def get(_client, bucket, key, _tx_id \\ nil) do
     agent_name = :"#{MerklePatriciaTree.Test.AntiodoteMock}_#{bucket}"
-    
+
     case Process.whereis(agent_name) do
-      nil -> 
+      nil ->
         {:error, :not_found}
+
       _pid ->
         case Agent.get(agent_name, &Map.get(&1, key)) do
           nil -> {:error, :not_found}
@@ -162,27 +165,28 @@ defmodule MerklePatriciaTree.Test.AntidoteClientMock do
   rescue
     _ -> {:error, :not_found}
   end
-  
+
   @doc """
   Mock put operation - delegates to the mock storage.
   """
   def put(_client, bucket, key, value, _tx_id \\ nil) do
     agent_name = :"#{MerklePatriciaTree.Test.AntiodoteMock}_#{bucket}"
-    
+
     # Ensure the agent exists
     case Process.whereis(agent_name) do
       nil ->
         Agent.start_link(fn -> %{} end, name: agent_name)
+
       _pid ->
         :ok
     end
-    
+
     Agent.update(agent_name, &Map.put(&1, key, value))
     :ok
   rescue
     _ -> {:error, :write_failed}
   end
-  
+
   @doc """
   Mock put! operation - delegates to put and raises on error.
   """
@@ -192,16 +196,17 @@ defmodule MerklePatriciaTree.Test.AntidoteClientMock do
       {:error, reason} -> raise "Failed to put: #{reason}"
     end
   end
-  
+
   @doc """
   Mock list_keys operation - returns all keys in the bucket.
   """
   def list_keys(_client, bucket) do
     agent_name = :"#{MerklePatriciaTree.Test.AntiodoteMock}_#{bucket}"
-    
+
     case Process.whereis(agent_name) do
-      nil -> 
+      nil ->
         {:ok, []}
+
       _pid ->
         keys = Agent.get(agent_name, &Map.keys(&1))
         {:ok, keys}
@@ -209,7 +214,7 @@ defmodule MerklePatriciaTree.Test.AntidoteClientMock do
   rescue
     _ -> {:ok, []}
   end
-  
+
   @doc """
   Mock start_link - creates the mock client process.
   """
@@ -222,33 +227,33 @@ end
 defmodule MerklePatriciaTree.Test.AntidoteConnectionPoolMock do
   @moduledoc """
   Mock implementation of the AntidoteConnectionPool for testing.
-  
+
   Simulates connection pooling without actual network connections.
   """
-  
+
   use GenServer
-  
+
   @doc """
   Starts the mock connection pool.
   """
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
-  
+
   @doc """
   Mock pool start - always succeeds.
   """
   def start_pool(_pool_name, _opts) do
     {:ok, self()}
   end
-  
+
   @doc """
   Mock pool stop - always succeeds.
   """
   def stop_pool(_pool_name) do
     :ok
   end
-  
+
   @doc """
   Mock read operation - returns mock data.
   """
@@ -256,35 +261,35 @@ defmodule MerklePatriciaTree.Test.AntidoteConnectionPoolMock do
     # Return mock data based on key
     {:ok, "mock_value_for_#{key}"}
   end
-  
+
   @doc """
   Mock write operation - always succeeds.
   """
   def write(_key, _value, _opts \\ []) do
     :ok
   end
-  
+
   @doc """
   Mock checkout - returns a mock connection.
   """
   def checkout(_timeout \\ 5000) do
     {:ok, :mock_connection}
   end
-  
+
   @doc """
   Mock checkin - always succeeds.
   """
   def checkin(_conn) do
     :ok
   end
-  
+
   @doc """
   Mock with_connection - executes the function with a mock connection.
   """
   def with_connection(fun, _timeout \\ 5000) do
     fun.(:mock_connection)
   end
-  
+
   @doc """
   Mock status - returns healthy status.
   """
@@ -296,24 +301,24 @@ defmodule MerklePatriciaTree.Test.AntidoteConnectionPoolMock do
       health: :healthy
     }
   end
-  
+
   ## GenServer callbacks
-  
+
   @impl true
   def init(opts) do
     {:ok, opts}
   end
-  
+
   @impl true
   def handle_call(:status, _from, state) do
     {:reply, status(), state}
   end
-  
+
   @impl true
   def handle_call(_, _from, state) do
     {:reply, :ok, state}
   end
-  
+
   @impl true
   def handle_cast(_, state) do
     {:noreply, state}

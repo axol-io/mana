@@ -643,7 +643,7 @@ defmodule ExWire.Consensus.DistributedConsensusCoordinator do
     end
   end
 
-  defp perform_background_sync(state) do
+  defp perform_background_sync(_state) do
     Logger.debug("[DistributedConsensus] Performing background sync")
 
     # Background CRDT synchronization logic

@@ -313,17 +313,25 @@ defmodule ExWire.Layer2.Optimistic.OptimisticRollup do
   end
 
   defp get_caller_address() do
-    # TODO: Get actual caller address from transaction context
-    <<0::160>>
+    # Get caller from process dictionary (set by transaction executor)
+    case Process.get(:tx_sender) do
+      nil ->
+        # Default to zero address if not in transaction context
+        <<0::160>>
+
+      sender ->
+        sender
+    end
   end
 
   defp calculate_challenge_bond() do
-    # TODO: Calculate appropriate bond amount
-    # This should be based on network parameters
+    # Bond amount based on network configuration
+    bond_config = Application.get_env(:ex_wire, :optimistic_bond, %{})
+
     %{
-      # 1 ETH in wei
-      amount: 1_000_000_000_000_000_000,
-      token: :eth
+      # Default 1 ETH
+      amount: Map.get(bond_config, :amount, 1_000_000_000_000_000_000),
+      token: Map.get(bond_config, :token, :eth)
     }
   end
 
@@ -336,10 +344,18 @@ defmodule ExWire.Layer2.Optimistic.OptimisticRollup do
     # Rollback the rollup state to before the fraudulent batch
     Logger.warning("Rolling back state for rollup #{rollup_id} to before batch #{batch_number}")
 
-    # TODO: Implement actual state rollback
-    # - Remove invalid batches
-    # - Recalculate state roots
-    # - Emit rollback events
+    # Remove invalid batches from storage
+    Rollup.delete_batches_after(rollup_id, batch_number)
+
+    # Trigger state recalculation
+    Rollup.recalculate_state_from(rollup_id, batch_number)
+
+    # Emit rollback event for monitoring
+    :telemetry.execute(
+      [:layer2, :rollback],
+      %{batch_number: batch_number},
+      %{rollup_id: rollup_id}
+    )
 
     :ok
   end
@@ -348,10 +364,23 @@ defmodule ExWire.Layer2.Optimistic.OptimisticRollup do
     # Slash the proposer who submitted the fraudulent state
     Logger.warning("Slashing proposer for fraudulent batch #{challenge.batch_number}")
 
-    # TODO: Implement slashing logic
-    # - Transfer bond to challenger
-    # - Mark proposer as slashed
-    # - Emit slashing event
+    # Transfer bond to challenger via L1 contract
+    {:ok, _tx} =
+      ExWire.Layer2.L1ContractInterface.call_contract(
+        :optimism_portal,
+        :transfer_bond,
+        [challenge.proposer, challenge.challenger, challenge.bond.amount]
+      )
+
+    # Mark proposer as slashed in local state
+    Rollup.mark_proposer_slashed(challenge.proposer)
+
+    # Emit slashing event
+    :telemetry.execute(
+      [:layer2, :proposer_slashed],
+      %{bond_amount: challenge.bond.amount},
+      %{proposer: challenge.proposer, batch: challenge.batch_number}
+    )
 
     :ok
   end
@@ -360,7 +389,14 @@ defmodule ExWire.Layer2.Optimistic.OptimisticRollup do
     # Return bond to defender when challenge expires
     Logger.info("Returning bond for expired challenge #{challenge.id}")
 
-    # TODO: Implement bond return
+    # Return bond via L1 contract
+    {:ok, _tx} =
+      ExWire.Layer2.L1ContractInterface.call_contract(
+        :optimism_portal,
+        :return_bond,
+        [challenge.proposer, challenge.bond.amount]
+      )
+
     :ok
   end
 
@@ -368,7 +404,13 @@ defmodule ExWire.Layer2.Optimistic.OptimisticRollup do
     # Emit event for monitoring and indexing
     Logger.debug("Challenge event: #{inspect(challenge)}")
 
-    # TODO: Emit to event bus
+    # Emit telemetry event for monitoring
+    :telemetry.execute(
+      [:layer2, :challenge_created],
+      %{bond: challenge.bond.amount, batch: challenge.batch_number},
+      %{challenge_id: challenge.id, proposer: challenge.proposer}
+    )
+
     :ok
   end
 
@@ -376,20 +418,64 @@ defmodule ExWire.Layer2.Optimistic.OptimisticRollup do
     # Process the withdrawal on L1
     Logger.info("Processing L1 withdrawal: #{withdrawal.id}")
 
-    # TODO: Implement L1 withdrawal processing
-    # - Verify merkle proof
-    # - Check withdrawal hasn't been processed
-    # - Execute withdrawal on L1
-
-    :ok
+    # Verify merkle proof of withdrawal
+    with {:ok, valid} <- Rollup.verify_withdrawal_proof(withdrawal),
+         true <- valid,
+         # Check if already processed
+         {:ok, false} <-
+           ExWire.Layer2.L1ContractInterface.call_contract(
+             :optimism_portal,
+             :is_withdrawal_finalized,
+             [withdrawal.id]
+           ),
+         # Execute withdrawal on L1
+         {:ok, tx_hash} <-
+           ExWire.Layer2.L1ContractInterface.call_contract(
+             :optimism_portal,
+             :finalize_withdrawal,
+             [withdrawal]
+           ) do
+      Logger.info("Withdrawal #{withdrawal.id} processed: #{tx_hash}")
+      :ok
+    else
+      {:error, reason} -> {:error, reason}
+      false -> {:error, :invalid_proof}
+      {:ok, true} -> {:error, :already_processed}
+    end
   end
 
   defp resolve_fault_dispute_game(dispute_id, state) do
     # Implement Optimism's fault dispute game resolution logic
     # This involves multiple rounds of bisection and instruction stepping
 
-    # TODO: Implement full dispute game logic
-    # For now, return a simulated result
-    {:ok, Enum.random([:defender_wins, :challenger_wins])}
+    case Map.get(state.challenges, dispute_id) do
+      nil ->
+        {:error, :dispute_not_found}
+
+      dispute ->
+        # Check if dispute has reached resolution
+        cond do
+          dispute.status == :proven ->
+            {:ok, :challenger_wins}
+
+          dispute.status == :expired ->
+            {:ok, :defender_wins}
+
+          true ->
+            # Continue bisection game via L1 contract
+            {:ok, response} =
+              ExWire.Layer2.L1ContractInterface.call_contract(
+                :dispute_game_factory,
+                :get_game_status,
+                [dispute_id]
+              )
+
+            case response do
+              %{status: "DEFENDER_WINS"} -> {:ok, :defender_wins}
+              %{status: "CHALLENGER_WINS"} -> {:ok, :challenger_wins}
+              _ -> {:error, :dispute_ongoing}
+            end
+        end
+    end
   end
 end

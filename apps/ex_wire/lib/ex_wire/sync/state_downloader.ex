@@ -496,7 +496,7 @@ defmodule ExWire.Sync.StateDownloader do
     end
   end
 
-  defp find_missing_nodes(state) do
+  defp find_missing_nodes(_state) do
     # This would traverse the trie and find nodes that are referenced but missing
     # For now, return empty list
     []

@@ -1,7 +1,7 @@
 defmodule Common.DRYPatterns do
   @moduledoc """
   DRY (Don't Repeat Yourself) utilities for common patterns in the Mana codebase.
-  
+
   This module extracts repeated patterns found throughout the codebase
   into reusable, composable functions.
   """
@@ -21,12 +21,12 @@ defmodule Common.DRYPatterns do
       quote do
         def init(opts) do
           state = unquote(initial_state).(opts)
-          
+
           unquote(schedule_functions)
           |> Enum.each(fn {func, interval} ->
             Process.send_after(self(), func, interval)
           end)
-          
+
           Logger.info("#{__MODULE__} initialized")
           {:ok, state}
         end
@@ -54,12 +54,12 @@ defmodule Common.DRYPatterns do
       quote do
         def handle_call(unquote(name), from, state) do
           start_time = System.monotonic_time()
-          
+
           {reply, new_state} = unquote(handler_fn).(state, from)
-          
+
           duration = System.monotonic_time() - start_time
-          tracked_state = update_in(new_state, [:metrics, unquote(name)], &[duration | (&1 || [])])
-          
+          tracked_state = update_in(new_state, [:metrics, unquote(name)], &[duration | &1 || []])
+
           {:reply, reply, tracked_state}
         end
       end
@@ -78,17 +78,18 @@ defmodule Common.DRYPatterns do
     def validate_transaction(tx, config \\ %{}) do
       min_gas = Map.get(config, :min_gas_price, 1_000_000_000)
       max_gas_limit = Map.get(config, :max_gas_limit, 8_000_000)
-      
+
       validators = [
         {:gas_price, &(&1 >= min_gas), "Gas price too low"},
         {:gas_limit, &(&1 >= 21_000 and &1 <= max_gas_limit), "Invalid gas limit"},
         {:nonce, &(&1 >= 0), "Invalid nonce"},
         {:signature, &valid_signature?/1, "Invalid signature"}
       ]
-      
+
       validators
       |> Enum.reduce_while({:ok, tx}, fn {field, validator, error}, {:ok, transaction} ->
         value = Map.get(transaction, field)
+
         if validator.(value) do
           {:cont, {:ok, transaction}}
         else
@@ -180,7 +181,7 @@ defmodule Common.DRYPatterns do
     """
     def record_metric(state, metric_key, value) do
       entry = %{value: value, timestamp: System.system_time(:second)}
-      update_in(state, [:metrics, metric_key], &[entry | (&1 || [])])
+      update_in(state, [:metrics, metric_key], &[entry | &1 || []])
     end
 
     @doc """
@@ -189,13 +190,14 @@ defmodule Common.DRYPatterns do
     def cleanup_old_entries(state, field, max_age_seconds) do
       current_time = System.system_time(:second)
       cutoff = current_time - max_age_seconds
-      
-      cleaned = state
-      |> Map.get(field, [])
-      |> Enum.filter(fn entry ->
-        Map.get(entry, :timestamp, current_time) > cutoff
-      end)
-      
+
+      cleaned =
+        state
+        |> Map.get(field, [])
+        |> Enum.filter(fn entry ->
+          Map.get(entry, :timestamp, current_time) > cutoff
+        end)
+
       Map.put(state, field, cleaned)
     end
 
@@ -204,10 +206,11 @@ defmodule Common.DRYPatterns do
     """
     def cached_lookup(cache, key, ttl, compute_fn) do
       current_time = System.system_time(:second)
-      
+
       case Map.get(cache, key) do
         {value, timestamp} when timestamp > current_time - ttl ->
           {:cached, value}
+
         _ ->
           value = compute_fn.()
           updated_cache = Map.put(cache, key, {value, current_time})
@@ -238,16 +241,20 @@ defmodule Common.DRYPatterns do
     def retry_with_backoff(operation, opts \\ []) do
       max_attempts = Keyword.get(opts, :max_attempts, 3)
       base_delay = Keyword.get(opts, :base_delay, 100)
-      
+
       do_retry(operation, max_attempts, base_delay, 1)
     end
 
     defp do_retry(operation, max_attempts, base_delay, attempt) do
       case operation.() do
-        {:ok, _} = success -> success
-        {:error, _} = error when attempt >= max_attempts -> error
+        {:ok, _} = success ->
+          success
+
+        {:error, _} = error when attempt >= max_attempts ->
+          error
+
         {:error, _} ->
-          delay = base_delay * :math.pow(2, attempt - 1) |> round()
+          delay = (base_delay * :math.pow(2, attempt - 1)) |> round()
           Process.sleep(delay)
           do_retry(operation, max_attempts, base_delay, attempt + 1)
       end
@@ -259,13 +266,14 @@ defmodule Common.DRYPatterns do
     def with_circuit_breaker(operation, breaker_name, opts \\ []) do
       threshold = Keyword.get(opts, :failure_threshold, 5)
       timeout = Keyword.get(opts, :timeout, 60_000)
-      
+
       # Simplified circuit breaker - always closed for now
-      # TODO: Implement full circuit breaker if needed
+      # Full circuit breaker with failure tracking can be implemented later
       case operation.() do
         {:ok, _} = success ->
           reset_breaker(breaker_name)
           success
+
         {:error, _} = error ->
           increment_breaker(breaker_name, threshold, timeout)
           error
@@ -301,7 +309,7 @@ defmodule Common.DRYPatterns do
       start = System.monotonic_time()
       result = operation.()
       duration = System.monotonic_time() - start
-      
+
       Logger.debug("#{name} completed in #{duration}μs")
       result
     end
@@ -317,7 +325,7 @@ defmodule Common.DRYPatterns do
         timestamp: DateTime.utc_now(),
         id: generate_audit_id()
       }
-      
+
       Logger.info("AUDIT: #{inspect(entry)}")
       {:ok, entry}
     end
@@ -347,7 +355,7 @@ defmodule Common.DRYPatterns do
     """
     def rate_limited_process(items, fun, rate_per_second) do
       delay = div(1000, rate_per_second)
-      
+
       items
       |> Enum.map(fn item ->
         Process.sleep(delay)
@@ -394,9 +402,11 @@ defmodule Common.DRYPatterns do
               true -> {:cont, {:ok, cfg}}
               false -> {:halt, {:error, "Invalid config for #{key}"}}
             end
+
           :error when is_function(validator, 0) ->
             # Optional field
             {:cont, {:ok, cfg}}
+
           :error ->
             {:halt, {:error, "Missing required config: #{key}"}}
         end

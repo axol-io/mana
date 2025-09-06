@@ -89,10 +89,14 @@ defmodule ExWire.Packet.Capability.Par.BlockHeaders do
   @impl true
   @spec handle(ExWire.Packet.packet()) :: ExWire.Packet.handle_response()
   def handle(packet = %__MODULE__{}) do
-    # TODO: Do.
-    _ = Logger.debug(fn -> "[Packet] Peer sent #{Enum.count(packet.headers)} header(s)" end)
+    # Process received block headers for Parity protocol
 
-    # packet.headers |> Exth.inspect("Got headers, requesting more?")
+    _ =
+      Logger.debug(fn ->
+        "[Par.BlockHeaders] Received #{Enum.count(packet.headers)} header(s)"
+      end)
+
+    # In production: validate and process headers for Parity-specific sync
 
     :ok
   end

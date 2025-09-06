@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mana-ethereum-pdb
+  namespace: mana-ethereum
+  labels:
+    app: mana-ethereum
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: mana-ethereum
+      component: node

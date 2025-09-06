@@ -17,7 +17,7 @@ defmodule JSONRPC2.SubscriptionManager do
   alias JSONRPC2.Response.Helpers
   alias JSONRPC2.Bridge.Sync
 
-  @sync Application.get_env(:jsonrpc2, :bridge_mock, Sync)
+  @sync Application.compile_env(:jsonrpc2, :bridge_mock, Sync)
 
   # Client API
 

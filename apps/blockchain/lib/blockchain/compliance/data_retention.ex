@@ -631,7 +631,7 @@ defmodule Blockchain.Compliance.DataRetention do
     end
   end
 
-  defp apply_legal_hold(record_ids, hold_info, state) do
+  defp apply_legal_hold(record_ids, _hold_info, state) do
     hold_id = generate_hold_id()
 
     updated_records =

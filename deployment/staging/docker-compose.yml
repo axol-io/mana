@@ -1,0 +1,137 @@
+version: '3.8'
+
+services:
+  mana-node:
+    build:
+      context: ../../
+      dockerfile: deployment/Dockerfile
+    container_name: mana-staging
+    environment:
+      - MIX_ENV=prod
+      - MANA_ULTRA_PERFORMANCE=true
+      - VERKLE_SIMD_ENABLED=true
+      - EVM_SIMD_ENABLED=true
+      - LIBP2P_MESH_OPTIMIZATION=true
+      - ENABLE_TELEMETRY=true
+      - PROMETHEUS_ENABLED=true
+      - NODE_ENV=staging
+      - DATACENTER_ID=staging-dc1
+      - REGION=us-west-2
+    ports:
+      - "8545:8545"  # JSON-RPC
+      - "8546:8546"  # WebSocket
+      - "30303:30303"  # P2P
+      - "9090:9090"  # Prometheus metrics
+    volumes:
+      - mana_data:/opt/mana/data
+      - ./config:/opt/mana/config
+      - mana_logs:/opt/mana/logs
+    restart: unless-stopped
+    depends_on:
+      - antidote
+      - prometheus
+    networks:
+      - mana-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  antidote:
+    image: antidotedb/antidote:latest
+    container_name: antidote-staging
+    environment:
+      - NODE_NAME=antidote@antidote-staging
+      - ANTIDOTE_TXN_CERT=true
+      - ANTIDOTE_RECOVERY_ENABLED=true
+    ports:
+      - "8087:8087"
+    volumes:
+      - antidote_data:/opt/antidote/data
+    restart: unless-stopped
+    networks:
+      - mana-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus-staging
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+    networks:
+      - mana-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana-staging
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=staging123
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    restart: unless-stopped
+    networks:
+      - mana-network
+    depends_on:
+      - prometheus
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager-staging
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    ports:
+      - "9094:9093"
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/alertmanager
+    restart: unless-stopped
+    networks:
+      - mana-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-staging
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    restart: unless-stopped
+    networks:
+      - mana-network
+    depends_on:
+      - mana-node
+
+volumes:
+  mana_data:
+  mana_logs:
+  antidote_data:
+  prometheus_data:
+  grafana_data:
+  alertmanager_data:
+
+networks:
+  mana-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

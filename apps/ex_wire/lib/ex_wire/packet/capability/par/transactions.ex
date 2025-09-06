@@ -52,8 +52,7 @@ defmodule ExWire.Packet.Capability.Par.Transactions do
   @impl true
   @spec serialize(t) :: ExRLP.t()
   def serialize(packet = %__MODULE__{}) do
-    # TODO: Serialize accurately
-    packet.transactions
+    Enum.map(packet.transactions, &Blockchain.Transaction.serialize/1)
   end
 
   @doc """
@@ -73,10 +72,10 @@ defmodule ExWire.Packet.Capability.Par.Transactions do
   @impl true
   @spec deserialize(ExRLP.t()) :: t
   def deserialize(rlp) do
-    # TODO: Deserialize from proper struct
+    transactions = Enum.map(rlp, &Blockchain.Transaction.deserialize/1)
 
     %__MODULE__{
-      transactions: rlp
+      transactions: transactions
     }
   end
 

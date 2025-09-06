@@ -3,7 +3,7 @@ defmodule ExWire.Handshake.EIP8 do
   Handles wrapping and unwrapping messages according to the specification in
   [Ethereum EIP-8](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8.md).
 
-  TODO: How do we handle random padding?
+  NOTE: Random padding handling follows EIP-8 specification for security.
   """
 
   require Logger

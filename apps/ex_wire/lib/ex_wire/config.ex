@@ -86,7 +86,7 @@ defmodule ExWire.Config do
       |> Base.encode16(case: :lower)
 
     my_port = listen_port()
-    # TODO: This is only valid for IPv4 addresses
+    # IPv4 address formatting - IPv6 support can be added later
     my_public_ip =
       public_ip()
       |> Enum.map(fn digit -> to_string(digit) end)

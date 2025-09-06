@@ -450,8 +450,8 @@ defmodule ExWire.Layer2.Bridge.CrossLayerBridge do
   end
 
   defp get_caller_address() do
-    # TODO: Get actual caller address from context
-    <<0::160>>
+    # Get caller from process dictionary or default
+    Process.get(:tx_sender, <<0::160>>)
   end
 
   defp get_next_nonce(state) do
@@ -459,13 +459,19 @@ defmodule ExWire.Layer2.Bridge.CrossLayerBridge do
   end
 
   defp get_current_l1_block() do
-    # TODO: Get from blockchain module
-    :rand.uniform(15_000_000)
+    # Get current L1 block from blockchain module
+    case Blockchain.get_latest_block_number() do
+      {:ok, block_num} -> block_num
+      _ -> 0
+    end
   end
 
   defp get_current_l2_block() do
-    # TODO: Get from L2 module
-    :rand.uniform(50_000_000)
+    # Get current L2 block from rollup module
+    case ExWire.Layer2.Rollup.get_latest_batch_number() do
+      {:ok, batch_num} -> batch_num
+      _ -> 0
+    end
   end
 
   defp relay_to_destination(message, state) do
@@ -481,22 +487,36 @@ defmodule ExWire.Layer2.Bridge.CrossLayerBridge do
     end
   end
 
-  defp send_to_l1(_message, l1_contract) do
-    # TODO: Send transaction to L1
+  defp send_to_l1(message, l1_contract) do
+    # Send transaction to L1 via L1ContractInterface
     Logger.debug("Sending message to L1 contract #{Base.encode16(l1_contract)}")
-    {:ok, :crypto.strong_rand_bytes(32)}
+
+    ExWire.Layer2.L1ContractInterface.call_contract(
+      l1_contract,
+      :relay_message,
+      [message.from, message.to, message.data, message.nonce]
+    )
   end
 
-  defp send_to_l2(_message, l2_contract) do
-    # TODO: Send transaction to L2
+  defp send_to_l2(message, l2_contract) do
+    # Send transaction to L2 via rollup interface
     Logger.debug("Sending message to L2 contract #{Base.encode16(l2_contract)}")
-    {:ok, :crypto.strong_rand_bytes(32)}
+
+    ExWire.Layer2.Rollup.submit_transaction(%{
+      to: l2_contract,
+      from: message.from,
+      data: message.data,
+      value: message.value
+    })
   end
 
   defp generate_inclusion_proof(message, state_root) do
     # Generate merkle proof for message inclusion
-    # TODO: Implement actual merkle proof generation
-    {:ok, :crypto.strong_rand_bytes(256)}
+    MerkleTree.generate_proof(
+      state_root,
+      ExthCrypto.Hash.Keccac.kec(message.data),
+      message.nonce
+    )
   end
 
   defp update_transfer_status(message_id, status, state) do
@@ -512,13 +532,37 @@ defmodule ExWire.Layer2.Bridge.CrossLayerBridge do
 
   defp process_l1_event(event, state) do
     Logger.debug("Processing L1 event: #{inspect(event)}")
-    # TODO: Process L1 events
-    state
+
+    # Process different L1 event types
+    case event.type do
+      :deposit_initiated ->
+        # Track new deposit from L1
+        Map.update(state, :pending_deposits, [event], &[event | &1])
+
+      :withdrawal_finalized ->
+        # Mark withdrawal as complete
+        Map.update(state, :relayed_messages, %{}, &Map.put(&1, event.message_id, :finalized))
+
+      _ ->
+        state
+    end
   end
 
   defp process_l2_event(event, state) do
     Logger.debug("Processing L2 event: #{inspect(event)}")
-    # TODO: Process L2 events
-    state
+
+    # Process different L2 event types  
+    case event.type do
+      :withdrawal_initiated ->
+        # Track new withdrawal from L2
+        Map.update(state, :pending_withdrawals, [event], &[event | &1])
+
+      :deposit_finalized ->
+        # Mark deposit as complete
+        Map.update(state, :relayed_messages, %{}, &Map.put(&1, event.message_id, :finalized))
+
+      _ ->
+        state
+    end
   end
 end

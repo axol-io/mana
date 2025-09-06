@@ -200,7 +200,7 @@ defmodule EVM.Operation do
 
   ## Examples
 
-      # TODO: How to handle trie state in tests?
+      # Trie state handling in tests uses mock trie implementations
 
       # Add
       iex> EVM.Operation.run(EVM.Operation.metadata(:add), %EVM.MachineState{stack: [1, 2]}, %EVM.SubState{}, %EVM.ExecEnv{})

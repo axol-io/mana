@@ -167,7 +167,14 @@ defmodule Blockchain.Performance.KZGBenchmarks do
             {blob, commitment, proof}
           end)
 
-        {blobs_list, commitments_list, proofs_list} = Enum.unzip3(verification_data)
+        {blobs_list, commitments_list, proofs_list} =
+          Enum.reduce(verification_data, {[], [], []}, fn {blob, commitment, proof},
+                                                          {blobs, commitments, proofs} ->
+            {[blob | blobs], [commitment | commitments], [proof | proofs]}
+          end)
+          |> then(fn {blobs, commitments, proofs} ->
+            {Enum.reverse(blobs), Enum.reverse(commitments), Enum.reverse(proofs)}
+          end)
 
         # Benchmark batch verification
         {batch_time, _result} =

@@ -1,0 +1,180 @@
+version: '3.8'
+
+services:
+  # AntidoteDB Node 1
+  antidote1:
+    image: antidotedb/antidote:latest
+    container_name: antidote-node-1
+    hostname: antidote1
+    ports:
+      - "8087:8087"  # Client API
+      - "18087:8080" # HTTP API
+    environment:
+      - NODE_NAME=antidote@antidote1
+      - CLUSTER_NODES=antidote@antidote1,antidote@antidote2,antidote@antidote3
+      - RING_SIZE=64  # Optimized for performance
+      - LOGHASH=false
+      - TXLOG_HASH_SIZE=8
+    volumes:
+      - antidote1_data:/opt/antidote/data
+      - ./config/antidote.conf:/opt/antidote/releases/*/antidote.conf:ro
+    networks:
+      - antidote_cluster
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.5'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+
+  # AntidoteDB Node 2
+  antidote2:
+    image: antidotedb/antidote:latest
+    container_name: antidote-node-2
+    hostname: antidote2
+    ports:
+      - "8088:8087"  # Client API
+      - "18088:8080" # HTTP API
+    environment:
+      - NODE_NAME=antidote@antidote2
+      - CLUSTER_NODES=antidote@antidote1,antidote@antidote2,antidote@antidote3
+      - RING_SIZE=64
+      - LOGHASH=false
+      - TXLOG_HASH_SIZE=8
+    volumes:
+      - antidote2_data:/opt/antidote/data
+      - ./config/antidote.conf:/opt/antidote/releases/*/antidote.conf:ro
+    networks:
+      - antidote_cluster
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    depends_on:
+      - antidote1
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.5'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+
+  # AntidoteDB Node 3
+  antidote3:
+    image: antidotedb/antidote:latest
+    container_name: antidote-node-3
+    hostname: antidote3
+    ports:
+      - "8089:8087"  # Client API
+      - "18089:8080" # HTTP API
+    environment:
+      - NODE_NAME=antidote@antidote3
+      - CLUSTER_NODES=antidote@antidote1,antidote@antidote2,antidote@antidote3
+      - RING_SIZE=64
+      - LOGHASH=false
+      - TXLOG_HASH_SIZE=8
+    volumes:
+      - antidote3_data:/opt/antidote/data
+      - ./config/antidote.conf:/opt/antidote/releases/*/antidote.conf:ro
+    networks:
+      - antidote_cluster
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    depends_on:
+      - antidote1
+      - antidote2
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.5'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+
+  # Performance monitoring for AntidoteDB
+  antidote-metrics:
+    image: prom/node-exporter:latest
+    container_name: antidote-metrics-exporter
+    ports:
+      - "9101:9100"
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks:
+      - antidote_cluster
+    restart: unless-stopped
+
+  # Load balancer for AntidoteDB cluster
+  antidote-haproxy:
+    image: haproxy:2.8-alpine
+    container_name: antidote-loadbalancer
+    ports:
+      - "8086:8087"  # Load balanced client API
+      - "18086:8080" # HAProxy stats
+    volumes:
+      - ./config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    networks:
+      - antidote_cluster
+    depends_on:
+      - antidote1
+      - antidote2
+      - antidote3
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8087"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  antidote1_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/antidote1
+  antidote2_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/antidote2
+  antidote3_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/antidote3
+
+networks:
+  antidote_cluster:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1

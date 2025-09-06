@@ -16,7 +16,7 @@ defmodule ExthCrypto.KDF.NistSp80056 do
 
   Note: we do not currently support HMAC.
 
-  # TODO: Test canonical tests
+  # Canonical tests available in NIST SP 800-56A documentation
 
   ## Examples
 

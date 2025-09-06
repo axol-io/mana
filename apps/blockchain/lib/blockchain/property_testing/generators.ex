@@ -1,7 +1,7 @@
 defmodule Blockchain.PropertyTesting.Generators do
   @moduledoc """
   Property testing generators for blockchain operations.
-  
+
   This module provides StreamData generators for various blockchain
   data structures used in property-based tests.
   """
@@ -71,30 +71,45 @@ defmodule Blockchain.PropertyTesting.Generators do
   Generates valid EVM bytecode.
   """
   def evm_bytecode do
-    list_of(one_of([
-      # PUSH operations
-      constant(0x60), # PUSH1
-      constant(0x61), # PUSH2
-      constant(0x63), # PUSH4
-      
-      # Stack operations  
-      constant(0x80), # DUP1
-      constant(0x90), # SWAP1
-      constant(0x50), # POP
-      
-      # Arithmetic
-      constant(0x01), # ADD
-      constant(0x02), # MUL
-      constant(0x03), # SUB
-      
-      # Storage
-      constant(0x54), # SLOAD
-      constant(0x55), # SSTORE
-      
-      # Control flow
-      constant(0x00), # STOP
-      constant(0xf3)  # RETURN
-    ]))
+    list_of(
+      one_of([
+        # PUSH operations
+        # PUSH1
+        constant(0x60),
+        # PUSH2
+        constant(0x61),
+        # PUSH4
+        constant(0x63),
+
+        # Stack operations  
+        # DUP1
+        constant(0x80),
+        # SWAP1
+        constant(0x90),
+        # POP
+        constant(0x50),
+
+        # Arithmetic
+        # ADD
+        constant(0x01),
+        # MUL
+        constant(0x02),
+        # SUB
+        constant(0x03),
+
+        # Storage
+        # SLOAD
+        constant(0x54),
+        # SSTORE
+        constant(0x55),
+
+        # Control flow
+        # STOP
+        constant(0x00),
+        # RETURN
+        constant(0xF3)
+      ])
+    )
     |> map(&:binary.list_to_bin/1)
   end
 end

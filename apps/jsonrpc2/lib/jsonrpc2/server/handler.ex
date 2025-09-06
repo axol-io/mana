@@ -93,6 +93,10 @@ defmodule JSONRPC2.Server.Handler do
     handle(module, json, %{})
   end
 
+  def handle(module, json) do
+    handle(module, json, %{})
+  end
+
   def handle(module, json, context) when is_binary(json) do
     data =
       case Jason.decode(json) do
@@ -105,10 +109,6 @@ defmodule JSONRPC2.Server.Handler do
 
     data
     |> encode_response(module, json)
-  end
-
-  def handle(module, json) do
-    handle(module, json, %{})
   end
 
   def handle(module, json, context) do

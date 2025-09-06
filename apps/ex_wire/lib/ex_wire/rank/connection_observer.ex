@@ -19,7 +19,7 @@ defmodule ExWire.Rank.ConnectionObserver do
         }
   defstruct outbound_links: [], inbound_links: []
 
-  @kademlia Application.get_env(:ex_wire, :kademlia_mock, Kademlia)
+  @kademlia Application.compile_env(:ex_wire, :kademlia_mock, Kademlia)
 
   def notify(:discovery_round) do
     GenServer.cast(__MODULE__, :kademlia_discovery_round)

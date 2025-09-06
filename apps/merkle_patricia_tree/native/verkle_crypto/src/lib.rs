@@ -1,20 +1,16 @@
 use rustler::{Encoder, Env, Error, NifResult, Term};
 use rustler::types::binary::{Binary, OwnedBinary};
-use std::sync::Mutex;
 
 mod commitment;
 mod proof;
 mod batch;
 mod curve;
 
-use commitment::{VerkleCommitment, compute_commitment};
+use commitment::{compute_commitment};
 use proof::{generate_proof, verify_proof};
 use batch::{batch_verify_proofs, batch_compute_commitments};
 
-// Resource wrapper for commitment state
-struct CommitmentState {
-    _commitment: Mutex<VerkleCommitment>,
-}
+// Register the resource type with Rustler - removed as not needed for basic NIFs
 
 // Define the NIF module
 rustler::init!(
@@ -32,6 +28,7 @@ rustler::init!(
         // Batch operations
         batch_verify,
         batch_commit,
+        batch_generate_witnesses,
         
         // Utility functions
         hash_to_scalar,
@@ -47,8 +44,7 @@ rustler::init!(
     load = on_load
 );
 
-fn on_load(env: Env, _info: Term) -> bool {
-    rustler::resource!(CommitmentState, env);
+fn on_load(_env: Env, _info: Term) -> bool {
     true
 }
 
@@ -255,4 +251,177 @@ fn get_identity<'a>(env: Env<'a>) -> NifResult<Term<'a>> {
     let mut binary = OwnedBinary::new(32).unwrap();
     binary.as_mut_slice().copy_from_slice(&identity);
     Ok(binary.release(env).encode(env))
+}
+
+// High-performance batch witness generation NIF with parallel processing
+#[rustler::nif]
+fn batch_generate_witnesses<'a>(env: Env<'a>, 
+                                keys: Vec<Binary>,
+                                tree_data: rustler::types::map::MapIterator) -> NifResult<Term<'a>> {
+    
+    // Extract tree data with vectorized memory operations
+    let mut root_commitment = [0u8; 32];
+    let mut node_cache = Vec::with_capacity(keys.len() * 3); // Increased capacity for better performance
+    
+    for (key, value) in tree_data {
+        match key.decode::<String>() {
+            Ok(ref key_str) if key_str == "root_commitment" => {
+                if let Ok(binary) = value.decode::<Binary>() {
+                    if binary.len() == 32 {
+                        // SIMD-friendly memory copy with alignment
+                        unsafe {
+                            let src = binary.as_slice().as_ptr();
+                            let dst = root_commitment.as_mut_ptr();
+                            // Use vectorized copy for 32-byte blocks
+                            std::ptr::copy_nonoverlapping(src, dst, 32);
+                        }
+                    }
+                }
+            }
+            Ok(ref key_str) if key_str == "node_cache" => {
+                if let Ok(cache_list) = value.decode::<Vec<(Binary, Binary)>>() {
+                    // Parallel processing of cache entries for large datasets
+                    if cache_list.len() > 128 {
+                        // Use parallel iterator for large caches
+                        #[cfg(feature = "parallel")]
+                        {
+                            use rayon::prelude::*;
+                            let parallel_entries: Vec<_> = cache_list
+                                .par_iter()
+                                .filter_map(|(commitment_bin, node_data_bin)| {
+                                    if commitment_bin.len() == 32 {
+                                        let mut commitment = [0u8; 32];
+                                        unsafe {
+                                            std::ptr::copy_nonoverlapping(
+                                                commitment_bin.as_slice().as_ptr(),
+                                                commitment.as_mut_ptr(),
+                                                32
+                                            );
+                                        }
+                                        Some((commitment, node_data_bin.as_slice().to_vec()))
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .collect();
+                            node_cache = parallel_entries;
+                        }
+                        #[cfg(not(feature = "parallel"))]
+                        {
+                            // Fallback to sequential processing
+                            node_cache.reserve(cache_list.len());
+                            for (commitment_bin, node_data_bin) in cache_list {
+                                if commitment_bin.len() == 32 {
+                                    let mut commitment = [0u8; 32];
+                                    unsafe {
+                                        std::ptr::copy_nonoverlapping(
+                                            commitment_bin.as_slice().as_ptr(),
+                                            commitment.as_mut_ptr(),
+                                            32
+                                        );
+                                    }
+                                    node_cache.push((commitment, node_data_bin.as_slice().to_vec()));
+                                }
+                            }
+                        }
+                    } else {
+                        // Sequential processing for smaller datasets
+                        node_cache.reserve(cache_list.len());
+                        for (commitment_bin, node_data_bin) in cache_list {
+                            if commitment_bin.len() == 32 {
+                                let mut commitment = [0u8; 32];
+                                unsafe {
+                                    std::ptr::copy_nonoverlapping(
+                                        commitment_bin.as_slice().as_ptr(),
+                                        commitment.as_mut_ptr(),
+                                        32
+                                    );
+                                }
+                                node_cache.push((commitment, node_data_bin.as_slice().to_vec()));
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {} // Ignore other fields
+        }
+    }
+    
+    // Create optimized tree data structure with larger proof pool for parallelism
+    let tree_batch_data = batch::TreeBatchData {
+        root_commitment,
+        node_cache,
+        proof_pool: batch::ProofMemoryPool::new(256), // Increased pool size for parallel processing
+    };
+    
+    // Optimize key processing with pre-allocated vectors
+    let keys_vec: Vec<Vec<u8>> = if keys.len() > 64 {
+        // Use parallel processing for large key sets
+        #[cfg(feature = "parallel")]
+        {
+            use rayon::prelude::*;
+            keys.par_iter()
+                .map(|k| k.as_slice().to_vec())
+                .collect()
+        }
+        #[cfg(not(feature = "parallel"))]
+        {
+            keys.iter()
+                .map(|k| k.as_slice().to_vec())
+                .collect()
+        }
+    } else {
+        // Sequential processing for smaller datasets
+        keys.iter()
+            .map(|k| k.as_slice().to_vec())
+            .collect()
+    };
+    
+    // High-performance witness generation with error handling
+    match batch::batch_generate_witnesses(&keys_vec, &tree_batch_data) {
+        Ok(witnesses) => {
+            // Optimize result encoding with vectorized operations
+            if witnesses.len() > 32 {
+                // Use parallel encoding for large result sets
+                #[cfg(feature = "parallel")]
+                {
+                    use rayon::prelude::*;
+                    let results: Result<Vec<Term>, _> = witnesses
+                        .par_iter()
+                        .map(|w| -> Result<Term<'a>, _> {
+                            let mut binary = OwnedBinary::new(w.len())?;
+                            binary.as_mut_slice().copy_from_slice(w);
+                            Ok(binary.release(env).encode(env))
+                        })
+                        .collect();
+                    
+                    match results {
+                        Ok(result_terms) => Ok(result_terms.encode(env)),
+                        Err(_) => Err(Error::BadArg)
+                    }
+                }
+                #[cfg(not(feature = "parallel"))]
+                {
+                    // Fallback to sequential encoding
+                    let mut result = Vec::with_capacity(witnesses.len());
+                    for w in witnesses.iter() {
+                        let mut binary = OwnedBinary::new(w.len()).unwrap();
+                        binary.as_mut_slice().copy_from_slice(w);
+                        result.push(binary.release(env).encode(env));
+                    }
+                    Ok(result.encode(env))
+                }
+            } else {
+                // Sequential encoding for smaller result sets
+                let mut result = Vec::with_capacity(witnesses.len());
+                for w in witnesses.iter() {
+                    let mut binary = OwnedBinary::new(w.len()).unwrap();
+                    binary.as_mut_slice().copy_from_slice(w);
+                    result.push(binary.release(env).encode(env));
+                }
+                Ok(result.encode(env))
+            }
+        }
+        Err(_) => Err(Error::BadArg)
+    }
 }

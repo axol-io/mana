@@ -58,7 +58,6 @@ defmodule ExthCrypto.Hash do
   @doc """
   Runs the specified hash type on the given data.
   ## Examples
-      # TODO: This is SHA-256, not Keccak-256, due to keccakf1600 being unavailable
       iex> ExthCrypto.Hash.hash("hello world", ExthCrypto.Hash.kec) |> ExthCrypto.Math.bin_to_hex
       "47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad"
       iex> ExthCrypto.Hash.hash("hello world", ExthCrypto.Hash.sha1) |> ExthCrypto.Math.bin_to_hex

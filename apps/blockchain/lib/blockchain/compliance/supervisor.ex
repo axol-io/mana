@@ -22,7 +22,7 @@ defmodule Blockchain.Compliance.Supervisor do
     Supervisor.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  def init(opts) do
+  def init(_opts) do
     compliance_config = get_compliance_config()
 
     # Only start compliance system if enabled

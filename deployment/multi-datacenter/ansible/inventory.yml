@@ -1,0 +1,53 @@
+---
+# Ansible Inventory for axol.io Kubernetes Clusters
+
+all:
+  children:
+    k8s_cluster:
+      hosts:
+        k8s-master-01:
+          ansible_host: k8s-master-01.axol.io
+          ansible_user: ansible
+          ansible_ssh_private_key_file: ~/.ssh/axol_ansible_key
+        k8s-master-02:
+          ansible_host: k8s-master-02.axol.io
+          ansible_user: ansible
+          ansible_ssh_private_key_file: ~/.ssh/axol_ansible_key
+        k8s-master-03:
+          ansible_host: k8s-master-03.axol.io
+          ansible_user: ansible
+          ansible_ssh_private_key_file: ~/.ssh/axol_ansible_key
+      vars:
+        ansible_python_interpreter: /usr/bin/python3
+        kubeconfig: /etc/kubernetes/admin.conf
+        
+    staging:
+      hosts:
+        k8s-staging:
+          ansible_host: k8s-staging.axol.io
+      vars:
+        namespace: mana-ethereum-staging
+        cluster_size: 2
+        sync_mode: fast
+        network_id: 5  # Goerli
+        chain: goerli
+        
+    production:
+      hosts:
+        k8s-prod-01:
+          ansible_host: k8s-prod-01.axol.io
+        k8s-prod-02:
+          ansible_host: k8s-prod-02.axol.io
+        k8s-prod-03:
+          ansible_host: k8s-prod-03.axol.io
+      vars:
+        namespace: mana-ethereum-prod
+        cluster_size: 5
+        sync_mode: full
+        network_id: 1  # Mainnet
+        chain: mainnet
+        storage_size: 2Ti
+        cpu_request: "4"
+        cpu_limit: "8"
+        memory_request: "16Gi"
+        memory_limit: "32Gi"

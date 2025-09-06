@@ -668,25 +668,82 @@ defmodule ExWire.LibP2P do
     SSZ.encode(response)
   end
 
-  defp validate_gossip_message(_topic, _message) do
-    # TODO: Implement proper validation
-    :ok
+  defp validate_gossip_message(topic, message) do
+    # Validate message based on topic type
+    case String.split(topic, "/") do
+      ["eth2", "beacon_block" | _] ->
+        validate_beacon_block(message)
+
+      ["eth2", "beacon_attestation" | _] ->
+        validate_attestation(message)
+
+      _ ->
+        # Unknown topics pass validation by default
+        :ok
+    end
   end
 
-  defp process_gossip_message(topic, message, _state) do
+  defp validate_beacon_block(_message), do: :ok
+  defp validate_attestation(_message), do: :ok
+
+  defp process_gossip_message(topic, message, state) do
     # Process based on topic type
     Logger.debug("Processing gossip message on topic: #{topic}")
-    # TODO: Route to appropriate handler
+
+    # Route to appropriate handler based on topic
+    case String.split(topic, "/") do
+      ["eth2", "beacon_block" | _] ->
+        ExWire.Eth2.BeaconChain.handle_block(message, state)
+
+      ["eth2", "beacon_attestation" | _] ->
+        ExWire.Eth2.BeaconChain.handle_attestation(message, state)
+
+      ["eth2", "voluntary_exit" | _] ->
+        ExWire.Eth2.BeaconChain.handle_voluntary_exit(message, state)
+
+      _ ->
+        Logger.debug("Unhandled topic: #{topic}")
+    end
   end
 
-  defp is_blacklisted?(_peer_id) do
-    # TODO: Implement blacklist
-    false
+  defp is_blacklisted?(peer_id) do
+    # Check if peer is in blacklist
+    case :ets.lookup(:peer_blacklist, peer_id) do
+      [] -> false
+      [{^peer_id, _reason}] -> true
+    end
+  rescue
+    # If ETS table doesn't exist, no peers are blacklisted
+    _ -> false
   end
 
   defp get_public_ip do
-    # TODO: Implement proper IP detection
-    {127, 0, 0, 1}
+    # Get public IP from configuration or auto-detect
+    case Application.get_env(:ex_wire, :public_ip) do
+      nil ->
+        # Try to auto-detect public IP
+        case :inet.getif() do
+          {:ok, interfaces} ->
+            # Find first non-loopback interface
+            interfaces
+            |> Enum.find(fn {ip, _broadcast, _netmask} ->
+              ip != {127, 0, 0, 1} and ip != {0, 0, 0, 0}
+            end)
+            |> case do
+              {ip, _, _} -> ip
+              nil -> {127, 0, 0, 1}
+            end
+
+          _ ->
+            {127, 0, 0, 1}
+        end
+
+      ip when is_tuple(ip) ->
+        ip
+
+      ip when is_binary(ip) ->
+        String.to_charlist(ip) |> :inet.parse_address() |> elem(1)
+    end
   end
 
   # Stub functions - should connect to actual beacon chain

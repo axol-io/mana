@@ -1,0 +1,77 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: 'staging'
+    datacenter: 'staging-dc1'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+rule_files:
+  - "alert_rules.yml"
+
+scrape_configs:
+  # Mana node metrics
+  - job_name: 'mana-node'
+    static_configs:
+      - targets: ['mana-node:9090']
+    scrape_interval: 5s
+    metrics_path: /metrics
+    params:
+      format: ['prometheus']
+
+  # System metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['localhost:9100']
+    scrape_interval: 10s
+
+  # AntidoteDB metrics  
+  - job_name: 'antidote'
+    static_configs:
+      - targets: ['antidote:8087']
+    scrape_interval: 10s
+    metrics_path: /metrics
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Grafana metrics
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Ultra-performance specific metrics
+  - job_name: 'mana-ultra-performance'
+    static_configs:
+      - targets: ['mana-node:9090']
+    scrape_interval: 1s
+    metrics_path: /metrics/ultra_performance
+    params:
+      detailed: ['true']
+
+  # Network performance monitoring
+  - job_name: 'mana-network'
+    static_configs:
+      - targets: ['mana-node:9090']
+    scrape_interval: 5s  
+    metrics_path: /metrics/network
+    params:
+      include_peers: ['true']
+
+  # HSM performance monitoring (conditional)
+  - job_name: 'mana-hsm'
+    static_configs:
+      - targets: ['mana-node:9090']
+    scrape_interval: 10s
+    metrics_path: /metrics/hsm
+    params:
+      include_latency: ['true']

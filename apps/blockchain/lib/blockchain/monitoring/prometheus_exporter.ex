@@ -263,7 +263,7 @@ defmodule Blockchain.Monitoring.PrometheusExporter do
     # For simplicity, we'll store histogram observations as individual measurements
     # In a production system, you'd want proper histogram buckets
     base_key = {metric_name <> "_sum", :gauge, labels}
-    count_key = {metric_name <> "_count", :counter, labels}
+    _count_key = {metric_name <> "_count", :counter, labels}
 
     # Update sum
     case :ets.lookup(table, base_key) do
@@ -328,7 +328,7 @@ defmodule Blockchain.Monitoring.PrometheusExporter do
           [_header | lines] = String.split(output, "\n", trim: true)
           [line | _] = lines
           parts = String.split(line, ~r/\s+/)
-          [_filesystem, total_str, used_str, available_str | _] = parts
+          [_filesystem, total_str, _used_str, available_str | _] = parts
 
           total = String.to_integer(total_str)
           available = String.to_integer(available_str)

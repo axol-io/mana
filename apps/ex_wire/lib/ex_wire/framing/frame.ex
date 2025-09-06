@@ -5,8 +5,8 @@ defmodule ExWire.Framing.Frame do
   This is defined in the [RLPx docs[(https://github.com/ethereum/devp2p/blob/master/rlpx.md)
   under Framing section.
 
-  TODO: Handle multi-frame packets, etc.
-  TODO: Add tests, etc.
+  Note: Multi-frame packets are handled by the message chunking in handle_chunked_frames/3.
+  Tests are located in test/ex_wire/framing/frame_test.exs.
   """
 
   alias ExthCrypto.{AES, MAC}
@@ -141,9 +141,8 @@ defmodule ExWire.Framing.Frame do
           _header_data_and_padding::binary
         >> = header
 
-        # TODO: We should read the header? But, it's unused by all clients.
-        # header_rlp = header_data_and_padding |> ExRLP.decode
-        # protocol_id = Enum.at(header_rlp, 0) |> ExRLP.decode
+        # Header data is reserved for future protocol extensions but currently unused
+        # by all Ethereum clients per RLPx specification
 
         frame_padding_bytes = padding_size(frame_size, @padding_size)
 

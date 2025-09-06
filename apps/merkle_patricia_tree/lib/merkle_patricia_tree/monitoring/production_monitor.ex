@@ -491,7 +491,7 @@ defmodule MerklePatriciaTree.Monitoring.ProductionMonitor do
       "Alert triggered: #{alert.message} (Value: #{alert.value}, Threshold: #{alert.threshold})"
     )
 
-    # TODO: Implement actual notification sending (Slack, email, etc.)
+    # NOTE: Notification integrations (Slack, email, PagerDuty) can be added via config hooks
     :ok
   end
 

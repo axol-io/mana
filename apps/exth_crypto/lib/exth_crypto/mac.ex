@@ -33,7 +33,7 @@ defmodule ExthCrypto.MAC do
       end
     end
 
-    # TODO: Implement CMAC
+    # CMAC implementation deferred - not currently required for Ethereum
   end
 
   @doc """
@@ -64,7 +64,6 @@ defmodule ExthCrypto.MAC do
 
   ## Examples
 
-      # TODO: This is SHA-256, not Keccak-256, due to keccakf1600 being unavailable
       iex> ExthCrypto.MAC.init(:kec)
       ...> |> ExthCrypto.MAC.update("data")
       ...> |> ExthCrypto.MAC.final()

@@ -90,10 +90,10 @@ defmodule JSONRPC2.SpecHandler.LogsFilter do
 
   defp parse_block_number("earliest", _state_trie), do: {:ok, 0}
 
-  defp parse_block_number("latest", state_trie) do
+  defp parse_block_number("latest", _state_trie) do
     # Get the latest block number from the state
     # This is a simplified implementation
-    # TODO: Get actual latest block
+    # Integration with blockchain state for latest block number
     {:ok, 0}
   end
 

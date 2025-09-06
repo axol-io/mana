@@ -7,7 +7,7 @@ defmodule ExWire.Eth2.BeaconBlock.Operations do
   """
 
   alias ExWire.Eth2.{BeaconBlock, BeaconState}
-  
+
   # The BeaconBlock struct is defined in types.ex
 
   @doc """
@@ -21,7 +21,8 @@ defmodule ExWire.Eth2.BeaconBlock.Operations do
       parent_root: parent_root,
       state_root: state_root,
       body: %ExWire.Eth2.BeaconBlock.Body{
-        randao_reveal: <<0::768>>,  # 96 bytes BLS signature
+        # 96 bytes BLS signature
+        randao_reveal: <<0::768>>,
         eth1_data: %{
           deposit_root: <<0::256>>,
           deposit_count: 0,
@@ -57,11 +58,12 @@ defmodule ExWire.Eth2.BeaconBlock.Operations do
   @doc """
   Processes a beacon block against the current state.
   """
-  @spec process_block(BeaconState.t(), BeaconBlock.t()) :: {:ok, BeaconState.t()} | {:error, term()}
+  @spec process_block(BeaconState.t(), BeaconBlock.t()) ::
+          {:ok, BeaconState.t()} | {:error, term()}
   def process_block(state, block) do
     with :ok <- validate_structure(block),
          :ok <- ExWire.Eth2.BeaconState.Operations.validate_block(state, block) do
-      new_state = 
+      new_state =
         state
         |> process_block_header(block)
         |> process_randao(block)
@@ -79,8 +81,9 @@ defmodule ExWire.Eth2.BeaconBlock.Operations do
   @spec sign_block(BeaconBlock.t(), binary()) :: %{message: BeaconBlock.t(), signature: binary()}
   def sign_block(block, private_key) do
     # In a real implementation, this would use BLS signing
-    signature = :crypto.hash(:sha256, <<:erlang.term_to_binary(block)::binary, private_key::binary>>)
-    
+    signature =
+      :crypto.hash(:sha256, <<:erlang.term_to_binary(block)::binary, private_key::binary>>)
+
     %ExWire.Eth2.SignedBeaconBlock{
       message: block,
       signature: signature
@@ -93,7 +96,9 @@ defmodule ExWire.Eth2.BeaconBlock.Operations do
   @spec verify_signature(%{message: BeaconBlock.t(), signature: binary()}, binary()) :: boolean()
   def verify_signature(%{message: block, signature: signature}, public_key) do
     # In a real implementation, this would use BLS verification
-    expected = :crypto.hash(:sha256, <<:erlang.term_to_binary(block)::binary, public_key::binary>>)
+    expected =
+      :crypto.hash(:sha256, <<:erlang.term_to_binary(block)::binary, public_key::binary>>)
+
     signature == expected
   end
 
@@ -114,27 +119,32 @@ defmodule ExWire.Eth2.BeaconBlock.Operations do
   defp validate_proposer_index(index) when is_integer(index) and index >= 0, do: :ok
   defp validate_proposer_index(_), do: {:error, :invalid_proposer_index}
 
-  defp validate_roots(parent_root, state_root) when byte_size(parent_root) == 32 and byte_size(state_root) == 32 do
+  defp validate_roots(parent_root, state_root)
+       when byte_size(parent_root) == 32 and byte_size(state_root) == 32 do
     :ok
   end
+
   defp validate_roots(_, _), do: {:error, :invalid_roots}
 
   defp validate_body(%ExWire.Eth2.BeaconBlock.Body{} = _body) do
     # Could add more detailed body validation here
     :ok
   end
+
   defp validate_body(_), do: {:error, :invalid_body}
 
   defp process_block_header(state, block) do
     # Update latest block header
-    %{state | 
-      latest_block_header: %{
-        slot: block.slot,
-        proposer_index: block.proposer_index,
-        parent_root: block.parent_root,
-        state_root: <<0::256>>,  # Will be updated after processing
-        body_root: get_body_root(block.body)
-      }
+    %{
+      state
+      | latest_block_header: %{
+          slot: block.slot,
+          proposer_index: block.proposer_index,
+          parent_root: block.parent_root,
+          # Will be updated after processing
+          state_root: <<0::256>>,
+          body_root: get_body_root(block.body)
+        }
     }
   end
 
@@ -147,9 +157,10 @@ defmodule ExWire.Eth2.BeaconBlock.Operations do
   defp process_eth1_data(state, block) do
     # Process ETH1 data votes
     new_votes = [block.body.eth1_data | state.eth1_data_votes]
-    
+
     # Simple majority rule for updating eth1_data
-    if length(new_votes) > 32 do  # More than half of voting period
+    # More than half of voting period
+    if length(new_votes) > 32 do
       most_common = Enum.frequencies(new_votes) |> Enum.max_by(&elem(&1, 1)) |> elem(0)
       %{state | eth1_data: most_common, eth1_data_votes: []}
     else

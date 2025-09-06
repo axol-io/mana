@@ -1,7 +1,7 @@
 defmodule Common.Validation do
   @moduledoc """
   Reusable validation patterns for the Mana codebase.
-  
+
   Provides composable validators for common blockchain data types:
   - Transactions
   - Blocks  
@@ -13,7 +13,7 @@ defmodule Common.Validation do
   import Common.Functional
 
   # Common validators as composable functions
-  
+
   @doc """
   Validates an Ethereum address.
   """
@@ -24,6 +24,7 @@ defmodule Common.Validation do
       validator(&is_binary/1, "Address must be binary")
     ])
   end
+
   def validate_address(_), do: {:error, "Invalid address type"}
 
   @doc """
@@ -64,13 +65,17 @@ defmodule Common.Validation do
   """
   @spec non_empty(any()) :: {:ok, any()} | {:error, String.t()}
   def non_empty(value) when value in [nil, "", <<>>, []], do: {:error, "Value cannot be empty"}
-  def non_empty(value) when is_map(value) and map_size(value) == 0, do: {:error, "Map cannot be empty"}
+
+  def non_empty(value) when is_map(value) and map_size(value) == 0,
+    do: {:error, "Map cannot be empty"}
+
   def non_empty(value), do: {:ok, value}
 
   @doc """
   Validates a value matches a pattern.
   """
-  @spec validate_pattern(String.t(), Regex.t(), String.t()) :: {:ok, String.t()} | {:error, String.t()}
+  @spec validate_pattern(String.t(), Regex.t(), String.t()) ::
+          {:ok, String.t()} | {:error, String.t()}
   def validate_pattern(value, pattern, error_msg \\ "Pattern mismatch") do
     if Regex.match?(pattern, value) do
       {:ok, value}
@@ -105,7 +110,7 @@ defmodule Common.Validation do
       &validate_transaction_addresses/1,
       &validate_transaction_signature/1
     ]
-    
+
     chain_results({:ok, tx}, validators)
   end
 
@@ -142,8 +147,9 @@ defmodule Common.Validation do
   @spec cached_validator(function(), keyword()) :: function()
   def cached_validator(validator_fun, opts \\ []) do
     cache_name = Keyword.get(opts, :cache_name, :validation_cache)
-    ttl = Keyword.get(opts, :ttl, 300) # 5 minutes default
-    
+    # 5 minutes default
+    ttl = Keyword.get(opts, :ttl, 300)
+
     memoize(validator_fun, cache_name: cache_name, ttl: ttl)
   end
 
@@ -158,10 +164,11 @@ defmodule Common.Validation do
   @doc """
   Conditional validator - only validates if condition is met.
   """
-  @spec validate_if(any(), boolean() | function(), function()) :: {:ok, any()} | {:error, String.t()}
+  @spec validate_if(any(), boolean() | function(), function()) ::
+          {:ok, any()} | {:error, String.t()}
   def validate_if(value, condition, validator) do
     should_validate = if is_function(condition), do: condition.(value), else: condition
-    
+
     if should_validate do
       validator.(value)
     else
@@ -175,9 +182,10 @@ defmodule Common.Validation do
   @spec validate_with_context(any(), function(), map()) :: {:ok, any()} | {:error, map()}
   def validate_with_context(value, validator, context) do
     case validator.(value) do
-      {:ok, result} -> 
+      {:ok, result} ->
         {:ok, result}
-      {:error, reason} -> 
+
+      {:error, reason} ->
         {:error, Map.put(context, :reason, reason)}
     end
   end
@@ -207,7 +215,7 @@ defmodule Common.Validation do
       spec
       |> Enum.reduce_while({:ok, value}, fn {field, field_validator}, {:ok, val} ->
         field_value = Map.get(val, field)
-        
+
         case field_validator.(field_value) do
           {:ok, _} -> {:cont, {:ok, val}}
           {:error, reason} -> {:halt, {:error, "#{field}: #{reason}"}}
@@ -231,7 +239,8 @@ defmodule Common.Validation do
   @doc """
   Creates a sanitizer that cleans and validates input.
   """
-  @spec sanitize_and_validate(any(), function(), function()) :: {:ok, any()} | {:error, String.t()}
+  @spec sanitize_and_validate(any(), function(), function()) ::
+          {:ok, any()} | {:error, String.t()}
   def sanitize_and_validate(value, sanitizer, validator) do
     value
     |> sanitizer.()
@@ -243,11 +252,12 @@ defmodule Common.Validation do
   """
   @spec validate_accumulating(any(), [function()]) :: {:ok, any()} | {:error, [String.t()]}
   def validate_accumulating(value, validators) do
-    errors = validators
-    |> Enum.map(&(&1.(value)))
-    |> Enum.filter(&match?({:error, _}, &1))
-    |> Enum.map(fn {:error, reason} -> reason end)
-    
+    errors =
+      validators
+      |> Enum.map(& &1.(value))
+      |> Enum.filter(&match?({:error, _}, &1))
+      |> Enum.map(fn {:error, reason} -> reason end)
+
     if Enum.empty?(errors) do
       {:ok, value}
     else

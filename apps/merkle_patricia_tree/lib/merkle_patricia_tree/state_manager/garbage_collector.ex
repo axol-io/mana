@@ -348,6 +348,7 @@ defmodule MerklePatriciaTree.StateManager.GarbageCollector do
 
   defp max_urgency(a, b) do
     urgencies = [:low, :medium, :high, :critical]
+
     max(Enum.find_index(urgencies, &(&1 == a)) || 0, Enum.find_index(urgencies, &(&1 == b)) || 0)
     |> then(&Enum.at(urgencies, &1))
   end

@@ -1,7 +1,7 @@
 defmodule Common.RefactoringPatterns do
   @moduledoc """
   Common functional refactoring patterns to replace imperative code.
-  
+
   This module demonstrates how to transform common imperative patterns
   into functional equivalents.
   """
@@ -10,7 +10,7 @@ defmodule Common.RefactoringPatterns do
 
   @doc """
   Replace imperative if-else chains with pattern matching.
-  
+
   ## Instead of:
       if condition1 do
         action1()
@@ -21,7 +21,7 @@ defmodule Common.RefactoringPatterns do
           action3()
         end
       end
-  
+
   ## Use:
       cond_chain([
         {condition1, &action1/0},
@@ -40,7 +40,7 @@ defmodule Common.RefactoringPatterns do
 
   @doc """
   Replace imperative loops with functional pipelines.
-  
+
   ## Instead of:
       result = []
       for item <- items do
@@ -49,7 +49,7 @@ defmodule Common.RefactoringPatterns do
         end
       end
       Enum.reverse(result)
-  
+
   ## Use:
       filter_map(items, &condition/1, &transform/1)
   """
@@ -62,13 +62,13 @@ defmodule Common.RefactoringPatterns do
 
   @doc """
   Replace state mutations with immutable updates.
-  
+
   ## Instead of:
       state = %{counter: 0}
       Enum.each(items, fn item ->
         state = Map.update!(state, :counter, &(&1 + item))
       end)
-  
+
   ## Use:
       fold_state(items, %{counter: 0}, fn item, state ->
         Map.update!(state, :counter, &(&1 + item))
@@ -80,7 +80,7 @@ defmodule Common.RefactoringPatterns do
 
   @doc """
   Replace nested if-else with railway-oriented programming.
-  
+
   ## Instead of:
       if validate1(data) do
         transformed = transform1(data)
@@ -93,7 +93,7 @@ defmodule Common.RefactoringPatterns do
       else
         {:error, "validation1 failed"}
       end
-  
+
   ## Use:
       railway([
         &validate1/1,
@@ -108,7 +108,7 @@ defmodule Common.RefactoringPatterns do
 
   @doc """
   Replace imperative error handling with monadic patterns.
-  
+
   ## Instead of:
       try do
         result1 = operation1()
@@ -118,7 +118,7 @@ defmodule Common.RefactoringPatterns do
       rescue
         e -> {:error, e}
       end
-  
+
   ## Use:
       safe_chain([
         &operation1/0,
@@ -137,7 +137,7 @@ defmodule Common.RefactoringPatterns do
 
   @doc """
   Replace imperative collection building with functional builders.
-  
+
   ## Instead of:
       map = %{}
       for {k, v} <- items do
@@ -145,7 +145,7 @@ defmodule Common.RefactoringPatterns do
           map = Map.put(map, k, transform(v))
         end
       end
-  
+
   ## Use:
       build_map(items, &valid?/1, &transform/1)
   """
@@ -157,7 +157,7 @@ defmodule Common.RefactoringPatterns do
 
   @doc """
   Replace imperative retries with functional retry logic.
-  
+
   ## Instead of:
       max_attempts = 3
       attempt = 0
@@ -166,7 +166,7 @@ defmodule Common.RefactoringPatterns do
         result = try_operation()
         attempt = attempt + 1
       end
-  
+
   ## Use:
       retry_until(&try_operation/0, max_attempts: 3)
   """
@@ -176,7 +176,7 @@ defmodule Common.RefactoringPatterns do
 
   @doc """
   Replace imperative caching with functional memoization.
-  
+
   ## Instead of:
       cache = %{}
       def get_value(key) do
@@ -188,7 +188,7 @@ defmodule Common.RefactoringPatterns do
           value
         end
       end
-  
+
   ## Use:
       memoized_compute = memoize(&compute_value/1)
       memoized_compute.(key)
@@ -199,7 +199,7 @@ defmodule Common.RefactoringPatterns do
 
   @doc """
   Replace imperative aggregations with functional reducers.
-  
+
   ## Instead of:
       totals = %{sum: 0, count: 0, max: 0}
       for item <- items do
@@ -209,7 +209,7 @@ defmodule Common.RefactoringPatterns do
           max: max(totals.max, item.value)
         }
       end
-  
+
   ## Use:
       aggregate(items, %{sum: 0, count: 0, max: 0}, [
         {:sum, &(&1 + &2.value)},
@@ -228,7 +228,7 @@ defmodule Common.RefactoringPatterns do
 
   @doc """
   Replace imperative validations with composable validators.
-  
+
   ## Instead of:
       errors = []
       if !valid_name?(data.name) do
@@ -242,7 +242,7 @@ defmodule Common.RefactoringPatterns do
       else
         {:error, errors}
       end
-  
+
   ## Use:
       validate_fields(data, [
         {:name, &valid_name?/1, "Invalid name"},
@@ -250,13 +250,14 @@ defmodule Common.RefactoringPatterns do
       ])
   """
   def validate_fields(data, field_validators) do
-    errors = field_validators
-    |> Enum.map(fn {field, validator, error_msg} ->
-      value = Map.get(data, field)
-      if validator.(value), do: nil, else: error_msg
-    end)
-    |> Enum.reject(&is_nil/1)
-    
+    errors =
+      field_validators
+      |> Enum.map(fn {field, validator, error_msg} ->
+        value = Map.get(data, field)
+        if validator.(value), do: nil, else: error_msg
+      end)
+      |> Enum.reject(&is_nil/1)
+
     if Enum.empty?(errors) do
       {:ok, data}
     else
@@ -266,14 +267,14 @@ defmodule Common.RefactoringPatterns do
 
   @doc """
   Replace imperative transformations with lenses.
-  
+
   ## Instead of:
       user = get_user()
       address = user.profile.address
       updated_address = Map.put(address, :city, "New York")
       updated_profile = Map.put(user.profile, :address, updated_address)
       updated_user = Map.put(user, :profile, updated_profile)
-  
+
   ## Use:
       lens_update(user, [:profile, :address, :city], "New York")
   """
@@ -287,7 +288,7 @@ defmodule Common.RefactoringPatterns do
 
   @doc """
   Replace imperative batch processing with transducers.
-  
+
   ## Instead of:
       results = []
       for batch <- chunks do
@@ -295,7 +296,7 @@ defmodule Common.RefactoringPatterns do
         filtered = filter_results(processed)
         results = results ++ filtered
       end
-  
+
   ## Use:
       transduce(chunks, [
         &process_batch/1,
@@ -315,7 +316,7 @@ defmodule Common.RefactoringPatterns do
 
   @doc """
   Replace imperative side effects with IO monads.
-  
+
   ## Instead of:
       Logger.info("Starting")
       result = compute()
@@ -323,7 +324,7 @@ defmodule Common.RefactoringPatterns do
       save_to_db(result)
       Logger.info("Saved")
       result
-  
+
   ## Use:
       with_logging([
         {"Starting", &compute/0},
@@ -337,17 +338,18 @@ defmodule Common.RefactoringPatterns do
       {msg, fun}, {:ok, prev} ->
         require Logger
         Logger.info(msg)
-        
+
         result = if is_function(fun, 0), do: fun.(), else: fun.(prev)
         {:ok, result}
-        
-      _, error -> error
+
+      _, error ->
+        error
     end)
   end
 
   @doc """
   Replace imperative resource management with bracket pattern.
-  
+
   ## Instead of:
       file = File.open!("data.txt")
       try do
@@ -356,7 +358,7 @@ defmodule Common.RefactoringPatterns do
       after
         File.close(file)
       end
-  
+
   ## Use:
       with_resource(
         fn -> File.open!("data.txt") end,
@@ -366,6 +368,7 @@ defmodule Common.RefactoringPatterns do
   """
   def with_resource(acquire, release, use) do
     resource = acquire.()
+
     try do
       use.(resource)
     after

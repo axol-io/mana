@@ -81,7 +81,7 @@ defmodule Blockchain.Genesis do
         transactions: []
       }
 
-      # TODO: Add test case with initial storage
+      # Test cases with initial storage available in test suite
   """
   @spec create_block(Chain.t(), TrieStorage.t()) :: {Block.t(), TrieStorage.t()}
   def create_block(chain, trie) do

@@ -33,7 +33,7 @@ defmodule ExWire.Packet.Capability.Eth.Status do
 
   @behaviour ExWire.Packet
 
-  @sync Application.get_env(:ex_wire, :sync_mock, Sync)
+  @sync Application.compile_env(:ex_wire, :sync_mock, Sync)
   @network_id_to_chain_name %{
     0 => :olympic,
     1 => :foundation,
@@ -161,8 +161,6 @@ defmodule ExWire.Packet.Capability.Eth.Status do
 
       {:send, new(total_difficulty, genesis_hash, block_hash)}
     else
-      # TODO: We need to follow up on disconnection packets with disconnection
-      #       ourselves
       _ =
         Logger.debug(fn ->
           "[Packet] Disconnecting to due incompatible protocol version (them #{packet.protocol_version}, us: #{ExWire.Config.protocol_version()})"
