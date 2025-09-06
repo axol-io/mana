@@ -316,7 +316,7 @@ defmodule ExWire.Eth2.ConsensusSpecRunner do
     duration = DateTime.diff(results.end_time, results.start_time, :second)
 
     pass_rate =
-      if results.total_tests > 0, do: results.passed_tests / results.total_tests * 100, else: 0
+      if results.total_tests > 0, do: results.passed_tests / results.total_tests * 100, else: 0.0
 
     Logger.info("""
 
@@ -328,7 +328,7 @@ defmodule ExWire.Eth2.ConsensusSpecRunner do
     Passed:         #{results.passed_tests}
     Failed:         #{results.failed_tests}
     Skipped:        #{results.skipped_tests}
-    Pass Rate:      #{Float.round(pass_rate, 2)}%
+    Pass Rate:      #{:erlang.float_to_binary(pass_rate, decimals: 2)}%
     Duration:       #{duration}s
 
     ==========================================
