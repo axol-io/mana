@@ -17,7 +17,8 @@ defmodule ManaApp.MixProject do
 
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:logger],
+      mod: {Mana.Application, []}
     ]
   end
 

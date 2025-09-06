@@ -95,18 +95,21 @@ config :ex_wire, :circuit_breakers, %{
 config :blockchain, :transaction_pool, %{
   # Maximum number of transactions in pool
   max_size: 10_000,
-  
+
   # Maximum total gas in pool (approximately 1 block worth)
   max_total_gas: 30_000_000,
-  
+
   # Maximum size of a single transaction in bytes
-  max_transaction_size: 131_072,  # 128 KB
-  
+  # 128 KB
+  max_transaction_size: 131_072,
+
   # Cleanup interval in milliseconds
-  cleanup_interval: 60_000,  # 1 minute
-  
+  # 1 minute
+  cleanup_interval: 60_000,
+
   # Transaction age limit in seconds
-  max_transaction_age: 3600  # 1 hour
+  # 1 hour
+  max_transaction_age: 3600
 }
 
 # ============================================================================
@@ -133,17 +136,19 @@ config :jsonrpc2, :rate_limiter, %{
       burst_size: 10
     ]
   },
-  
+
   # IP-based rate limiting
   enable_ip_limiting: true,
-  
+
   # API key rate limiting
   enable_api_key_limiting: true,
-  
+
   # Token bucket algorithm parameters
   token_bucket: [
-    refill_rate: 10,  # tokens per second
-    bucket_size: 100  # maximum tokens
+    # tokens per second
+    refill_rate: 10,
+    # maximum tokens
+    bucket_size: 100
   ]
 }
 
@@ -153,19 +158,22 @@ config :jsonrpc2, :rate_limiter, %{
 
 config :common, :input_validation, %{
   # Size limits in bytes
-  max_request_size: 10_485_760,  # 10 MB
-  max_param_size: 1_048_576,     # 1 MB
-  max_data_size: 5_242_880,      # 5 MB
-  
+  # 10 MB
+  max_request_size: 10_485_760,
+  # 1 MB
+  max_param_size: 1_048_576,
+  # 5 MB
+  max_data_size: 5_242_880,
+
   # Array and batch limits
   max_array_length: 1000,
   max_batch_size: 100,
-  
+
   # Security settings
   enable_injection_prevention: true,
   enable_format_validation: true,
   sanitize_inputs: true,
-  
+
   # Validation strictness
   strict_address_validation: true,
   strict_hash_validation: true,
@@ -180,7 +188,7 @@ config :blockchain, :error_handler, %{
   # Error tracking
   track_errors: true,
   error_sample_rate: 1.0,
-  
+
   # Error categories and their severity
   error_categories: %{
     validation: :warning,
@@ -189,12 +197,13 @@ config :blockchain, :error_handler, %{
     rate_limit: :warning,
     internal: :critical
   },
-  
+
   # Retry configuration
   enable_retries: true,
   max_retries: 3,
   retry_backoff: :exponential,
-  base_retry_delay: 1000  # milliseconds
+  # milliseconds
+  base_retry_delay: 1000
 }
 
 # ============================================================================
@@ -204,10 +213,10 @@ config :blockchain, :error_handler, %{
 config :common, :telemetry, %{
   # Enable telemetry events
   enabled: true,
-  
+
   # Event sampling rate (0.0 to 1.0)
   sampling_rate: 1.0,
-  
+
   # Events to track
   tracked_events: [
     [:common, :genserver, :call, :*],
@@ -216,10 +225,11 @@ config :common, :telemetry, %{
     [:ex_wire, :circuit_breaker, :*],
     [:jsonrpc2, :rate_limiter, :*]
   ],
-  
+
   # Metrics to export
   export_metrics: true,
-  metrics_interval: 60_000  # 1 minute
+  # 1 minute
+  metrics_interval: 60_000
 }
 
 # ============================================================================
@@ -229,13 +239,13 @@ config :common, :telemetry, %{
 if config_env() == :prod do
   # More conservative timeouts in production
   config :common, :default_timeout_multiplier, 1.5
-  
+
   # Stricter rate limits in production
   config :jsonrpc2, :rate_limit_multiplier, 0.8
-  
+
   # Higher circuit breaker thresholds in production
   config :ex_wire, :circuit_breaker_multiplier, 1.2
-  
+
   # Enable all security features
   config :common, :security_mode, :strict
 end
@@ -247,13 +257,13 @@ end
 if config_env() == :dev do
   # Relaxed timeouts for development
   config :common, :default_timeout_multiplier, 2.0
-  
+
   # Looser rate limits for testing
   config :jsonrpc2, :rate_limit_multiplier, 10.0
-  
+
   # Lower circuit breaker thresholds for testing
   config :ex_wire, :circuit_breaker_multiplier, 0.5
-  
+
   # Relaxed security for development
   config :common, :security_mode, :relaxed
 end

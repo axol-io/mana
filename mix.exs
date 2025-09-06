@@ -8,7 +8,6 @@ defmodule Mana.MixProject do
         :logger,
         :logger_file_backend,
         :common,
-        :mana,
         :blockchain,
         :cli,
         :evm,

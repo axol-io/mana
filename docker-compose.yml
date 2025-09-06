@@ -1,129 +1,67 @@
-version: '3.7'
+# Main Mana Ethereum Client Development Environment
+version: '3.8'
 
 services:
-  antidote1:
-    image: antidotedb/antidote:latest
-    container_name: mana_antidote1
-    hostname: antidote1
+  # Main Mana application
+  mana:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: mana-app
     ports:
-      - "8087:8087"
+      - "8545:8545"  # JSON-RPC HTTP
+      - "8546:8546"  # JSON-RPC WebSocket  
+      - "30303:30303/tcp"  # P2P TCP
+      - "30303:30303/udp"  # P2P UDP
+      - "9568:9568"  # Health check
     environment:
-      - NODE_NAME=antidote1@antidote1
-      - COOKIE=mana_secret_cookie
-      - SHORT_NAME=true
-      - ANTIDOTE_TXN_CERT=true
-      - ANTIDOTE_TXN_PROT=clocksi
-      - ANTIDOTE_RECOVER_FROM_LOG=true
-      - ANTIDOTE_META_DATA_ON_START=true
-      - ANTIDOTE_SYNC_LOG=true
-      - ANTIDOTE_ENABLE_LOGGING=true
-      - ANTIDOTE_AUTO_START_READ_SERVERS=true
+      - MIX_ENV=dev
+      - DATA_DIR=/data
+      - LOG_DIR=/logs
+      - DATABASE_URL=ecto://mana:mana@postgres:5432/mana_dev
     volumes:
-      - antidote1_data:/antidote-data
+      - mana_data:/data
+      - mana_logs:/logs
+      - ./config:/app/config:ro
     networks:
-      - mana_antidote
+      - mana_network
+    depends_on:
+      - postgres
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8087/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:9568/health"]
       interval: 30s
       timeout: 10s
-      retries: 5
-      start_period: 40s
+      retries: 3
 
-  antidote2:
-    image: antidotedb/antidote:latest
-    container_name: mana_antidote2
-    hostname: antidote2
+  # PostgreSQL database
+  postgres:
+    image: postgres:16-alpine
+    container_name: mana-postgres
     ports:
-      - "8088:8087"
+      - "5432:5432"
     environment:
-      - NODE_NAME=antidote2@antidote2
-      - COOKIE=mana_secret_cookie
-      - SHORT_NAME=true
-      - ANTIDOTE_TXN_CERT=true
-      - ANTIDOTE_TXN_PROT=clocksi
-      - ANTIDOTE_RECOVER_FROM_LOG=true
-      - ANTIDOTE_META_DATA_ON_START=true
-      - ANTIDOTE_SYNC_LOG=true
-      - ANTIDOTE_ENABLE_LOGGING=true
-      - ANTIDOTE_AUTO_START_READ_SERVERS=true
-      - ANTIDOTE_PEERS=antidote1@antidote1:8087
+      - POSTGRES_USER=mana
+      - POSTGRES_PASSWORD=mana
+      - POSTGRES_DB=mana_dev
     volumes:
-      - antidote2_data:/antidote-data
+      - postgres_data:/var/lib/postgresql/data
     networks:
-      - mana_antidote
-    depends_on:
-      - antidote1
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8087/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
-
-  antidote3:
-    image: antidotedb/antidote:latest
-    container_name: mana_antidote3
-    hostname: antidote3
-    ports:
-      - "8089:8087"
-    environment:
-      - NODE_NAME=antidote3@antidote3
-      - COOKIE=mana_secret_cookie
-      - SHORT_NAME=true
-      - ANTIDOTE_TXN_CERT=true
-      - ANTIDOTE_TXN_PROT=clocksi
-      - ANTIDOTE_RECOVER_FROM_LOG=true
-      - ANTIDOTE_META_DATA_ON_START=true
-      - ANTIDOTE_SYNC_LOG=true
-      - ANTIDOTE_ENABLE_LOGGING=true
-      - ANTIDOTE_AUTO_START_READ_SERVERS=true
-      - ANTIDOTE_PEERS=antidote1@antidote1:8087,antidote2@antidote2:8087
-    volumes:
-      - antidote3_data:/antidote-data
-    networks:
-      - mana_antidote
-    depends_on:
-      - antidote1
-      - antidote2
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8087/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
-
-  # Monitoring for AntidoteDB cluster
-  antidote_monitor:
-    image: prom/prometheus:latest
-    container_name: mana_antidote_monitor
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-    networks:
-      - mana_antidote
-    depends_on:
-      - antidote1
-      - antidote2
-      - antidote3
+      - mana_network
+    restart: unless-stopped
 
 volumes:
-  antidote1_data:
+  mana_data:
     driver: local
-  antidote2_data:
+  mana_logs:
     driver: local
-  antidote3_data:
-    driver: local
-  prometheus_data:
+  postgres_data:
     driver: local
 
 networks:
-  mana_antidote:
+  mana_network:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.28.0.0/16
+        - subnet: 172.25.0.0/16

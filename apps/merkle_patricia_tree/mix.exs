@@ -19,7 +19,8 @@ defmodule MerklePatriciaTree.Mixfile do
       ],
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      rustler_crates: rustler_crates()
       # Temporarily disabled warnings-as-errors to allow compilation
       # elixirc_options: [warnings_as_errors: true]
     ]
@@ -39,5 +40,19 @@ defmodule MerklePatriciaTree.Mixfile do
       # Umbrella deps
       {:exth_crypto, in_umbrella: true}
     ]
+  end
+
+  defp rustler_crates do
+    [
+      verkle_crypto: [path: "native/verkle_crypto", mode: rustler_mode()],
+      verkle_core: [path: "native/verkle_core", mode: rustler_mode()]
+    ]
+  end
+
+  defp rustler_mode do
+    case Mix.env() do
+      :prod -> :release
+      _ -> :debug
+    end
   end
 end

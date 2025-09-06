@@ -1,0 +1,90 @@
+{
+  "scenario": "full",
+  "duration": 300,
+  "accounts": 10000,
+  "target_tps": 15,
+  "output_dir": "./load_test_results",
+  "prometheus": true,
+  "report": true,
+  "verbose": false,
+  
+  "mainnet_simulation": {
+    "block_time_seconds": 12,
+    "gas_limit": 30000000,
+    "base_fee_gwei": 30,
+    "priority_fee_gwei": 2,
+    "state_size_target_gb": 100
+  },
+  
+  "stress_test": {
+    "max_tps_multiplier": 100,
+    "max_block_size": 5000,
+    "max_concurrent_requests": 1000,
+    "memory_pressure_gb": 16
+  },
+  
+  "network_conditions": {
+    "normal": {
+      "latency_ms": 20,
+      "packet_loss_rate": 0.001,
+      "bandwidth_mbps": 100
+    },
+    "degraded": {
+      "latency_ms": 100,
+      "packet_loss_rate": 0.05,
+      "bandwidth_mbps": 10
+    },
+    "severe": {
+      "latency_ms": 500,
+      "packet_loss_rate": 0.1,
+      "bandwidth_mbps": 1
+    }
+  },
+  
+  "layer2_config": {
+    "optimism": {
+      "batch_size": 100,
+      "batch_interval_seconds": 10,
+      "sequencer_url": "http://localhost:8545"
+    },
+    "arbitrum": {
+      "batch_size": 200,
+      "batch_interval_seconds": 5,
+      "sequencer_url": "http://localhost:8546"
+    },
+    "zksync": {
+      "batch_size": 500,
+      "proof_generation_time_ms": 1000,
+      "prover_url": "http://localhost:8547"
+    }
+  },
+  
+  "test_patterns": {
+    "transaction_mix": {
+      "simple_transfers": 0.6,
+      "token_transfers": 0.2,
+      "contract_calls": 0.15,
+      "complex_operations": 0.05
+    },
+    "gas_price_distribution": {
+      "low": 0.2,
+      "normal": 0.6,
+      "high": 0.15,
+      "very_high": 0.05
+    }
+  },
+  
+  "thresholds": {
+    "min_success_rate": 95,
+    "max_latency_p99_ms": 5000,
+    "max_memory_growth_gb": 4,
+    "min_tps": 10
+  },
+  
+  "monitoring": {
+    "prometheus_port": 9091,
+    "grafana_url": "http://localhost:3000",
+    "alert_webhook": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+    "metrics_interval_ms": 1000
+  }
+}

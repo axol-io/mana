@@ -33,6 +33,7 @@ defmodule CLI.Mixfile do
     [
       # Umbrella deps
       {:blockchain, in_umbrella: true},
+      {:ex_wire, in_umbrella: true},
       {:exth, in_umbrella: true},
       {:exth_crypto, in_umbrella: true},
       {:merkle_patricia_tree, in_umbrella: true}

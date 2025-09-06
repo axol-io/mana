@@ -30,6 +30,10 @@ defmodule ExWire.Mixfile do
         kzg_nif: [
           path: "native/kzg_nif",
           mode: if(Mix.env() == :prod, do: :release, else: :debug)
+        ],
+        pkcs11_nif: [
+          path: "native/pkcs11_nif",
+          mode: if(Mix.env() == :prod, do: :release, else: :debug)
         ]
       ]
       # Temporarily disabled warnings-as-errors to allow compilation
@@ -59,7 +63,11 @@ defmodule ExWire.Mixfile do
       {:rustler, "~> 0.29.1"},
 
       # YAML parsing for consensus spec tests
-      {:yaml_elixir, "~> 2.9"}
+      {:yaml_elixir, "~> 2.9"},
+
+      # Web3 client dependencies
+      {:httpoison, "~> 1.4"},
+      {:jason, "~> 1.4"}
     ]
   end
 end
