@@ -1,8 +1,18 @@
+/tmp
 /_build
 /cover
 /deps
 /doc
 /.idea
+
+# System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
 erl_crash.dump
 *.ez
