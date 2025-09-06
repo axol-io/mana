@@ -1,0 +1,277 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "mana-overview",
+    "title": "Mana Ethereum - Overview",
+    "tags": ["mana", "ethereum", "overview"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "type": "stat",
+        "title": "Node Status",
+        "targets": [
+          {
+            "expr": "up{job=\"mana-ethereum\"}",
+            "legendFormat": "Status"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"type": "value", "value": "0", "text": "Down"},
+              {"type": "value", "value": "1", "text": "Up"}
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1}
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+        "type": "stat",
+        "title": "Current Block",
+        "targets": [
+          {
+            "expr": "mana_sync_current_block",
+            "legendFormat": "Block"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "decimals": 0
+          }
+        }
+      },
+      {
+        "id": 3,
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "type": "stat",
+        "title": "Connected Peers",
+        "targets": [
+          {
+            "expr": "mana_p2p_peers_connected",
+            "legendFormat": "Peers"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "decimals": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 5},
+                {"color": "green", "value": 10}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "type": "stat",
+        "title": "Pending Transactions",
+        "targets": [
+          {
+            "expr": "mana_txpool_pending_transactions",
+            "legendFormat": "Pending"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "decimals": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 1000},
+                {"color": "red", "value": 5000}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "type": "graph",
+        "title": "Sync Progress",
+        "targets": [
+          {
+            "expr": "mana_sync_current_block",
+            "legendFormat": "Current Block"
+          },
+          {
+            "expr": "mana_sync_highest_block",
+            "legendFormat": "Highest Block"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "short",
+            "label": "Block Number",
+            "show": true
+          },
+          {
+            "show": false
+          }
+        ],
+        "xaxis": {
+          "show": true
+        }
+      },
+      {
+        "id": 6,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "type": "graph",
+        "title": "Transaction Processing",
+        "targets": [
+          {
+            "expr": "rate(mana_txpool_processed_transactions[5m])",
+            "legendFormat": "TX/s"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "ops",
+            "label": "Transactions/sec",
+            "show": true
+          },
+          {
+            "show": false
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+        "type": "graph",
+        "title": "Memory Usage",
+        "targets": [
+          {
+            "expr": "erlang_vm_memory_bytes_total{kind=\"total\"}",
+            "legendFormat": "Total Memory"
+          },
+          {
+            "expr": "erlang_vm_memory_bytes_total{kind=\"processes\"}",
+            "legendFormat": "Process Memory"
+          },
+          {
+            "expr": "erlang_vm_memory_bytes_total{kind=\"binary\"}",
+            "legendFormat": "Binary Memory"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "bytes",
+            "label": "Memory",
+            "show": true
+          },
+          {
+            "show": false
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+        "type": "graph",
+        "title": "CPU Usage",
+        "targets": [
+          {
+            "expr": "rate(process_cpu_seconds_total{job=\"mana-ethereum\"}[5m]) * 100",
+            "legendFormat": "CPU %"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "percent",
+            "label": "CPU Usage",
+            "show": true,
+            "max": 100,
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+        "type": "graph",
+        "title": "P2P Network",
+        "targets": [
+          {
+            "expr": "mana_p2p_peers_connected",
+            "legendFormat": "Connected Peers"
+          },
+          {
+            "expr": "rate(mana_p2p_messages_received_total[5m])",
+            "legendFormat": "Messages/s In"
+          },
+          {
+            "expr": "rate(mana_p2p_messages_sent_total[5m])",
+            "legendFormat": "Messages/s Out"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "short",
+            "show": true
+          },
+          {
+            "show": false
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+        "type": "graph",
+        "title": "RPC Performance",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.5, rate(mana_rpc_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p50 Latency"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(mana_rpc_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95 Latency"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(mana_rpc_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p99 Latency"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "s",
+            "label": "Latency",
+            "show": true
+          },
+          {
+            "show": false
+          }
+        ]
+      }
+    ]
+  },
+  "overwrite": true
+}

@@ -1,0 +1,181 @@
+groups:
+  - name: mana_ethereum_alerts
+    interval: 30s
+    rules:
+      # Node Health Alerts
+      - alert: ManaNodeDown
+        expr: up{job="mana-ethereum"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: node
+        annotations:
+          summary: "Mana Ethereum node is down"
+          description: "Mana node {{ $labels.instance }} has been down for more than 2 minutes."
+
+      - alert: HighMemoryUsage
+        expr: (sum(erlang_vm_memory_bytes_total) by (instance) / sum(erlang_vm_memory_system_bytes_total) by (instance)) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: memory
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is above 90% on {{ $labels.instance }} for more than 5 minutes."
+
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total{job="mana-ethereum"}[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          component: cpu
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is above 80% on {{ $labels.instance }} for more than 5 minutes."
+
+      # Blockchain Sync Alerts
+      - alert: SyncLagging
+        expr: mana_sync_highest_block - mana_sync_current_block > 100
+        for: 10m
+        labels:
+          severity: warning
+          component: sync
+        annotations:
+          summary: "Node sync is lagging"
+          description: "Node {{ $labels.instance }} is more than 100 blocks behind. Current: {{ $value }} blocks behind."
+
+      - alert: SyncStalled
+        expr: rate(mana_sync_current_block[5m]) == 0
+        for: 15m
+        labels:
+          severity: critical
+          component: sync
+        annotations:
+          summary: "Node sync has stalled"
+          description: "Node {{ $labels.instance }} has not synced any new blocks for 15 minutes."
+
+      # P2P Network Alerts
+      - alert: LowPeerCount
+        expr: mana_p2p_peers_connected < 5
+        for: 5m
+        labels:
+          severity: warning
+          component: p2p
+        annotations:
+          summary: "Low peer count"
+          description: "Node {{ $labels.instance }} has only {{ $value }} peers connected."
+
+      - alert: NoPeers
+        expr: mana_p2p_peers_connected == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: p2p
+        annotations:
+          summary: "No peers connected"
+          description: "Node {{ $labels.instance }} has no peers connected for more than 2 minutes."
+
+      # Transaction Pool Alerts
+      - alert: TransactionPoolFull
+        expr: mana_txpool_pending_transactions > 5000
+        for: 10m
+        labels:
+          severity: warning
+          component: txpool
+        annotations:
+          summary: "Transaction pool is full"
+          description: "Transaction pool on {{ $labels.instance }} has {{ $value }} pending transactions."
+
+      - alert: TransactionPoolStalled
+        expr: rate(mana_txpool_processed_transactions[5m]) == 0 and mana_txpool_pending_transactions > 100
+        for: 10m
+        labels:
+          severity: critical
+          component: txpool
+        annotations:
+          summary: "Transaction pool processing stalled"
+          description: "Transaction pool on {{ $labels.instance }} is not processing transactions but has {{ $value }} pending."
+
+      # Layer 2 Alerts
+      - alert: L2BatchProcessingFailed
+        expr: increase(mana_l2_batch_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: layer2
+        annotations:
+          summary: "Layer 2 batch processing failed"
+          description: "Layer 2 batch processing failed on {{ $labels.instance }}. Failures: {{ $value }}"
+
+      - alert: L2ProofVerificationFailed
+        expr: increase(mana_l2_proof_verification_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: layer2
+        annotations:
+          summary: "Layer 2 proof verification failed"
+          description: "Layer 2 proof verification failed on {{ $labels.instance }}. Failures: {{ $value }}"
+
+      # Consensus (Eth2) Alerts
+      - alert: MissedAttestations
+        expr: rate(mana_consensus_missed_attestations_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: consensus
+        annotations:
+          summary: "High rate of missed attestations"
+          description: "Node {{ $labels.instance }} is missing more than 10% of attestations."
+
+      - alert: FinalityLag
+        expr: mana_consensus_finality_lag_slots > 64
+        for: 10m
+        labels:
+          severity: critical
+          component: consensus
+        annotations:
+          summary: "Finality is lagging"
+          description: "Node {{ $labels.instance }} finality is {{ $value }} slots behind."
+
+      # Storage Alerts
+      - alert: StorageSpaceLow
+        expr: mana_storage_free_bytes / mana_storage_total_bytes < 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: storage
+        annotations:
+          summary: "Storage space is low"
+          description: "Less than 10% storage space remaining on {{ $labels.instance }}."
+
+      - alert: AntidoteDBDown
+        expr: up{job="antidote"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: storage
+        annotations:
+          summary: "AntidoteDB is down"
+          description: "AntidoteDB instance {{ $labels.instance }} has been down for more than 2 minutes."
+
+      # RPC Alerts
+      - alert: HighRPCLatency
+        expr: histogram_quantile(0.99, rate(mana_rpc_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: rpc
+        annotations:
+          summary: "High RPC latency"
+          description: "99th percentile RPC latency is above 1 second on {{ $labels.instance }}."
+
+      - alert: HighRPCErrorRate
+        expr: rate(mana_rpc_errors_total[5m]) / rate(mana_rpc_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: rpc
+        annotations:
+          summary: "High RPC error rate"
+          description: "RPC error rate is above 5% on {{ $labels.instance }}."

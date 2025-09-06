@@ -1,37 +1,94 @@
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
+  external_labels:
+    monitor: 'mana-ethereum'
+    environment: 'production'
 
-rule_files:
-  - "alert_rules.yml"
-
+# Alertmanager configuration
 alerting:
   alertmanagers:
     - static_configs:
         - targets:
-          - alertmanager:9093
+            - alertmanager:9093
 
+# Load rules once and periodically evaluate them
+rule_files:
+  - "alerts/*.yml"
+
+# Scrape configurations
 scrape_configs:
-  # Mana-Ethereum main metrics endpoint
-  - job_name: 'mana-ethereum'
-    static_configs:
-      - targets: ['host.docker.internal:9090']
-    scrape_interval: 5s
-    metrics_path: /metrics
-    scrape_timeout: 3s
-
-  # System metrics via node-exporter
-  - job_name: 'node-exporter'
-    static_configs:
-      - targets: ['node-exporter:9100']
-    scrape_interval: 15s
-
   # Prometheus self-monitoring
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
 
-  # Grafana monitoring
+  # Mana Ethereum client metrics
+  - job_name: 'mana-ethereum'
+    static_configs:
+      - targets: ['mana:4369']  # Erlang node metrics
+        labels:
+          service: 'mana'
+          component: 'erlang'
+      - targets: ['mana:9568']  # Application metrics via prometheus_ex
+        labels:
+          service: 'mana'
+          component: 'application'
+
+  # P2P network metrics
+  - job_name: 'mana-p2p'
+    static_configs:
+      - targets: ['mana:30303']
+        labels:
+          service: 'mana'
+          component: 'p2p'
+    metrics_path: '/metrics'
+
+  # JSON-RPC metrics
+  - job_name: 'mana-rpc'
+    static_configs:
+      - targets: ['mana:8545']
+        labels:
+          service: 'mana'
+          component: 'jsonrpc'
+    metrics_path: '/metrics'
+
+  # Layer 2 metrics
+  - job_name: 'mana-layer2'
+    static_configs:
+      - targets: ['mana:9569']
+        labels:
+          service: 'mana'
+          component: 'layer2'
+
+  # Consensus metrics (Eth2)
+  - job_name: 'mana-consensus'
+    static_configs:
+      - targets: ['mana:9570']
+        labels:
+          service: 'mana'
+          component: 'consensus'
+
+  # Storage metrics (AntidoteDB)
+  - job_name: 'antidote'
+    static_configs:
+      - targets: ['antidote:8087']
+        labels:
+          service: 'antidote'
+          component: 'storage'
+
+  # Node exporter for system metrics
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'system'
+
+  # Grafana metrics
   - job_name: 'grafana'
     static_configs:
       - targets: ['grafana:3000']
+        labels:
+          service: 'grafana'

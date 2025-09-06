@@ -1,0 +1,229 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "mana-layer2",
+    "title": "Mana Ethereum - Layer 2 Metrics",
+    "tags": ["mana", "ethereum", "layer2", "optimism", "arbitrum"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": {"h": 4, "w": 8, "x": 0, "y": 0},
+        "type": "stat",
+        "title": "Optimism Batches Processed",
+        "targets": [
+          {
+            "expr": "mana_l2_optimism_batches_processed_total",
+            "legendFormat": "Batches"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "decimals": 0
+          }
+        }
+      },
+      {
+        "id": 2,
+        "gridPos": {"h": 4, "w": 8, "x": 8, "y": 0},
+        "type": "stat",
+        "title": "Arbitrum Batches Processed",
+        "targets": [
+          {
+            "expr": "mana_l2_arbitrum_batches_processed_total",
+            "legendFormat": "Batches"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "decimals": 0
+          }
+        }
+      },
+      {
+        "id": 3,
+        "gridPos": {"h": 4, "w": 8, "x": 16, "y": 0},
+        "type": "stat",
+        "title": "zkSync Proofs Verified",
+        "targets": [
+          {
+            "expr": "mana_l2_zksync_proofs_verified_total",
+            "legendFormat": "Proofs"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "decimals": 0
+          }
+        }
+      },
+      {
+        "id": 4,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "type": "graph",
+        "title": "Layer 2 Batch Processing Rate",
+        "targets": [
+          {
+            "expr": "rate(mana_l2_optimism_batches_processed_total[5m])",
+            "legendFormat": "Optimism"
+          },
+          {
+            "expr": "rate(mana_l2_arbitrum_batches_processed_total[5m])",
+            "legendFormat": "Arbitrum"
+          },
+          {
+            "expr": "rate(mana_l2_zksync_batches_processed_total[5m])",
+            "legendFormat": "zkSync"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "ops",
+            "label": "Batches/sec",
+            "show": true
+          },
+          {
+            "show": false
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "type": "graph",
+        "title": "Proof Verification Time",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(mana_l2_proof_verification_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95 Verification Time"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(mana_l2_proof_verification_duration_seconds_bucket[5m]))",
+            "legendFormat": "p99 Verification Time"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "s",
+            "label": "Duration",
+            "show": true
+          },
+          {
+            "show": false
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+        "type": "graph",
+        "title": "L2 Transaction Throughput",
+        "targets": [
+          {
+            "expr": "rate(mana_l2_transactions_processed_total{layer=\"optimism\"}[5m])",
+            "legendFormat": "Optimism TX/s"
+          },
+          {
+            "expr": "rate(mana_l2_transactions_processed_total{layer=\"arbitrum\"}[5m])",
+            "legendFormat": "Arbitrum TX/s"
+          },
+          {
+            "expr": "rate(mana_l2_transactions_processed_total{layer=\"zksync\"}[5m])",
+            "legendFormat": "zkSync TX/s"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "ops",
+            "label": "Transactions/sec",
+            "show": true
+          },
+          {
+            "show": false
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+        "type": "graph",
+        "title": "L2 Bridge Activity",
+        "targets": [
+          {
+            "expr": "rate(mana_l2_bridge_deposits_total[5m])",
+            "legendFormat": "Deposits/s"
+          },
+          {
+            "expr": "rate(mana_l2_bridge_withdrawals_total[5m])",
+            "legendFormat": "Withdrawals/s"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "ops",
+            "label": "Operations/sec",
+            "show": true
+          },
+          {
+            "show": false
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+        "type": "graph",
+        "title": "L2 Error Rates",
+        "targets": [
+          {
+            "expr": "rate(mana_l2_batch_failures_total[5m])",
+            "legendFormat": "Batch Failures"
+          },
+          {
+            "expr": "rate(mana_l2_proof_verification_failures_total[5m])",
+            "legendFormat": "Proof Failures"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "ops",
+            "label": "Errors/sec",
+            "show": true
+          },
+          {
+            "show": false
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+        "type": "graph",
+        "title": "Data Compression Ratio",
+        "targets": [
+          {
+            "expr": "mana_l2_compression_ratio",
+            "legendFormat": "{{layer}} Compression"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "percentunit",
+            "label": "Compression Ratio",
+            "show": true
+          },
+          {
+            "show": false
+          }
+        ]
+      }
+    ]
+  },
+  "overwrite": true
+}
