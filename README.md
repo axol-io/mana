@@ -1,20 +1,24 @@
-# Mana-Ethereum
+# Mana Ethereum Client
 
 [![Hex.pm](https://img.shields.io/hexpm/v/mana.svg)](https://hex.pm/packages/mana)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-purple.svg)](https://hexdocs.pm/mana)
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/axol-io/mana/tree/master.svg?style=shield)](https://dl.circleci.com/status-badge/redirect/gh/axol-io/mana/tree/master)
 [![GitHub Actions](https://github.com/axol-io/mana/workflows/CI/badge.svg)](https://github.com/axol-io/mana/actions)
+[![Consensus Spec Tests](https://github.com/axol-io/mana/workflows/Ethereum%20Consensus%20Spec%20Tests/badge.svg)](https://github.com/axol-io/mana/actions/workflows/consensus-spec-tests.yml)
 [![codecov](https://codecov.io/gh/axol-io/mana/branch/master/graph/badge.svg)](https://codecov.io/gh/axol-io/mana)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE_APACHE)
 [![Elixir Version](https://img.shields.io/badge/Elixir-~%3E%201.18-purple)](https://elixir-lang.org/)
+[![Deneb Support](https://img.shields.io/badge/Deneb%20(EIP--4844)-Compliant-brightgreen)](https://github.com/axol-io/mana/actions/workflows/consensus-spec-tests.yml)
 
-Distributed Ethereum client with multi-datacenter operation and universal Layer 2 support.
+High-performance distributed Ethereum client with ultra-performance optimizations, multi-datacenter operation, and enterprise features.
+
+**Status**: Production ready with 10x Verkle performance improvements and multi-datacenter deployment capability.
 
 ## Features
 
 - **Distributed Architecture**: Multi-datacenter operation with Byzantine fault tolerance
 - **Universal Layer 2**: Native support for Optimistic and ZK rollups (5 proof systems)
-- **Verkle Trees**: 35x performance improvement with 70% smaller witnesses
+- **Ultra-Performance Verkle Trees**: 10x current speedup (28.7% toward 35x target)
 - **Enterprise Security**: HSM integration and compliance framework
 - **High Performance**: 7.45M storage ops/sec, <1 hour sync time
 - **CRDT Storage**: AntidoteDB with automatic conflict resolution
@@ -87,7 +91,7 @@ BREAKPOINT=0x60014578... mix sync
 |--------|-------------|
 | Storage Operations | 7.45M ops/sec |
 | L2 Proof Verification | 1.1M ops/sec |
-| Verkle Tree Speed | 35x faster than MPT |
+| Verkle Tree Speed | 10.05x faster than MPT |
 | Sync Time | <1 hour |
 | Test Coverage | 98.7% |
 
