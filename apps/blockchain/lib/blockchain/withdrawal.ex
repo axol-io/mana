@@ -74,7 +74,7 @@ defmodule Blockchain.Withdrawal do
     updated_account = %{account | balance: account.balance + wei_amount}
 
     # Save updated account
-    Repo.repo(repo).put_account(repo, withdrawal.address, updated_account)
+    repo.put_account(repo, withdrawal.address, updated_account)
   end
 
   @doc """
@@ -105,7 +105,7 @@ defmodule Blockchain.Withdrawal do
       key = index |> :binary.encode_unsigned() |> ExRLP.encode()
       value = withdrawal |> serialize() |> ExRLP.encode()
 
-      Trie.update(acc_trie, key, value)
+      Trie.update_key(acc_trie, key, value)
     end)
     |> Trie.root_hash()
   end
@@ -172,7 +172,7 @@ defmodule Blockchain.Withdrawal do
   # Private functions
 
   defp get_or_create_account(account_repo, address) do
-    case Repo.repo(account_repo).account(account_repo, address) do
+    case account_repo.account(account_repo, address) do
       {repo, nil} ->
         # Create new account with zero balance
         new_account = %Blockchain.Account{
