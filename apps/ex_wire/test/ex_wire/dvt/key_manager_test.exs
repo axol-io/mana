@@ -13,20 +13,46 @@ defmodule ExWire.DVT.KeyManagerTest do
   @test_threshold 3
   @test_total_nodes 5
   @test_participants [
-    %{operator_id: "op_1", endpoint: "192.168.1.1:9000", public_key: "pk_1", security_level: :standard},
-    %{operator_id: "op_2", endpoint: "192.168.1.2:9000", public_key: "pk_2", security_level: :enterprise},
-    %{operator_id: "op_3", endpoint: "192.168.1.3:9000", public_key: "pk_3", security_level: :standard},
-    %{operator_id: "op_4", endpoint: "192.168.1.4:9000", public_key: "pk_4", security_level: :enterprise},
-    %{operator_id: "op_5", endpoint: "192.168.1.5:9000", public_key: "pk_5", security_level: :regulated}
+    %{
+      operator_id: "op_1",
+      endpoint: "192.168.1.1:9000",
+      public_key: "pk_1",
+      security_level: :standard
+    },
+    %{
+      operator_id: "op_2",
+      endpoint: "192.168.1.2:9000",
+      public_key: "pk_2",
+      security_level: :enterprise
+    },
+    %{
+      operator_id: "op_3",
+      endpoint: "192.168.1.3:9000",
+      public_key: "pk_3",
+      security_level: :standard
+    },
+    %{
+      operator_id: "op_4",
+      endpoint: "192.168.1.4:9000",
+      public_key: "pk_4",
+      security_level: :enterprise
+    },
+    %{
+      operator_id: "op_5",
+      endpoint: "192.168.1.5:9000",
+      public_key: "pk_5",
+      security_level: :regulated
+    }
   ]
 
   setup do
     # Start KeyManager for testing
-    {:ok, _pid} = KeyManager.start_link([
-      hsm_config: %{provider: :mock, region: "test"},
-      audit_config: %{enabled: true, log_level: :info},
-      rbac_config: %{}
-    ])
+    {:ok, _pid} =
+      KeyManager.start_link(
+        hsm_config: %{provider: :mock, region: "test"},
+        audit_config: %{enabled: true, log_level: :info},
+        rbac_config: %{}
+      )
 
     # Ensure clean state
     :ets.delete_all_objects(:dvt_clusters)
@@ -37,13 +63,14 @@ defmodule ExWire.DVT.KeyManagerTest do
 
   describe "cluster creation" do
     test "creates a new DVT cluster successfully" do
-      assert {:ok, cluster_config} = KeyManager.create_cluster(
-        @test_cluster_id,
-        @test_validator_pubkey,
-        @test_threshold,
-        @test_total_nodes,
-        @test_participants
-      )
+      assert {:ok, cluster_config} =
+               KeyManager.create_cluster(
+                 @test_cluster_id,
+                 @test_validator_pubkey,
+                 @test_threshold,
+                 @test_total_nodes,
+                 @test_participants
+               )
 
       assert cluster_config.cluster_id == @test_cluster_id
       assert cluster_config.validator_pubkey == @test_validator_pubkey
@@ -56,51 +83,59 @@ defmodule ExWire.DVT.KeyManagerTest do
 
     test "prevents duplicate cluster creation" do
       # Create first cluster
-      assert {:ok, _} = KeyManager.create_cluster(
-        @test_cluster_id,
-        @test_validator_pubkey,
-        @test_threshold,
-        @test_total_nodes,
-        @test_participants
-      )
+      assert {:ok, _} =
+               KeyManager.create_cluster(
+                 @test_cluster_id,
+                 @test_validator_pubkey,
+                 @test_threshold,
+                 @test_total_nodes,
+                 @test_participants
+               )
 
       # Attempt to create duplicate
-      assert {:error, :cluster_already_exists} = KeyManager.create_cluster(
-        @test_cluster_id,
-        "different_validator",
-        2,
-        3,
-        Enum.take(@test_participants, 3)
-      )
+      assert {:error, :cluster_already_exists} =
+               KeyManager.create_cluster(
+                 @test_cluster_id,
+                 "different_validator",
+                 2,
+                 3,
+                 Enum.take(@test_participants, 3)
+               )
     end
 
     test "validates cluster parameters" do
       # Invalid threshold (too high)
-      assert {:error, :invalid_threshold} = KeyManager.create_cluster(
-        "invalid_cluster_1",
-        @test_validator_pubkey,
-        6, # Greater than total_nodes
-        @test_total_nodes,
-        @test_participants
-      )
+      assert {:error, :invalid_threshold} =
+               KeyManager.create_cluster(
+                 "invalid_cluster_1",
+                 @test_validator_pubkey,
+                 # Greater than total_nodes
+                 6,
+                 @test_total_nodes,
+                 @test_participants
+               )
 
       # Invalid threshold (too low - not majority)
-      assert {:error, :threshold_too_low} = KeyManager.create_cluster(
-        "invalid_cluster_2",
-        @test_validator_pubkey,
-        1, # Less than majority
-        @test_total_nodes,
-        @test_participants
-      )
+      assert {:error, :threshold_too_low} =
+               KeyManager.create_cluster(
+                 "invalid_cluster_2",
+                 @test_validator_pubkey,
+                 # Less than majority
+                 1,
+                 @test_total_nodes,
+                 @test_participants
+               )
 
       # Participant count mismatch
-      assert {:error, :participant_count_mismatch} = KeyManager.create_cluster(
-        "invalid_cluster_3",
-        @test_validator_pubkey,
-        @test_threshold,
-        @test_total_nodes,
-        Enum.take(@test_participants, 3) # Less participants than total_nodes
-      )
+      assert {:error, :participant_count_mismatch} =
+               KeyManager.create_cluster(
+                 "invalid_cluster_3",
+                 @test_validator_pubkey,
+                 @test_threshold,
+                 @test_total_nodes,
+                 # Less participants than total_nodes
+                 Enum.take(@test_participants, 3)
+               )
     end
 
     test "supports different compliance levels" do
@@ -108,18 +143,19 @@ defmodule ExWire.DVT.KeyManagerTest do
 
       Enum.each(compliance_levels, fn level ->
         cluster_id = "cluster_#{level}"
-        
-        assert {:ok, cluster_config} = KeyManager.create_cluster(
-          cluster_id,
-          @test_validator_pubkey,
-          @test_threshold,
-          @test_total_nodes,
-          @test_participants,
-          compliance_level: level
-        )
+
+        assert {:ok, cluster_config} =
+                 KeyManager.create_cluster(
+                   cluster_id,
+                   @test_validator_pubkey,
+                   @test_threshold,
+                   @test_total_nodes,
+                   @test_participants,
+                   compliance_level: level
+                 )
 
         assert cluster_config.compliance_level == level
-        
+
         # Different compliance levels should have different rotation schedules
         assert is_struct(cluster_config.next_rotation, DateTime)
       end)
@@ -190,7 +226,7 @@ defmodule ExWire.DVT.KeyManagerTest do
     test "completes full DKG process", %{cluster_id: cluster_id} do
       # Initialize DKG
       assert {:ok, dkg_data} = KeyManager.initialize_dkg(cluster_id)
-      
+
       # Simulate DKG completion (this would normally involve network operations)
       # For testing purposes, we'll test that the structure is correct
       assert is_map(dkg_data)
@@ -218,7 +254,7 @@ defmodule ExWire.DVT.KeyManagerTest do
 
     test "respects RBAC permissions for signing" do
       cluster_id = "rbac_test_cluster"
-      
+
       # Create KeyManager with RBAC enabled
       KeyManager.create_cluster(
         cluster_id,
@@ -233,13 +269,16 @@ defmodule ExWire.DVT.KeyManagerTest do
       # Test with unauthorized operator
       case KeyManager.sign_message(cluster_id, message, operator_id: "unauthorized") do
         {:error, :permission_denied} ->
-          :ok # Expected when RBAC is properly configured
+          # Expected when RBAC is properly configured
+          :ok
 
         {:error, reason} when reason in [:insufficient_key_shares, :no_key_shares] ->
-          :ok # Expected for simplified implementation
+          # Expected for simplified implementation
+          :ok
 
         {:ok, _signature} ->
-          :ok # RBAC not enforced in current implementation
+          # RBAC not enforced in current implementation
+          :ok
       end
     end
   end
@@ -275,7 +314,7 @@ defmodule ExWire.DVT.KeyManagerTest do
 
       # Verify the update was applied
       assert {:ok, cluster_config} = KeyManager.get_cluster(cluster_id)
-      
+
       case Map.get(cluster_config.participants, node_id) do
         nil ->
           # Node doesn't exist - expected for some test configurations
@@ -288,6 +327,7 @@ defmodule ExWire.DVT.KeyManagerTest do
 
     test "tracks node performance metrics", %{cluster_id: cluster_id} do
       node_id = 1
+
       metrics = %{
         response_time: 45.2,
         attestation_success_rate: 99.8,
@@ -312,7 +352,9 @@ defmodule ExWire.DVT.KeyManagerTest do
         {:ok, updated_cluster} ->
           assert is_struct(updated_cluster.last_rotation, DateTime)
           assert is_struct(updated_cluster.next_rotation, DateTime)
-          assert DateTime.compare(updated_cluster.next_rotation, updated_cluster.last_rotation) == :gt
+
+          assert DateTime.compare(updated_cluster.next_rotation, updated_cluster.last_rotation) ==
+                   :gt
 
         {:error, reason} ->
           # Expected for simplified implementation
@@ -323,21 +365,23 @@ defmodule ExWire.DVT.KeyManagerTest do
     test "respects RBAC permissions for key rotation", %{cluster_id: cluster_id} do
       case KeyManager.rotate_keys(cluster_id, operator_id: "unauthorized") do
         {:error, :permission_denied} ->
-          :ok # Expected when RBAC is properly configured
+          # Expected when RBAC is properly configured
+          :ok
 
         {:error, reason} ->
           # Expected for simplified implementation
           assert reason in [:insufficient_key_shares, :dkg_not_implemented, :rotation_not_ready]
 
         {:ok, _} ->
-          :ok # RBAC not enforced in current implementation
+          # RBAC not enforced in current implementation
+          :ok
       end
     end
 
     test "handles rotation failures gracefully", %{cluster_id: cluster_id} do
       # Force a rotation failure by providing invalid parameters
       result = KeyManager.rotate_keys(cluster_id, force_fail: true)
-      
+
       case result do
         {:error, _reason} ->
           # Verify cluster is still in good state after failure
@@ -356,14 +400,14 @@ defmodule ExWire.DVT.KeyManagerTest do
 
     test "archives decommissioned cluster", %{cluster_id: cluster_id} do
       assert {:ok, archived_cluster} = KeyManager.archive_cluster(cluster_id)
-      
+
       assert archived_cluster.status == :archived
       assert is_struct(archived_cluster.created_at, DateTime)
     end
 
     test "prevents operations on archived clusters" do
       cluster_id = "archival_test_cluster"
-      
+
       # Create and archive cluster
       KeyManager.create_cluster(
         cluster_id,
@@ -372,12 +416,14 @@ defmodule ExWire.DVT.KeyManagerTest do
         @test_total_nodes,
         @test_participants
       )
-      
+
       KeyManager.archive_cluster(cluster_id)
 
       # Attempt operations on archived cluster
-      assert {:error, :cluster_archived} = KeyManager.sign_message(cluster_id, "test message") 
-        || {:error, :insufficient_key_shares} = KeyManager.sign_message(cluster_id, "test message")
+      assert {:error, :cluster_archived} =
+               KeyManager.sign_message(cluster_id, "test message") ||
+                 {:error, :insufficient_key_shares} =
+               KeyManager.sign_message(cluster_id, "test message")
     end
   end
 
@@ -387,7 +433,7 @@ defmodule ExWire.DVT.KeyManagerTest do
     @tag :slow
     test "backs up cluster configuration", %{cluster_id: cluster_id} do
       backup_locations = ["s3://backup-bucket/dvt/", "/local/backup/path/"]
-      
+
       # Update cluster with backup locations
       KeyManager.create_cluster(
         "backup_test_cluster",
@@ -414,14 +460,15 @@ defmodule ExWire.DVT.KeyManagerTest do
     test "integrates with audit logging" do
       # Create cluster with audit enabled
       cluster_id = "audit_test_cluster"
-      
-      assert {:ok, _} = KeyManager.create_cluster(
-        cluster_id,
-        @test_validator_pubkey,
-        @test_threshold,
-        @test_total_nodes,
-        @test_participants
-      )
+
+      assert {:ok, _} =
+               KeyManager.create_cluster(
+                 cluster_id,
+                 @test_validator_pubkey,
+                 @test_threshold,
+                 @test_total_nodes,
+                 @test_participants
+               )
 
       # All operations should be audited (verified through logs in production)
       # For testing, we just verify no errors occur
@@ -430,23 +477,25 @@ defmodule ExWire.DVT.KeyManagerTest do
 
     test "supports multiple HSM providers" do
       hsm_providers = [:aws_cloudhsm, :azure_keyvault, :pkcs11]
-      
+
       Enum.each(hsm_providers, fn provider ->
         cluster_id = "hsm_#{provider}_cluster"
-        
+
         case KeyManager.create_cluster(
-          cluster_id,
-          @test_validator_pubkey,
-          @test_threshold,
-          @test_total_nodes,
-          @test_participants,
-          hsm_provider: provider
-        ) do
+               cluster_id,
+               @test_validator_pubkey,
+               @test_threshold,
+               @test_total_nodes,
+               @test_participants,
+               hsm_provider: provider
+             ) do
           {:ok, _cluster} ->
-            :ok # HSM provider supported
-          
+            # HSM provider supported
+            :ok
+
           {:error, :hsm_not_available} ->
-            :ok # HSM provider not configured in test environment
+            # HSM provider not configured in test environment
+            :ok
         end
       end)
     end
@@ -456,19 +505,21 @@ defmodule ExWire.DVT.KeyManagerTest do
     @tag :slow
     test "handles multiple clusters efficiently" do
       cluster_count = 10
-      
-      {creation_time, clusters} = :timer.tc(fn ->
-        Enum.map(1..cluster_count, fn i ->
-          cluster_id = "perf_test_cluster_#{i}"
-          KeyManager.create_cluster(
-            cluster_id,
-            @test_validator_pubkey,
-            @test_threshold,
-            @test_total_nodes,
-            @test_participants
-          )
+
+      {creation_time, clusters} =
+        :timer.tc(fn ->
+          Enum.map(1..cluster_count, fn i ->
+            cluster_id = "perf_test_cluster_#{i}"
+
+            KeyManager.create_cluster(
+              cluster_id,
+              @test_validator_pubkey,
+              @test_threshold,
+              @test_total_nodes,
+              @test_participants
+            )
+          end)
         end)
-      end)
 
       # All clusters should be created successfully
       successful_clusters = Enum.count(clusters, fn {status, _} -> status == :ok end)
@@ -478,18 +529,20 @@ defmodule ExWire.DVT.KeyManagerTest do
       assert creation_time < 5_000_000
 
       # List operations should be efficient
-      {list_time, all_clusters} = :timer.tc(fn ->
-        KeyManager.list_clusters()
-      end)
+      {list_time, all_clusters} =
+        :timer.tc(fn ->
+          KeyManager.list_clusters()
+        end)
 
       assert length(all_clusters) >= cluster_count
-      assert list_time < 100_000 # Less than 100ms
+      # Less than 100ms
+      assert list_time < 100_000
     end
 
     @tag :slow
     test "concurrent operations are thread-safe" do
       cluster_id = "concurrent_test_cluster"
-      
+
       # Create base cluster
       KeyManager.create_cluster(
         cluster_id,
@@ -500,17 +553,18 @@ defmodule ExWire.DVT.KeyManagerTest do
       )
 
       # Perform concurrent operations
-      tasks = Enum.map(1..10, fn i ->
-        Task.async(fn ->
-          KeyManager.update_node_status(cluster_id, rem(i, @test_total_nodes), :online, %{
-            test_metric: i * 10
-          })
+      tasks =
+        Enum.map(1..10, fn i ->
+          Task.async(fn ->
+            KeyManager.update_node_status(cluster_id, rem(i, @test_total_nodes), :online, %{
+              test_metric: i * 10
+            })
+          end)
         end)
-      end)
 
       # Wait for all tasks to complete
       results = Task.await_many(tasks, 5000)
-      
+
       # All updates should succeed
       assert Enum.all?(results, fn result -> result == :ok end)
 
@@ -524,25 +578,27 @@ defmodule ExWire.DVT.KeyManagerTest do
 
   defp create_test_cluster(_context) do
     cluster_id = @test_cluster_id <> "_#{:crypto.strong_rand_bytes(4) |> Base.encode16()}"
-    
-    {:ok, _cluster_config} = KeyManager.create_cluster(
-      cluster_id,
-      @test_validator_pubkey,
-      @test_threshold,
-      @test_total_nodes,
-      @test_participants
-    )
+
+    {:ok, _cluster_config} =
+      KeyManager.create_cluster(
+        cluster_id,
+        @test_validator_pubkey,
+        @test_threshold,
+        @test_total_nodes,
+        @test_participants
+      )
 
     %{cluster_id: cluster_id}
   end
 
   defp create_test_cluster_with_keys(context) do
     %{cluster_id: cluster_id} = create_test_cluster(context)
-    
+
     # Initialize DKG to set up keys (simplified)
     case KeyManager.initialize_dkg(cluster_id) do
       {:ok, _dkg_data} -> :ok
-      {:error, _reason} -> :ok # Expected for simplified implementation
+      # Expected for simplified implementation
+      {:error, _reason} -> :ok
     end
 
     %{cluster_id: cluster_id}

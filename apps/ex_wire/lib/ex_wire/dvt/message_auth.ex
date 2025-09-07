@@ -1,7 +1,7 @@
 defmodule ExWire.DVT.MessageAuth do
   @moduledoc """
   DVT Message Authentication and Replay Protection System.
-  
+
   Provides cryptographic authentication for DVT messages with:
   - Ed25519 signature-based message authentication
   - Time-window based replay protection
@@ -10,7 +10,7 @@ defmodule ExWire.DVT.MessageAuth do
   """
 
   require Logger
-  
+
   alias ExWire.Enterprise.AuditLogger
   alias ExWire.DVT.KeyManager
 
@@ -18,23 +18,27 @@ defmodule ExWire.DVT.MessageAuth do
   @type signature :: binary()
   @type nonce :: binary()
   @type timestamp :: DateTime.t()
-  
+
   # Message authentication context
   @type auth_context :: %{
-    sender_id: pos_integer(),
-    cluster_id: String.t(),
-    message_type: atom(),
-    sequence: pos_integer(),
-    timestamp: DateTime.t(),
-    nonce: nonce(),
-    payload_hash: binary()
-  }
+          sender_id: pos_integer(),
+          cluster_id: String.t(),
+          message_type: atom(),
+          sequence: pos_integer(),
+          timestamp: DateTime.t(),
+          nonce: nonce(),
+          payload_hash: binary()
+        }
 
   # Authentication configuration
-  @replay_window_seconds 300  # 5 minutes
-  @max_clock_skew_seconds 30  # 30 seconds  
-  @nonce_size 16             # 16 bytes
-  @sequence_gap_threshold 100 # Maximum sequence number gap
+  # 5 minutes
+  @replay_window_seconds 300
+  # 30 seconds  
+  @max_clock_skew_seconds 30
+  # 16 bytes
+  @nonce_size 16
+  # Maximum sequence number gap
+  @sequence_gap_threshold 100
 
   ## Public API
 
@@ -42,19 +46,19 @@ defmodule ExWire.DVT.MessageAuth do
   Create an authenticated message with signature and replay protection.
   """
   @spec create_authenticated_message(
-    cluster_id :: String.t(),
-    message_type :: atom(),
-    payload :: binary(),
-    private_key :: binary(),
-    sender_id :: pos_integer()
-  ) :: {:ok, map()} | {:error, atom()}
+          cluster_id :: String.t(),
+          message_type :: atom(),
+          payload :: binary(),
+          private_key :: binary(),
+          sender_id :: pos_integer()
+        ) :: {:ok, map()} | {:error, atom()}
   def create_authenticated_message(cluster_id, message_type, payload, private_key, sender_id) do
     try do
       sequence = get_next_sequence(sender_id, cluster_id)
       nonce = generate_nonce()
       timestamp = DateTime.utc_now()
       payload_hash = hash_payload(payload)
-      
+
       auth_context = %{
         sender_id: sender_id,
         cluster_id: cluster_id,
@@ -64,7 +68,7 @@ defmodule ExWire.DVT.MessageAuth do
         nonce: nonce,
         payload_hash: payload_hash
       }
-      
+
       case sign_message_context(auth_context, private_key) do
         {:ok, signature} ->
           message = %{
@@ -78,14 +82,14 @@ defmodule ExWire.DVT.MessageAuth do
             signature: signature,
             auth_version: "1.0"
           }
-          
+
           # Store sequence number
           store_sequence(sender_id, cluster_id, sequence)
-          
+
           {:ok, message}
-          
-        {:error, reason} ->
-          {:error, reason}
+
+        {:error, _reason} ->
+          {:error, _reason}
       end
     rescue
       error ->
@@ -97,8 +101,9 @@ defmodule ExWire.DVT.MessageAuth do
   @doc """
   Verify an authenticated message and check for replay attacks.
   """
-  @spec verify_authenticated_message(map()) :: 
-    {:ok, :valid} | {:error, :invalid_signature | :replay_attack | :expired | :invalid_sequence}
+  @spec verify_authenticated_message(map()) ::
+          {:ok, :valid}
+          | {:error, :invalid_signature | :replay_attack | :expired | :invalid_sequence}
   def verify_authenticated_message(message) do
     with :ok <- validate_message_structure(message),
          :ok <- check_timestamp_validity(message.timestamp),
@@ -106,24 +111,24 @@ defmodule ExWire.DVT.MessageAuth do
          :ok <- verify_signature(message, public_key),
          :ok <- check_replay_protection(message),
          :ok <- validate_sequence_number(message) do
-      
       # Record successful verification
       record_verified_message(message)
-      
+
       AuditLogger.log(:debug, "DVT message authenticated", %{
         sender_id: message.sender_id,
         cluster_id: message.cluster_id,
         sequence: message.sequence
       })
-      
+
       {:ok, :valid}
     else
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         AuditLogger.log(:warning, "DVT message authentication failed", %{
           sender_id: Map.get(message, :sender_id),
           cluster_id: Map.get(message, :cluster_id),
           reason: reason
         })
+
         error
     end
   end
@@ -134,13 +139,13 @@ defmodule ExWire.DVT.MessageAuth do
   @spec cleanup_expired_data() :: :ok
   def cleanup_expired_data() do
     cutoff = DateTime.add(DateTime.utc_now(), -@replay_window_seconds, :second)
-    
+
     # Clean up message cache
     cleanup_message_cache(cutoff)
-    
+
     # Clean up sequence tracking
     cleanup_sequence_tracking(cutoff)
-    
+
     Logger.debug("DVT authentication data cleanup completed")
     :ok
   end
@@ -163,8 +168,17 @@ defmodule ExWire.DVT.MessageAuth do
   ## Private Functions
 
   defp validate_message_structure(message) do
-    required_fields = [:cluster_id, :sender_id, :message_type, :sequence, :timestamp, :nonce, :payload, :signature]
-    
+    required_fields = [
+      :cluster_id,
+      :sender_id,
+      :message_type,
+      :sequence,
+      :timestamp,
+      :nonce,
+      :payload,
+      :signature
+    ]
+
     case Enum.all?(required_fields, &Map.has_key?(message, &1)) do
       true -> :ok
       false -> {:error, :invalid_structure}
@@ -174,12 +188,14 @@ defmodule ExWire.DVT.MessageAuth do
   defp check_timestamp_validity(timestamp) do
     now = DateTime.utc_now()
     diff_seconds = DateTime.diff(now, timestamp, :second)
-    
+
     cond do
       diff_seconds > @replay_window_seconds ->
         {:error, :expired}
+
       diff_seconds < -@max_clock_skew_seconds ->
         {:error, :future_timestamp}
+
       true ->
         :ok
     end
@@ -189,28 +205,28 @@ defmodule ExWire.DVT.MessageAuth do
     case KeyManager.get_node_public_key(cluster_id, sender_id) do
       {:ok, public_key} -> {:ok, public_key}
       {:error, :not_found} -> {:error, :unknown_sender}
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
   defp verify_signature(message, public_key) do
     auth_context = extract_auth_context(message)
-    
+
     case sign_message_context(auth_context, nil) do
       {:ok, expected_hash} ->
         case :crypto.verify(:eddsa, :ed25519, expected_hash, message.signature, public_key) do
           true -> :ok
           false -> {:error, :invalid_signature}
         end
-        
-      {:error, reason} ->
-        {:error, reason}
+
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
   defp extract_auth_context(message) do
     payload_hash = hash_payload(message.payload)
-    
+
     %{
       sender_id: message.sender_id,
       cluster_id: message.cluster_id,
@@ -224,14 +240,14 @@ defmodule ExWire.DVT.MessageAuth do
 
   defp check_replay_protection(message) do
     message_id = create_message_id(message)
-    
+
     case :ets.lookup(get_message_cache_table(), message_id) do
       [] ->
         # New message - store it
         timestamp_unix = DateTime.to_unix(message.timestamp)
         :ets.insert(get_message_cache_table(), {message_id, timestamp_unix})
         :ok
-        
+
       [{_id, _stored_timestamp}] ->
         # Already seen this message
         increment_replay_counter()
@@ -241,12 +257,13 @@ defmodule ExWire.DVT.MessageAuth do
 
   defp validate_sequence_number(message) do
     %{sender_id: sender_id, cluster_id: cluster_id, sequence: sequence} = message
-    
+
     case get_last_sequence(sender_id, cluster_id) do
       {:ok, last_sequence} ->
         cond do
           sequence <= last_sequence ->
             {:error, :invalid_sequence}
+
           sequence - last_sequence > @sequence_gap_threshold ->
             Logger.warning("Large sequence gap detected", %{
               sender_id: sender_id,
@@ -254,11 +271,13 @@ defmodule ExWire.DVT.MessageAuth do
               last_sequence: last_sequence,
               current_sequence: sequence
             })
+
             :ok
+
           true ->
             :ok
         end
-        
+
       {:error, :not_found} ->
         # First message from this sender
         :ok
@@ -270,11 +289,12 @@ defmodule ExWire.DVT.MessageAuth do
       # Create deterministic message for signing
       signable_data = create_signable_data(auth_context)
       message_hash = :crypto.hash(:sha256, signable_data)
-      
+
       case private_key do
         nil ->
           # Return hash for verification
           {:ok, message_hash}
+
         key when is_binary(key) ->
           # Sign with private key
           signature = :crypto.sign(:eddsa, :ed25519, message_hash, key)
@@ -298,14 +318,14 @@ defmodule ExWire.DVT.MessageAuth do
       auth_context.nonce,
       auth_context.payload_hash
     ]
-    
+
     :erlang.term_to_binary(fields, [:deterministic])
   end
 
   defp hash_payload(payload) when is_binary(payload) do
     :crypto.hash(:sha256, payload)
   end
-  
+
   defp hash_payload(payload) do
     :crypto.hash(:sha256, :erlang.term_to_binary(payload))
   end
@@ -332,7 +352,7 @@ defmodule ExWire.DVT.MessageAuth do
 
   defp get_last_sequence(sender_id, cluster_id) do
     key = "#{sender_id}:#{cluster_id}"
-    
+
     case :ets.lookup(get_sequence_table(), key) do
       [{_key, sequence, _timestamp}] -> {:ok, sequence}
       [] -> {:error, :not_found}
@@ -342,7 +362,7 @@ defmodule ExWire.DVT.MessageAuth do
   defp record_verified_message(message) do
     # Update authentication statistics
     increment_authenticated_counter()
-    
+
     # Optionally store successful verification details for audit
     AuditLogger.log(:debug, "DVT message verification successful", %{
       sender_id: message.sender_id,
@@ -354,21 +374,17 @@ defmodule ExWire.DVT.MessageAuth do
 
   defp cleanup_message_cache(cutoff) do
     cutoff_unix = DateTime.to_unix(cutoff)
-    
+
     # Remove expired entries
     :ets.select_delete(get_message_cache_table(), [
-      {{:"$1", :"$2"}, 
-       [{:<, :"$2", cutoff_unix}], 
-       [true]}
+      {{:"$1", :"$2"}, [{:<, :"$2", cutoff_unix}], [true]}
     ])
   end
 
   defp cleanup_sequence_tracking(cutoff) do
     # Remove sequence entries older than cutoff
     :ets.select_delete(get_sequence_table(), [
-      {{:"$1", :"$2", :"$3"}, 
-       [{:"<", :"$3", cutoff}], 
-       [true]}
+      {{:"$1", :"$2", :"$3"}, [{:<, :"$3", cutoff}], [true]}
     ])
   end
 
@@ -377,7 +393,9 @@ defmodule ExWire.DVT.MessageAuth do
     case :ets.whereis(:dvt_message_cache) do
       :undefined ->
         :ets.new(:dvt_message_cache, [:set, :public, :named_table])
-      table -> table
+
+      table ->
+        table
     end
   end
 
@@ -385,7 +403,9 @@ defmodule ExWire.DVT.MessageAuth do
     case :ets.whereis(:dvt_sequence_tracking) do
       :undefined ->
         :ets.new(:dvt_sequence_tracking, [:set, :public, :named_table])
-      table -> table
+
+      table ->
+        table
     end
   end
 
@@ -399,7 +419,9 @@ defmodule ExWire.DVT.MessageAuth do
         :ets.insert(table, {:replay_attempts, 0})
         :ets.insert(table, {:last_cleanup, DateTime.utc_now()})
         table
-      table -> table
+
+      table ->
+        table
     end
   end
 

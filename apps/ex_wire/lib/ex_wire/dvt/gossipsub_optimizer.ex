@@ -1,7 +1,7 @@
 defmodule ExWire.DVT.GossipSubOptimizer do
   @moduledoc """
   DVT-specific GossipSub optimizations for validator duty coordination.
-  
+
   Provides specialized optimizations for DVT communication patterns:
   - Priority queuing for time-sensitive duty messages
   - Latency-optimized mesh topology for consensus messages
@@ -20,67 +20,94 @@ defmodule ExWire.DVT.GossipSubOptimizer do
   @type duty_type :: :attestation | :block_proposal | :sync_committee | :aggregation
 
   # DVT-specific GossipSub parameters
-  @dvt_mesh_degree 6              # Smaller, more reliable mesh for DVT
-  @dvt_mesh_degree_low 4          # Lower bound for DVT mesh
-  @dvt_mesh_degree_high 8         # Upper bound for DVT mesh
-  @dvt_gossip_lazy 3              # Fewer gossip peers for efficiency
-  @dvt_heartbeat_interval 500     # Faster heartbeat for DVT (500ms)
-  @dvt_fanout_ttl 30_000         # Shorter fanout TTL (30s)
+  # Smaller, more reliable mesh for DVT
+  @dvt_mesh_degree 6
+  # Lower bound for DVT mesh
+  @dvt_mesh_degree_low 4
+  # Upper bound for DVT mesh
+  @dvt_mesh_degree_high 8
+  # Fewer gossip peers for efficiency
+  @dvt_gossip_lazy 3
+  # Faster heartbeat for DVT (500ms)
+  @dvt_heartbeat_interval 500
+  # Shorter fanout TTL (30s)
+  @dvt_fanout_ttl 30_000
 
   # Message priority timeouts (milliseconds)
-  @critical_message_timeout 2_000  # Block proposals, slashing alerts
-  @high_message_timeout 5_000      # Attestations, consensus messages  
-  @normal_message_timeout 10_000   # Key generation, heartbeats
-  @low_message_timeout 30_000      # Performance metrics, logs
+  # Block proposals, slashing alerts
+  @critical_message_timeout 2_000
+  # Attestations, consensus messages  
+  @high_message_timeout 5_000
+  # Key generation, heartbeats
+  @normal_message_timeout 10_000
+  # Performance metrics, logs
+  @low_message_timeout 30_000
 
   # Peer scoring weights for DVT
-  @dvt_p1_weight 2.0              # Time in mesh (higher weight for DVT)
-  @dvt_p2_weight 1.5              # First message deliveries
-  @dvt_p3_weight 2.0              # Mesh message deliveries (critical for consensus)
-  @dvt_p4_weight -3.0             # Invalid messages (severe penalty)
-  @dvt_p5_weight -1.0             # Application-specific scoring
-  @dvt_p6_weight 0.5              # IP colocation penalty
-  @dvt_p7_weight -2.0             # Behavioral penalty
+  # Time in mesh (higher weight for DVT)
+  @dvt_p1_weight 2.0
+  # First message deliveries
+  @dvt_p2_weight 1.5
+  # Mesh message deliveries (critical for consensus)
+  @dvt_p3_weight 2.0
+  # Invalid messages (severe penalty)
+  @dvt_p4_weight -3.0
+  # Application-specific scoring
+  @dvt_p5_weight -1.0
+  # IP colocation penalty
+  @dvt_p6_weight 0.5
+  # Behavioral penalty
+  @dvt_p7_weight -2.0
 
   defstruct [
     :gossipsub_pid,
-    :cluster_memberships,      # %{cluster_id => cluster_config}
-    :message_priorities,       # %{topic => priority_config}
-    :latency_tracking,         # %{peer_id => latency_metrics}
-    :performance_metrics,      # DVT-specific performance tracking
-    :mesh_optimization,        # Optimized mesh configurations
-    :priority_queues,          # Priority-based message queues
-    :adaptive_config          # Dynamic configuration adjustments
+    # %{cluster_id => cluster_config}
+    :cluster_memberships,
+    # %{topic => priority_config}
+    :message_priorities,
+    # %{peer_id => latency_metrics}
+    :latency_tracking,
+    # DVT-specific performance tracking
+    :performance_metrics,
+    # Optimized mesh configurations
+    :mesh_optimization,
+    # Priority-based message queues
+    :priority_queues,
+    # Dynamic configuration adjustments
+    :adaptive_config
   ]
 
   # Type definitions for nested structures
   @type priority_config :: %{
-    topic: String.t(),
-    priority: message_priority(),
-    timeout_ms: pos_integer(),
-    max_retries: pos_integer(),
-    propagation_factor: float(),       # How aggressively to propagate
-    mesh_requirements: pos_integer()   # Minimum mesh connectivity
-  }
+          topic: String.t(),
+          priority: message_priority(),
+          timeout_ms: pos_integer(),
+          max_retries: pos_integer(),
+          # How aggressively to propagate
+          propagation_factor: float(),
+          # Minimum mesh connectivity
+          mesh_requirements: pos_integer()
+        }
 
   @type latency_metrics :: %{
-    peer_id: String.t(),
-    average_latency: float(),
-    p99_latency: float(),
-    message_count: pos_integer(),
-    last_updated: pos_integer(),
-    reliability_score: float()        # Success rate for message delivery
-  }
+          peer_id: String.t(),
+          average_latency: float(),
+          p99_latency: float(),
+          message_count: pos_integer(),
+          last_updated: pos_integer(),
+          # Success rate for message delivery
+          reliability_score: float()
+        }
 
   @type performance_metrics :: %{
-    total_messages_sent: pos_integer(),
-    total_messages_received: pos_integer(),
-    critical_message_latency: float(),
-    consensus_round_latency: float(),
-    mesh_stability_score: float(),
-    peer_churn_rate: float(),
-    invalid_message_rate: float()
-  }
+          total_messages_sent: pos_integer(),
+          total_messages_received: pos_integer(),
+          critical_message_latency: float(),
+          consensus_round_latency: float(),
+          mesh_stability_score: float(),
+          peer_churn_rate: float(),
+          invalid_message_rate: float()
+        }
 
   ## Public API
 
@@ -129,7 +156,7 @@ defmodule ExWire.DVT.GossipSubOptimizer do
   @doc """
   Set dynamic configuration based on network conditions.
   """
-  def set_adaptive_config(config) do
+  def set_adaptive_config(_config) do
     GenServer.call(__MODULE__, {:set_adaptive_config, config})
   end
 
@@ -139,7 +166,7 @@ defmodule ExWire.DVT.GossipSubOptimizer do
   def init(opts) do
     # Get or start GossipSub process
     {:ok, gossipsub_pid} = ensure_gossipsub_running()
-    
+
     # Apply DVT-specific GossipSub parameters
     configure_dvt_gossipsub_params(gossipsub_pid)
 
@@ -169,14 +196,14 @@ defmodule ExWire.DVT.GossipSubOptimizer do
     :timer.send_interval(60_000, :adapt_configuration)
 
     Logger.info("DVT GossipSub Optimizer started")
-    
-    {:ok, state}
+
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:configure_cluster, cluster_id, topics_config}, _from, state) do
+  def handle_call({:configure_cluster, cluster_id, topics_config}, _from, _state) do
     # Configure topic priorities and mesh requirements
-    new_priorities = 
+    new_priorities =
       Enum.reduce(topics_config, state.message_priorities, fn {topic, config}, acc ->
         priority_config = %{
           topic: topic,
@@ -186,6 +213,7 @@ defmodule ExWire.DVT.GossipSubOptimizer do
           propagation_factor: config.propagation_factor || 1.0,
           mesh_requirements: config.mesh_requirements || @dvt_mesh_degree
         }
+
         Map.put(acc, topic, priority_config)
       end)
 
@@ -194,9 +222,10 @@ defmodule ExWire.DVT.GossipSubOptimizer do
       subscribe_with_dvt_optimization(state.gossipsub_pid, topic, config)
     end)
 
-    new_state = %{state | 
-      message_priorities: new_priorities,
-      cluster_memberships: Map.put(state.cluster_memberships, cluster_id, topics_config)
+    new_state = %{
+      state
+      | message_priorities: new_priorities,
+        cluster_memberships: Map.put(state.cluster_memberships, cluster_id, topics_config)
     }
 
     AuditLogger.log(:info, "Configured DVT GossipSub optimization for cluster", %{
@@ -208,40 +237,40 @@ defmodule ExWire.DVT.GossipSubOptimizer do
   end
 
   @impl true
-  def handle_call({:publish_message, cluster_id, duty_type, payload, priority}, _from, state) do
+  def handle_call({:publish_message, cluster_id, duty_type, payload, priority}, _from, _state) do
     topic = get_topic_for_duty(cluster_id, duty_type)
-    
+
     case Map.get(state.message_priorities, topic) do
       nil ->
         {:reply, {:error, :topic_not_configured}, state}
-        
+
       priority_config ->
         # Create optimized message
         optimized_message = create_optimized_message(payload, priority, priority_config)
-        
+
         # Queue message based on priority
         state = queue_message_by_priority(optimized_message, topic, priority, state)
-        
+
         {:reply, :ok, state}
     end
   end
 
   @impl true
-  def handle_call({:optimize_mesh, cluster_id}, _from, state) do
+  def handle_call({:optimize_mesh, cluster_id}, _from, _state) do
     cluster_topics = Map.get(state.cluster_memberships, cluster_id, %{})
-    
-    optimization_results = 
+
+    optimization_results =
       Enum.map(cluster_topics, fn {topic, _config} ->
         optimize_topic_mesh(topic, state)
       end)
 
     Logger.info("Mesh optimization completed for cluster #{cluster_id}")
-    
+
     {:reply, {:ok, optimization_results}, state}
   end
 
   @impl true
-  def handle_call(:get_performance_stats, _from, state) do
+  def handle_call(:get_performance_stats, _from, _state) do
     stats = %{
       performance_metrics: state.performance_metrics,
       active_clusters: Map.keys(state.cluster_memberships),
@@ -250,22 +279,22 @@ defmodule ExWire.DVT.GossipSubOptimizer do
       mesh_stability: calculate_mesh_stability(state),
       priority_queue_sizes: get_queue_sizes(state.priority_queues)
     }
-    
+
     {:reply, stats, state}
   end
 
   @impl true
-  def handle_call({:set_adaptive_config, config}, _from, state) do
+  def handle_call({:set_adaptive_config, _config}, _from, _state) do
     new_state = %{state | adaptive_config: Map.merge(state.adaptive_config, config)}
-    
+
     # Apply configuration changes
     apply_adaptive_configuration(new_state)
-    
+
     {:reply, :ok, new_state}
   end
 
   @impl true
-  def handle_cast({:update_peer_metrics, peer_id, metrics}, state) do
+  def handle_cast({:update_peer_metrics, peer_id, metrics}, _state) do
     latency_metrics = %{
       peer_id: peer_id,
       average_latency: metrics.average_latency,
@@ -274,32 +303,32 @@ defmodule ExWire.DVT.GossipSubOptimizer do
       last_updated: System.system_time(:millisecond),
       reliability_score: metrics.reliability_score
     }
-    
+
     new_tracking = Map.put(state.latency_tracking, peer_id, latency_metrics)
-    
+
     {:noreply, %{state | latency_tracking: new_tracking}}
   end
 
   @impl true
-  def handle_info(:process_priority_queues, state) do
+  def handle_info(:process_priority_queues, _state) do
     state = process_all_priority_queues(state)
     {:noreply, state}
   end
 
   @impl true
-  def handle_info(:update_peer_scores, state) do
+  def handle_info(:update_peer_scores, _state) do
     update_dvt_peer_scores(state)
     {:noreply, state}
   end
 
   @impl true
-  def handle_info(:optimize_mesh_topology, state) do
+  def handle_info(:optimize_mesh_topology, _state) do
     state = perform_mesh_optimization(state)
     {:noreply, state}
   end
 
   @impl true
-  def handle_info(:adapt_configuration, state) do
+  def handle_info(:adapt_configuration, _state) do
     state = adapt_configuration_dynamically(state)
     {:noreply, state}
   end
@@ -310,6 +339,7 @@ defmodule ExWire.DVT.GossipSubOptimizer do
     case Process.whereis(ExWire.LibP2P.GossipSub) do
       nil ->
         GossipSub.start_link([])
+
       pid when is_pid(pid) ->
         {:ok, pid}
     end
@@ -324,7 +354,7 @@ defmodule ExWire.DVT.GossipSubOptimizer do
       d_lazy: @dvt_gossip_lazy,
       heartbeat_interval: @dvt_heartbeat_interval,
       fanout_ttl: @dvt_fanout_ttl,
-      
+
       # DVT-specific peer scoring
       p1_weight: @dvt_p1_weight,
       p2_weight: @dvt_p2_weight,
@@ -339,7 +369,7 @@ defmodule ExWire.DVT.GossipSubOptimizer do
     try do
       apply(GossipSub, :update_parameters, [gossipsub_pid, dvt_params])
     catch
-      :error, :undef -> 
+      :error, :undef ->
         Logger.warning("GossipSub.update_parameters/2 not available, using default parameters")
         :ok
     end
@@ -386,20 +416,20 @@ defmodule ExWire.DVT.GossipSubOptimizer do
     end
   end
 
-  defp subscribe_with_dvt_optimization(gossipsub_pid, topic, config) do
+  defp subscribe_with_dvt_optimization(gossipsub_pid, topic, _config) do
     # Subscribe to topic with DVT-specific validation
-    validator = create_dvt_message_validator(config)
+    validator = create_dvt_message_validator(_config)
     GossipSub.subscribe(gossipsub_pid, topic, %{validator: validator})
   end
 
-  defp create_dvt_message_validator(config) do
+  defp create_dvt_message_validator(_config) do
     fn message_data ->
       case MessageAuth.verify_authenticated_message(message_data) do
         {:ok, :valid} ->
           # Additional DVT-specific validation
           validate_dvt_message_content(message_data, config)
-          
-        {:error, reason} ->
+
+        {:error, _reason} ->
           Logger.warning("DVT message validation failed: #{inspect(reason)}")
           :reject
       end
@@ -441,40 +471,40 @@ defmodule ExWire.DVT.GossipSubOptimizer do
     }
   end
 
-  defp queue_message_by_priority(message, topic, priority, state) do
+  defp queue_message_by_priority(message, topic, priority, _state) do
     current_queue = Map.get(state.priority_queues, priority, :queue.new())
     new_queue = :queue.in({topic, message}, current_queue)
     new_queues = Map.put(state.priority_queues, priority, new_queue)
-    
+
     %{state | priority_queues: new_queues}
   end
 
-  defp process_all_priority_queues(state) do
+  defp process_all_priority_queues(_state) do
     # Process queues in priority order
     priorities = [:critical, :high, :normal, :low]
-    
+
     Enum.reduce(priorities, state, fn priority, acc_state ->
       process_priority_queue(priority, acc_state)
     end)
   end
 
-  defp process_priority_queue(priority, state) do
+  defp process_priority_queue(priority, _state) do
     queue = Map.get(state.priority_queues, priority, :queue.new())
-    
+
     case :queue.out(queue) do
       {{:value, {topic, message}}, new_queue} ->
         if message_not_expired?(message) do
           # Publish message with DVT optimizations
           publish_result = publish_with_dvt_optimization(topic, message, state)
-          
+
           case publish_result do
             :ok ->
               # Update success metrics
               metrics = update_success_metrics(state.performance_metrics, priority)
               new_queues = Map.put(state.priority_queues, priority, new_queue)
-              %{state | priority_queues: new_queues, performance_metrics: metrics}
-              
-            {:error, reason} ->
+              %{_state | priority_queues: new_queues, performance_metrics: metrics}
+
+            {:error, _reason} ->
               # Retry if possible
               if message.retries < message.max_retries do
                 retry_message = %{message | retries: message.retries + 1}
@@ -488,6 +518,7 @@ defmodule ExWire.DVT.GossipSubOptimizer do
                   priority: priority,
                   reason: reason
                 })
+
                 new_queues = Map.put(state.priority_queues, priority, new_queue)
                 %{state | priority_queues: new_queues}
               end
@@ -497,7 +528,7 @@ defmodule ExWire.DVT.GossipSubOptimizer do
           new_queues = Map.put(state.priority_queues, priority, new_queue)
           process_priority_queue(priority, %{state | priority_queues: new_queues})
         end
-        
+
       {:empty, _queue} ->
         state
     end
@@ -507,25 +538,25 @@ defmodule ExWire.DVT.GossipSubOptimizer do
     DateTime.compare(DateTime.utc_now(), message.timeout_at) == :lt
   end
 
-  defp publish_with_dvt_optimization(topic, message, state) do
+  defp publish_with_dvt_optimization(topic, message, _state) do
     # Apply propagation factor optimization
     propagation_peers = select_optimal_propagation_peers(topic, message.propagation_factor, state)
-    
+
     # Use optimized GossipSub publication
     GossipSub.publish_to_peers(
-      state.gossipsub_pid, 
-      topic, 
+      state.gossipsub_pid,
+      topic,
       :erlang.term_to_binary(message.payload),
       propagation_peers
     )
   end
 
-  defp select_optimal_propagation_peers(topic, propagation_factor, state) do
+  defp select_optimal_propagation_peers(topic, propagation_factor, _state) do
     # Select peers based on latency and reliability scores
     topic_peers = get_topic_peers(topic, state)
-    
+
     target_count = trunc(length(topic_peers) * propagation_factor)
-    
+
     topic_peers
     |> Enum.map(fn peer_id ->
       latency_info = Map.get(state.latency_tracking, peer_id, %{reliability_score: 0.5})
@@ -542,7 +573,7 @@ defmodule ExWire.DVT.GossipSubOptimizer do
     []
   end
 
-  defp update_dvt_peer_scores(state) do
+  defp update_dvt_peer_scores(_state) do
     # Update peer scores based on DVT-specific metrics
     Enum.each(state.latency_tracking, fn {peer_id, metrics} ->
       dvt_score = calculate_dvt_peer_score(metrics)
@@ -552,9 +583,11 @@ defmodule ExWire.DVT.GossipSubOptimizer do
 
   defp calculate_dvt_peer_score(metrics) do
     # Score based on latency and reliability
-    latency_score = 1.0 / (1.0 + metrics.average_latency / 1000.0)  # Lower latency = higher score
-    reliability_weight = 2.0  # Reliability is very important for DVT
-    
+    # Lower latency = higher score
+    latency_score = 1.0 / (1.0 + metrics.average_latency / 1000.0)
+    # Reliability is very important for DVT
+    reliability_weight = 2.0
+
     (latency_score + reliability_weight * metrics.reliability_score) / (1.0 + reliability_weight)
   end
 
@@ -562,13 +595,13 @@ defmodule ExWire.DVT.GossipSubOptimizer do
     GossipSub.update_peer_score(gossipsub_pid, peer_id, score_type, score)
   end
 
-  defp optimize_topic_mesh(topic, state) do
+  defp optimize_topic_mesh(topic, _state) do
     # Analyze current mesh topology for topic
     current_mesh = get_current_mesh(topic, state)
-    
+
     # Calculate optimal mesh based on latency and reliability
     optimal_peers = select_optimal_mesh_peers(topic, state)
-    
+
     # Apply mesh changes if beneficial
     apply_mesh_optimization(topic, current_mesh, optimal_peers, state)
   end
@@ -578,11 +611,11 @@ defmodule ExWire.DVT.GossipSubOptimizer do
     []
   end
 
-  defp select_optimal_mesh_peers(topic, state) do
+  defp select_optimal_mesh_peers(topic, _state) do
     # Select peers based on combined latency and reliability metrics
     available_peers = get_topic_peers(topic, state)
     target_mesh_size = @dvt_mesh_degree
-    
+
     available_peers
     |> Enum.map(fn peer_id ->
       metrics = Map.get(state.latency_tracking, peer_id, default_metrics())
@@ -610,7 +643,7 @@ defmodule ExWire.DVT.GossipSubOptimizer do
     latency_factor = 1.0 / (1.0 + metrics.average_latency / 100.0)
     reliability_factor = metrics.reliability_score
     experience_factor = min(1.0, metrics.message_count / 1000.0)
-    
+
     0.4 * latency_factor + 0.5 * reliability_factor + 0.1 * experience_factor
   end
 
@@ -620,21 +653,21 @@ defmodule ExWire.DVT.GossipSubOptimizer do
     {:ok, :optimized}
   end
 
-  defp perform_mesh_optimization(state) do
+  defp perform_mesh_optimization(_state) do
     # Optimize mesh for all configured topics
     Enum.each(state.message_priorities, fn {topic, _config} ->
       optimize_topic_mesh(topic, state)
     end)
-    
+
     state
   end
 
-  defp adapt_configuration_dynamically(state) do
+  defp adapt_configuration_dynamically(_state) do
     # Analyze performance metrics and adapt configuration
     if state.adaptive_config.auto_mesh_optimization do
       # Adjust mesh parameters based on performance
       adapted_state = adapt_mesh_parameters(state)
-      
+
       # Adjust timeouts based on latency patterns
       if state.adaptive_config.adaptive_timeouts do
         adapt_message_timeouts(adapted_state)
@@ -646,30 +679,30 @@ defmodule ExWire.DVT.GossipSubOptimizer do
     end
   end
 
-  defp adapt_mesh_parameters(state) do
+  defp adapt_mesh_parameters(_state) do
     # Analyze mesh stability and adjust parameters
     avg_latency = calculate_average_latency(state)
-    
+
     cond do
       avg_latency > 200 ->
         # High latency - increase mesh size for redundancy
         new_config = Map.put(state.adaptive_config, :target_mesh_degree, @dvt_mesh_degree_high)
         %{state | adaptive_config: new_config}
-        
+
       avg_latency < 50 ->
         # Low latency - can use smaller mesh for efficiency  
         new_config = Map.put(state.adaptive_config, :target_mesh_degree, @dvt_mesh_degree_low)
         %{state | adaptive_config: new_config}
-        
+
       true ->
         state
     end
   end
 
-  defp adapt_message_timeouts(state) do
+  defp adapt_message_timeouts(_state) do
     # Adjust message timeouts based on observed latency patterns
     p99_latency = calculate_p99_latency(state)
-    
+
     if p99_latency > 0 do
       # Adjust timeouts to be 3x p99 latency with minimum thresholds
       adapted_timeouts = %{
@@ -678,7 +711,7 @@ defmodule ExWire.DVT.GossipSubOptimizer do
         normal: max(@normal_message_timeout, trunc(p99_latency * 4)),
         low: max(@low_message_timeout, trunc(p99_latency * 6))
       }
-      
+
       new_config = Map.put(state.adaptive_config, :adaptive_timeouts_config, adapted_timeouts)
       %{state | adaptive_config: new_config}
     else
@@ -686,26 +719,26 @@ defmodule ExWire.DVT.GossipSubOptimizer do
     end
   end
 
-  defp calculate_average_latency(state) do
+  defp calculate_average_latency(_state) do
     if map_size(state.latency_tracking) > 0 do
-      total_latency = 
+      total_latency =
         state.latency_tracking
         |> Enum.map(fn {_peer_id, metrics} -> metrics.average_latency end)
         |> Enum.sum()
-      
+
       total_latency / map_size(state.latency_tracking)
     else
       0
     end
   end
 
-  defp calculate_p99_latency(state) do
+  defp calculate_p99_latency(_state) do
     if map_size(state.latency_tracking) > 0 do
-      latencies = 
+      latencies =
         state.latency_tracking
         |> Enum.map(fn {_peer_id, metrics} -> metrics.p99_latency || metrics.average_latency end)
         |> Enum.sort()
-      
+
       p99_index = trunc(length(latencies) * 0.99)
       Enum.at(latencies, p99_index, 0)
     else
@@ -729,12 +762,13 @@ defmodule ExWire.DVT.GossipSubOptimizer do
     case priority do
       :critical ->
         %{metrics | total_messages_sent: metrics.total_messages_sent + 1}
+
       _ ->
         %{metrics | total_messages_sent: metrics.total_messages_sent + 1}
     end
   end
 
-  defp apply_adaptive_configuration(state) do
+  defp apply_adaptive_configuration(_state) do
     # Apply any configuration changes to GossipSub
     if state.adaptive_config.target_mesh_degree do
       configure_dvt_gossipsub_params(state.gossipsub_pid)
