@@ -394,11 +394,17 @@ defmodule VerkleTree.Witness do
   Serialize a witness to binary format for storage or transmission.
   """
   @spec serialize(t()) :: binary()
-  def serialize(%__MODULE__{proof: proof, keys: keys, values: values, path_commitments: commitments}) do
+  def serialize(%__MODULE__{
+        proof: proof,
+        keys: keys,
+        values: values,
+        path_commitments: commitments
+      }) do
     proof_binary = if proof == nil, do: <<0::32>>, else: <<byte_size(proof)::32, proof::binary>>
+
     proof_binary <>
-    encode_binary_list(keys) <>
-    encode_binary_list(values) <>
-    encode_binary_list(commitments)
+      encode_binary_list(keys) <>
+      encode_binary_list(values) <>
+      encode_binary_list(commitments)
   end
 end

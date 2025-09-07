@@ -154,7 +154,7 @@ defmodule VerkleTree.MemoryMappedStorage do
   def handle_call({:put, key, value}, _from, state) do
     case put_data(state, key, value) do
       {:ok, new_state} -> {:reply, :ok, new_state}
-      {:error, reason} -> {:reply, {:error, reason}, state}
+      {:error, _reason} -> {:reply, {:error, _reason}, state}
     end
   end
 
@@ -168,7 +168,7 @@ defmodule VerkleTree.MemoryMappedStorage do
   def handle_call({:batch_put, entries}, _from, state) do
     case batch_put_data(state, entries) do
       {:ok, new_state} -> {:reply, :ok, new_state}
-      {:error, reason} -> {:reply, {:error, reason}, state}
+      {:error, _reason} -> {:reply, {:error, _reason}, state}
     end
   end
 
@@ -182,7 +182,7 @@ defmodule VerkleTree.MemoryMappedStorage do
   def handle_call({:delete, key}, _from, state) do
     case delete_data(state, key) do
       {:ok, new_state} -> {:reply, :ok, new_state}
-      {:error, reason} -> {:reply, {:error, reason}, state}
+      {:error, _reason} -> {:reply, {:error, _reason}, state}
     end
   end
 
@@ -206,7 +206,7 @@ defmodule VerkleTree.MemoryMappedStorage do
 
     try do
       # Create segment file if it doesn't exist
-      unless File.exists?(segment_path) do
+      if !File.exists?(segment_path) do
         # Create file with initial header and padding to segment size
         header_data = <<0::size(@header_size * 8)>>
         padding_size = state.segment_size - @header_size
@@ -272,7 +272,7 @@ defmodule VerkleTree.MemoryMappedStorage do
   end
 
   @spec find_in_segments(t(), binary(), [segment_id()]) :: {:ok, binary()} | :not_found
-  defp find_in_segments(_state, _key, []), do: :not_found
+  defp find_in_segments(state, _key, []), do: :not_found
 
   defp find_in_segments(state, key, [segment_id | remaining]) do
     case read_from_segment(state, segment_id, key) do
@@ -476,7 +476,7 @@ defmodule VerkleTree.MemoryMappedStorage do
   defp parse_entries(_invalid_data, _target_key), do: :not_found
 
   @spec sync_all_segments(t()) :: :ok | {:error, term()}
-  defp sync_all_segments(_state) do
+  defp sync_all_segments(state) do
     # In production, would sync all memory-mapped regions
     :ok
   end

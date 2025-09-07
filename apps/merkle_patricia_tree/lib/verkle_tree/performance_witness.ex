@@ -239,13 +239,13 @@ defmodule VerkleTree.PerformanceWitness do
         results
         |> Enum.map(fn
           {:ok, chunk_witnesses} -> chunk_witnesses
-          {:error, reason} -> throw({:error, reason})
+          {:error, _reason} -> throw({:error, _reason})
         end)
         |> List.flatten()
 
       {:ok, witnesses}
     catch
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
