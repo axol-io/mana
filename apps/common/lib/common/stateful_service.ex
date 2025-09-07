@@ -23,14 +23,14 @@ defmodule Common.StatefulService do
         end
         
         @impl true
-        def handle_request({:create_session, user_id}, state) do
+        def handle_request({:create_session, user_id}, _state) do
           session_id = generate_session_id()
           new_state = put_in(state.sessions[session_id], %{user_id: user_id})
           {:ok, session_id, new_state}
         end
         
         @impl true
-        def handle_request({:get_session, session_id}, state) do
+        def handle_request({:get_session, session_id}, _state) do
           case Map.fetch(state.sessions, session_id) do
             {:ok, session} -> {:ok, session, state}
             :error -> {:error, :not_found, state}
@@ -134,16 +134,16 @@ defmodule Common.StatefulService do
         # Try to restore previous state
         initial_user_state =
           case restore_previous_state() do
-            {:ok, state} ->
+            {:ok, _state} ->
               Logger.info("#{__MODULE__} restored previous state")
               state
 
             _ ->
               case init_service(args) do
-                {:ok, state} ->
+                {:ok, _state} ->
                   state
 
-                {:error, reason} ->
+                {:error, _reason} ->
                   Logger.error("Failed to initialize service: #{inspect(reason)}")
                   raise "Service initialization failed: #{inspect(reason)}"
               end
@@ -168,7 +168,7 @@ defmodule Common.StatefulService do
       end
 
       @impl GenServer
-      def handle_call({:request, request}, from, state) do
+      def handle_call({:request, request}, from, _state) do
         if state.queue_size >= @max_queue_size do
           {:reply, {:error, :overloaded}, state}
         else
@@ -176,27 +176,27 @@ defmodule Common.StatefulService do
         end
       end
 
-      def handle_call(:health_check, _from, state) do
+      def handle_call(:health_check, _from, _state) do
         health = perform_health_check(state)
         {:reply, health, state}
       end
 
-      def handle_call(:get_metrics, _from, state) do
+      def handle_call(:get_metrics, _from, _state) do
         {:reply, state.metrics, state}
       end
 
-      def handle_call(:force_persist, _from, state) do
+      def handle_call(:force_persist, _from, _state) do
         case persist_current_state(state) do
           :ok ->
-            {:reply, :ok, %{state | last_persist: System.system_time(:second)}}
+            {:reply, :ok, %{_state | last_persist: System.system_time(:second)}}
 
-          {:error, reason} = error ->
+          {:error, _reason} = error ->
             {:reply, error, state}
         end
       end
 
       @impl GenServer
-      def handle_cast({:async_request, request}, state) do
+      def handle_cast({:async_request, request}, _state) do
         if state.queue_size >= @max_queue_size do
           Logger.warning("Dropping async request due to overload")
           {:noreply, state}
@@ -211,9 +211,9 @@ defmodule Common.StatefulService do
 
         case persist_current_state(state) do
           :ok ->
-            {:noreply, %{state | last_persist: System.system_time(:second)}}
+            {:noreply, %{_state | last_persist: System.system_time(:second)}}
 
-          {:error, reason} ->
+          {:error, _reason} ->
             Logger.error("Failed to persist state: #{inspect(reason)}")
             {:noreply, state}
         end
@@ -243,7 +243,7 @@ defmodule Common.StatefulService do
         {:noreply, %{state | metrics: new_metrics}}
       end
 
-      def handle_info({ref, result}, state) when is_reference(ref) do
+      def handle_info({ref, result}, _state) when is_reference(ref) do
         # Handle async task results
         case Map.pop(state.pending_requests, ref) do
           {nil, _} ->
@@ -256,7 +256,7 @@ defmodule Common.StatefulService do
         end
       end
 
-      def handle_info({:DOWN, ref, :process, _pid, _reason}, state) do
+      def handle_info({:DOWN, ref, :process, _pid, _reason}, _state) do
         # Handle failed async tasks
         case Map.pop(state.pending_requests, ref) do
           {nil, _} ->
@@ -270,7 +270,7 @@ defmodule Common.StatefulService do
       end
 
       @impl GenServer
-      def terminate(reason, _state) do
+      def terminate(_reason, _state) do
         Logger.info("#{__MODULE__} terminating", reason: reason)
 
         # Final persist attempt
@@ -286,7 +286,7 @@ defmodule Common.StatefulService do
 
       # Private Functions
 
-      defp handle_service_request(request, from, state) do
+      defp handle_service_request(request, from, _state) do
         start_time = System.monotonic_time()
 
         case handle_request(request, state.user_state) do
@@ -298,7 +298,7 @@ defmodule Common.StatefulService do
           {:error, reason, new_user_state} ->
             record_request_metrics(start_time, :error, state)
             new_state = %{state | user_state: new_user_state}
-            {:reply, {:error, reason}, new_state}
+            {:reply, {:error, _reason}, new_state}
 
           {:async, task_fun, new_user_state} ->
             # Spawn async task
@@ -315,7 +315,7 @@ defmodule Common.StatefulService do
         end
       end
 
-      defp handle_async_service_request(request, state) do
+      defp handle_async_service_request(request, _state) do
         case handle_request(request, state.user_state) do
           {:ok, _response, new_user_state} ->
             {:noreply, %{state | user_state: new_user_state}}
@@ -329,7 +329,7 @@ defmodule Common.StatefulService do
         end
       end
 
-      defp persist_current_state(state) do
+      defp persist_current_state(_state) do
         if function_exported?(__MODULE__, :persist_state, 1) do
           case persist_state(state.user_state) do
             {:ok, data} ->
@@ -357,7 +357,7 @@ defmodule Common.StatefulService do
         end
       end
 
-      defp perform_health_check(state) do
+      defp perform_health_check(_state) do
         if function_exported?(__MODULE__, :health_check, 1) do
           health_check(state.user_state)
         else
@@ -411,14 +411,14 @@ defmodule Common.StatefulService do
         }
       end
 
-      defp update_metrics(state) do
+      defp update_metrics(_state) do
         Map.merge(state.metrics, %{
           queue_size: state.queue_size,
           status: state.status
         })
       end
 
-      defp record_request_metrics(start_time, result, state) do
+      defp record_request_metrics(start_time, result, _state) do
         latency = System.monotonic_time() - start_time
 
         :telemetry.execute(

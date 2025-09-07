@@ -128,11 +128,11 @@ defmodule ExWire.Enterprise.DisasterRecovery do
     schedule_backup_check()
     schedule_health_check()
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:backup_now, opts}, _from, state) do
+  def handle_call({:backup_now, opts}, _from, _state) do
     Logger.info("Starting immediate backup procedure")
 
     case perform_backup(state, opts) do
@@ -147,7 +147,7 @@ defmodule ExWire.Enterprise.DisasterRecovery do
 
         {:reply, {:ok, manifest}, state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Backup failed: #{inspect(reason)}")
 
         AuditLogger.log(:disaster_recovery_backup_failed, %{
@@ -155,17 +155,17 @@ defmodule ExWire.Enterprise.DisasterRecovery do
           timestamp: DateTime.utc_now()
         })
 
-        {:reply, {:error, reason}, state}
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:restore_from_backup, manifest, opts}, _from, state) do
+  def handle_call({:restore_from_backup, manifest, opts}, _from, _state) do
     Logger.info("Starting restore from backup: #{manifest.timestamp}")
 
     case perform_restore(manifest, opts, state) do
       :ok ->
-        state = %{state | recovery_status: :healthy}
+        state = %{_state | recovery_status: :healthy}
 
         AuditLogger.log(:disaster_recovery_restore_completed, %{
           backup_timestamp: manifest.timestamp,
@@ -174,7 +174,7 @@ defmodule ExWire.Enterprise.DisasterRecovery do
 
         {:reply, :ok, state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         state = %{state | recovery_status: :failed}
 
         Logger.error("Restore failed: #{inspect(reason)}")
@@ -184,17 +184,17 @@ defmodule ExWire.Enterprise.DisasterRecovery do
           reason: inspect(reason)
         })
 
-        {:reply, {:error, reason}, state}
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:initiate_failover, target_site, opts}, _from, state) do
+  def handle_call({:initiate_failover, target_site, opts}, _from, _state) do
     Logger.warning("Initiating failover to site: #{target_site}")
 
     case perform_failover(target_site, opts, state) do
       :ok ->
-        state = %{state | recovery_status: :recovering}
+        state = %{_state | recovery_status: :recovering}
 
         AuditLogger.log(:disaster_recovery_failover_initiated, %{
           target_site: target_site,
@@ -203,14 +203,14 @@ defmodule ExWire.Enterprise.DisasterRecovery do
 
         {:reply, :ok, state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Failover failed: #{inspect(reason)}")
-        {:reply, {:error, reason}, state}
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:test_recovery, opts}, _from, state) do
+  def handle_call({:test_recovery, opts}, _from, _state) do
     Logger.info("Starting recovery test procedure")
 
     case perform_recovery_test(opts, state) do
@@ -218,14 +218,14 @@ defmodule ExWire.Enterprise.DisasterRecovery do
         AuditLogger.log(:disaster_recovery_test_completed, results)
         {:reply, {:ok, results}, state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Recovery test failed: #{inspect(reason)}")
-        {:reply, {:error, reason}, state}
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call(:get_status, _from, state) do
+  def handle_call(:get_status, _from, _state) do
     status = %{
       recovery_status: state.recovery_status,
       last_backup: state.last_backup,
@@ -239,21 +239,21 @@ defmodule ExWire.Enterprise.DisasterRecovery do
   end
 
   @impl true
-  def handle_call(:verify_backups, _from, state) do
+  def handle_call(:verify_backups, _from, _state) do
     Logger.info("Verifying backup integrity across all locations")
 
     case verify_all_backups(state) do
       {:ok, verification_results} ->
         {:reply, {:ok, verification_results}, state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Backup verification failed: #{inspect(reason)}")
-        {:reply, {:error, reason}, state}
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:update_config, new_config}, _from, state) do
+  def handle_call({:update_config, new_config}, _from, _state) do
     try do
       state = %{
         state
@@ -273,27 +273,28 @@ defmodule ExWire.Enterprise.DisasterRecovery do
   end
 
   @impl true
-  def handle_info(:backup_check, state) do
-    updated_state = if should_perform_scheduled_backup?(state) do
-      case perform_backup(state, []) do
-        {:ok, manifest} ->
-          Logger.info("Scheduled backup completed successfully")
-          %{state | last_backup: manifest}
+  def handle_info(:backup_check, _state) do
+    updated_state =
+      if should_perform_scheduled_backup?(state) do
+        case perform_backup(state, []) do
+          {:ok, manifest} ->
+            Logger.info("Scheduled backup completed successfully")
+            %{state | last_backup: manifest}
 
-        {:error, reason} ->
-          Logger.error("Scheduled backup failed: #{inspect(reason)}")
-          state
+          {:error, _reason} ->
+            Logger.error("Scheduled backup failed: #{inspect(reason)}")
+            state
+        end
+      else
+        state
       end
-    else
-      state
-    end
 
     schedule_backup_check()
     {:noreply, updated_state}
   end
 
   @impl true
-  def handle_info(:health_check, state) do
+  def handle_info(:health_check, _state) do
     health_results = perform_health_checks(state)
     state = %{state | health_checks: health_results}
 
@@ -307,7 +308,7 @@ defmodule ExWire.Enterprise.DisasterRecovery do
 
   # Private Functions
 
-  defp perform_backup(state, opts) do
+  defp perform_backup(_state, opts) do
     try do
       # 1. Get all HSM keys and configuration
       {:ok, keys_data} = export_hsm_keys()
@@ -359,7 +360,7 @@ defmodule ExWire.Enterprise.DisasterRecovery do
     end
   end
 
-  defp perform_restore(manifest, opts, state) do
+  defp perform_restore(manifest, opts, _state) do
     try do
       # 1. Download backup from primary location
       case download_backup_from_location(manifest, state.backup_locations) do
@@ -370,7 +371,7 @@ defmodule ExWire.Enterprise.DisasterRecovery do
             backup_data = decrypt_backup_data(encrypted_backup, state.encryption_keys)
 
             # 4. Restore HSM keys (if not dry run)
-            unless Keyword.get(opts, :dry_run, false) do
+            if !Keyword.get(opts, :dry_run, false) do
               :ok = restore_hsm_keys(backup_data.keys)
               :ok = restore_hsm_configuration(backup_data.configuration)
             end
@@ -381,7 +382,7 @@ defmodule ExWire.Enterprise.DisasterRecovery do
             {:error, :checksum_mismatch}
           end
 
-        {:error, reason} ->
+        {:error, _reason} ->
           {:error, {:download_failed, reason}}
       end
     rescue
@@ -390,7 +391,7 @@ defmodule ExWire.Enterprise.DisasterRecovery do
     end
   end
 
-  defp perform_failover(target_site, opts, state) do
+  defp perform_failover(target_site, opts, _state) do
     try do
       # 1. Verify target site is available
       case verify_target_site(target_site, state.failover_config) do
@@ -402,20 +403,20 @@ defmodule ExWire.Enterprise.DisasterRecovery do
               case perform_restore(manifest, opts, state) do
                 :ok ->
                   # 4. Update DNS/load balancer if configured
-                  update_failover_routing(target_site, state.failover_config)
+                  update_failover_routing(target_site, _state.failover_config)
 
                   Logger.info("Failover to #{target_site} completed")
                   :ok
 
-                {:error, reason} ->
+                {:error, _reason} ->
                   {:error, {:restore_failed, reason}}
               end
 
-            {:error, reason} ->
+            {:error, _reason} ->
               {:error, {:no_backup_manifest, reason}}
           end
 
-        {:error, reason} ->
+        {:error, _reason} ->
           {:error, {:target_site_unavailable, reason}}
       end
     rescue
@@ -424,7 +425,7 @@ defmodule ExWire.Enterprise.DisasterRecovery do
     end
   end
 
-  defp perform_recovery_test(opts, state) do
+  defp perform_recovery_test(opts, _state) do
     Logger.info("Starting recovery test in isolated environment")
 
     test_results = %{
@@ -445,14 +446,14 @@ defmodule ExWire.Enterprise.DisasterRecovery do
     {:ok, Map.put(test_results, :overall_status, overall_status)}
   end
 
-  defp verify_all_backups(state) do
+  defp verify_all_backups(_state) do
     results =
       Enum.map(state.backup_locations, fn location ->
         case verify_backup_at_location(location) do
           {:ok, verification} ->
             {location.type, %{status: :verified, details: verification}}
 
-          {:error, reason} ->
+          {:error, _reason} ->
             {location.type, %{status: :failed, reason: reason}}
         end
       end)
@@ -486,7 +487,7 @@ defmodule ExWire.Enterprise.DisasterRecovery do
       }
     }
 
-    {:ok, config}
+    {:ok, _config}
   end
 
   defp encrypt_backup_data(data, encryption_keys) do
@@ -533,7 +534,7 @@ defmodule ExWire.Enterprise.DisasterRecovery do
     Enum.map(locations, fn location ->
       case store_backup_to_location(encrypted_backup, location) do
         :ok -> {location, :ok}
-        {:error, reason} -> {location, {:error, reason}}
+        {:error, _reason} -> {location, {:error, _reason}}
       end
     end)
   end
@@ -550,7 +551,7 @@ defmodule ExWire.Enterprise.DisasterRecovery do
 
       :s3 ->
         # In production, use AWS SDK
-        Logger.info("Storing backup to S3: #{location.config.bucket}/#{backup_filename}")
+        Logger.info("Storing backup to S3: #{location._config.bucket}/#{backup_filename}")
         :ok
 
       :azure_blob ->

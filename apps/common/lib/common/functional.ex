@@ -133,7 +133,7 @@ defmodule Common.Functional do
     cache_name = Keyword.get(opts, :cache_name, :memoize_cache)
     ttl = Keyword.get(opts, :ttl, :infinity)
 
-    unless :ets.whereis(cache_name) do
+    if !:ets.whereis(cache_name) do
       :ets.new(cache_name, [:set, :public, :named_table])
     end
 
@@ -296,7 +296,7 @@ defmodule Common.Functional do
 
   @doc """
   Creates a pipeline of transformations with error handling.
-  Each function should return {:ok, value} or {:error, reason}.
+  Each function should return {:ok, value} or {:error, _reason}.
   """
   defmacro pipeline(initial, do: block) do
     steps = extract_pipeline_steps(block)

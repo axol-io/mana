@@ -137,7 +137,7 @@ defmodule ExWire.Enterprise.DisasterRecoveryValidator do
     }
   end
 
-  defp transform_validation_result({:error, reason}, test_name, start_time) do
+  defp transform_validation_result({:error, _reason}, test_name, start_time) do
     %{
       test_name: test_name,
       status: :failed,
@@ -170,7 +170,7 @@ defmodule ExWire.Enterprise.DisasterRecoveryValidator do
             |> verify_backup_completeness()
             |> check_backup_metadata()
 
-          {:error, reason} ->
+          {:error, _reason} ->
             {:error, "Backup creation failed: #{inspect(reason)}"}
         end
       end)
@@ -187,7 +187,7 @@ defmodule ExWire.Enterprise.DisasterRecoveryValidator do
             |> verify_location_consistency()
             |> check_encryption_integrity()
 
-          {:error, reason} ->
+          {:error, _reason} ->
             {:error, "Backup verification failed: #{inspect(reason)}"}
         end
       end)
@@ -231,7 +231,7 @@ defmodule ExWire.Enterprise.DisasterRecoveryValidator do
             |> verify_restored_functionality()
             |> validate_restore_time_requirements()
 
-          {:error, reason} ->
+          {:error, _reason} ->
             {:error, "Test backup creation failed: #{inspect(reason)}"}
         end
       end)
@@ -342,7 +342,7 @@ defmodule ExWire.Enterprise.DisasterRecoveryValidator do
       {:ok, Map.put(manifest, :completeness_verified, true)}
     else
       false -> {:error, "Backup appears incomplete"}
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -459,7 +459,7 @@ defmodule ExWire.Enterprise.DisasterRecoveryValidator do
   defp create_single_test_key(%{type: type, id: id, size: size}) do
     case HSMIntegration.generate_key(type, id, key_size: size) do
       {:ok, key_info} -> {:ok, {id, key_info}}
-      {:error, reason} -> {:error, {id, reason}}
+      {:error, _reason} -> {:error, {id, reason}}
     end
   end
 
@@ -483,7 +483,7 @@ defmodule ExWire.Enterprise.DisasterRecoveryValidator do
       {:ok, manifest} ->
         {:ok, Map.put(test_data, :backup_manifest, manifest)}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         {:error, "Backup creation failed: #{inspect(reason)}"}
     end
   end
@@ -495,7 +495,7 @@ defmodule ExWire.Enterprise.DisasterRecoveryValidator do
       {:ok, verification} ->
         {:ok, Map.put(test_data, :backup_verification, verification)}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         {:error, "Backup verification failed: #{inspect(reason)}"}
     end
   end
@@ -509,7 +509,7 @@ defmodule ExWire.Enterprise.DisasterRecoveryValidator do
       :ok ->
         {:ok, Map.put(test_data, :restore_completed, true)}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         {:error, "Restore failed: #{inspect(reason)}"}
     end
   end
@@ -566,8 +566,8 @@ defmodule ExWire.Enterprise.DisasterRecoveryValidator do
         duration = System.monotonic_time(:millisecond) - start_time
         {:ok, %{backup_time_ms: duration}}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -581,11 +581,11 @@ defmodule ExWire.Enterprise.DisasterRecoveryValidator do
           duration = System.monotonic_time(:millisecond) - start_time
           {:ok, %{restore_time_ms: duration}}
 
-        {:error, reason} ->
-          {:error, reason}
+        {:error, _reason} ->
+          {:error, _reason}
       end
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -597,8 +597,8 @@ defmodule ExWire.Enterprise.DisasterRecoveryValidator do
         duration = System.monotonic_time(:millisecond) - start_time
         {:ok, %{failover_time_ms: duration}}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -776,7 +776,7 @@ defmodule ExWire.Enterprise.DisasterRecoveryValidator do
   defp perform_full_restore_test({:ok, manifest}) do
     case DisasterRecovery.restore_from_backup(manifest, dry_run: false) do
       :ok -> {:ok, %{restore_successful: true, manifest: manifest}}
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -838,12 +838,12 @@ defmodule ExWire.Enterprise.DisasterRecoveryValidator do
     %{keys: [], config: %{}, timestamp: DateTime.utc_now()}
   end
 
-  defp create_backup_from_state(state) do
-    {:ok, state}
+  defp create_backup_from_state(_state) do
+    {:ok, _state}
   end
 
-  defp restore_to_clean_environment({:ok, state}) do
-    {:ok, state}
+  defp restore_to_clean_environment({:ok, _state}) do
+    {:ok, _state}
   end
 
   defp compare_restored_state({:ok, restored_state}, _original_state) do

@@ -191,7 +191,7 @@ defmodule ExWire.Enterprise.HSMPerformanceBenchmark do
 
   # Benchmark Implementation Functions
 
-  defp benchmark_key_generation_performance(provider, config) do
+  defp benchmark_key_generation_performance(provider, _config) do
     key_types = [:ecdsa, :rsa]
     samples = config.samples_per_test
 
@@ -229,7 +229,7 @@ defmodule ExWire.Enterprise.HSMPerformanceBenchmark do
     }
   end
 
-  defp benchmark_signing_performance(provider, config) do
+  defp benchmark_signing_performance(provider, _config) do
     algorithms = [:ecdsa_sha256, :rsa_pss_sha256]
     samples = config.samples_per_test
 
@@ -275,13 +275,13 @@ defmodule ExWire.Enterprise.HSMPerformanceBenchmark do
           timestamp: DateTime.utc_now()
         }
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Failed to create test key for signing benchmark: #{inspect(reason)}")
         create_error_benchmark("#{algorithm} Signing", reason)
     end
   end
 
-  defp benchmark_verification_performance(_provider, config) do
+  defp benchmark_verification_performance(_provider, _config) do
     samples = config.samples_per_test
 
     # Create test key and signature for verification
@@ -317,12 +317,12 @@ defmodule ExWire.Enterprise.HSMPerformanceBenchmark do
           timestamp: DateTime.utc_now()
         }
 
-      {:error, reason} ->
+      {:error, _reason} ->
         create_error_benchmark("Signature Verification", reason)
     end
   end
 
-  defp benchmark_key_management_performance(_provider, config) do
+  defp benchmark_key_management_performance(_provider, _config) do
     samples = config.samples_per_test
 
     key_management_operations = [
@@ -384,7 +384,7 @@ defmodule ExWire.Enterprise.HSMPerformanceBenchmark do
     }
   end
 
-  defp benchmark_sustained_load(provider, config) do
+  defp benchmark_sustained_load(provider, _config) do
     # 5 minutes
     duration_seconds = config.sustained_load_duration || 300
     target_rate = config.target_operations_per_second || 10
@@ -416,7 +416,7 @@ defmodule ExWire.Enterprise.HSMPerformanceBenchmark do
     }
   end
 
-  defp benchmark_memory_efficiency(provider, config) do
+  defp benchmark_memory_efficiency(provider, _config) do
     operation_counts = [100, 500, 1000, 2000]
 
     operation_counts
@@ -425,7 +425,7 @@ defmodule ExWire.Enterprise.HSMPerformanceBenchmark do
     end)
   end
 
-  defp benchmark_latency_distribution(provider, config) do
+  defp benchmark_latency_distribution(provider, _config) do
     samples = config.samples_for_latency || 1000
 
     # Measure latency distribution under different load conditions
@@ -487,7 +487,7 @@ defmodule ExWire.Enterprise.HSMPerformanceBenchmark do
          {:ok, signature} <- HSMIntegration.sign(test_key_id, test_data, :ecdsa_sha256) do
       {:ok, signature}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -880,7 +880,7 @@ defmodule ExWire.Enterprise.HSMPerformanceBenchmark do
     "Generic signing benchmark test data #{:rand.uniform(10000)}"
   end
 
-  defp create_error_benchmark(test_name, reason) do
+  defp create_error_benchmark(test_name, _reason) do
     %{
       test_name: test_name,
       operation: :error,
@@ -905,8 +905,8 @@ defmodule ExWire.Enterprise.HSMPerformanceBenchmark do
         HSMIntegration.delete_key(key_id)
         {:ok, key_info}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -920,7 +920,7 @@ defmodule ExWire.Enterprise.HSMPerformanceBenchmark do
       HSMIntegration.delete_key(key_id)
       {:ok, signature}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -934,7 +934,7 @@ defmodule ExWire.Enterprise.HSMPerformanceBenchmark do
       HSMIntegration.delete_key(key_id)
       {:ok, signature}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -949,7 +949,7 @@ defmodule ExWire.Enterprise.HSMPerformanceBenchmark do
       HSMIntegration.delete_key(key_id)
       {:ok, valid}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -960,7 +960,7 @@ defmodule ExWire.Enterprise.HSMPerformanceBenchmark do
          :ok <- HSMIntegration.delete_key(key_id) do
       {:ok, :deleted}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -970,7 +970,7 @@ defmodule ExWire.Enterprise.HSMPerformanceBenchmark do
     with {:ok, session_id} <- HSMIntegration.connect(provider, config) do
       {:ok, session_id}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -1062,7 +1062,7 @@ defmodule ExWire.Enterprise.HSMPerformanceBenchmark do
   end
 
   # Resource profiling functions
-  
+
   defp setup_resource_profiler(operation) do
     %{
       operation: operation,
@@ -1073,19 +1073,19 @@ defmodule ExWire.Enterprise.HSMPerformanceBenchmark do
 
   defp execute_profiled_operations(profiler, provider, duration_seconds) do
     # Execute operations for the specified duration
-    end_time = System.monotonic_time(:microsecond) + (duration_seconds * 1_000_000)
+    end_time = System.monotonic_time(:microsecond) + duration_seconds * 1_000_000
     operations = execute_operations_until(provider, profiler.operation, end_time, [])
-    
+
     Map.put(profiler, :operations, operations)
   end
 
   defp calculate_resource_metrics(profiler) do
     end_time = System.monotonic_time(:microsecond)
     final_memory = :erlang.memory(:total)
-    
+
     duration_ms = (end_time - profiler.start_time) / 1000
     memory_used_mb = (final_memory - profiler.initial_memory) / 1_024 / 1_024
-    
+
     %{
       operation: profiler.operation,
       duration_ms: duration_ms,
@@ -1101,17 +1101,18 @@ defmodule ExWire.Enterprise.HSMPerformanceBenchmark do
     else
       # Simulate operation execution
       start_op = System.monotonic_time(:microsecond)
-      
+
       # Placeholder operation execution
       :timer.sleep(1)
-      
+
       end_op = System.monotonic_time(:microsecond)
+
       operation_result = %{
         operation: operation,
         duration_us: end_op - start_op,
         success: true
       }
-      
+
       execute_operations_until(provider, operation, end_time, [operation_result | acc])
     end
   end

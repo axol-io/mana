@@ -119,11 +119,11 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
       test_start_time: nil
     }
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:run_full_test_suite, opts}, _from, state) do
+  def handle_call({:run_full_test_suite, opts}, _from, _state) do
     Logger.info("Starting full HSM integration test suite")
 
     start_time = System.monotonic_time(:millisecond)
@@ -183,35 +183,35 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
   end
 
   @impl true
-  def handle_call({:test_provider, provider, opts}, _from, state) do
+  def handle_call({:test_provider, provider, opts}, _from, _state) do
     Logger.info("Testing HSM provider: #{provider}")
 
     case run_provider_specific_tests(provider, state, opts) do
       {:ok, results} ->
         {:reply, {:ok, results}, state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Provider test failed: #{inspect(reason)}")
-        {:reply, {:error, reason}, state}
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:validate_disaster_recovery, opts}, _from, state) do
+  def handle_call({:validate_disaster_recovery, opts}, _from, _state) do
     Logger.info("Validating disaster recovery procedures")
 
     case run_disaster_recovery_validation(state, opts) do
       {:ok, result} ->
         {:reply, {:ok, result}, state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Disaster recovery validation failed: #{inspect(reason)}")
-        {:reply, {:error, reason}, state}
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:benchmark_performance, opts}, _from, state) do
+  def handle_call({:benchmark_performance, opts}, _from, _state) do
     Logger.info("Running HSM performance benchmarks")
 
     case run_comprehensive_benchmarks(state, opts) do
@@ -219,14 +219,14 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
         state = %{state | benchmark_data: benchmark_results}
         {:reply, {:ok, benchmark_results}, state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Performance benchmarks failed: #{inspect(reason)}")
-        {:reply, {:error, reason}, state}
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:audit_security, opts}, _from, state) do
+  def handle_call({:audit_security, opts}, _from, _state) do
     Logger.info("Running HSM security audit")
 
     case run_security_audit(state, opts) do
@@ -234,14 +234,14 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
         state = %{state | security_findings: audit_results.findings}
         {:reply, {:ok, audit_results}, state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Security audit failed: #{inspect(reason)}")
-        {:reply, {:error, reason}, state}
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call(:get_test_status, _from, state) do
+  def handle_call(:get_test_status, _from, _state) do
     status = %{
       current_test: state.current_test,
       test_start_time: state.test_start_time,
@@ -256,7 +256,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
 
   # Test Implementation Functions
 
-  defp run_connectivity_tests(state, _opts) do
+  defp run_connectivity_tests(_state, _opts) do
     Logger.info("Running connectivity tests")
 
     tests = [
@@ -269,21 +269,21 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
     tests
   end
 
-  defp run_provider_tests(state, opts) do
+  defp run_provider_tests(_state, opts) do
     Logger.info("Running provider-specific tests")
 
     Enum.flat_map(state.hsm_providers, fn provider ->
       skip_list = Keyword.get(opts, :skip_providers, [])
-      if provider in skip_list do
-          [create_skipped_test("Provider #{provider} Tests", "Skipped by configuration")]
 
+      if provider in skip_list do
+        [create_skipped_test("Provider #{provider} Tests", "Skipped by configuration")]
       else
-          run_provider_specific_tests(provider, state, opts)
+        run_provider_specific_tests(provider, state, opts)
       end
     end)
   end
 
-  defp run_provider_specific_tests(provider, state, _opts) do
+  defp run_provider_specific_tests(provider, _state, _opts) do
     case provider do
       :aws_cloudhsm ->
         [
@@ -310,7 +310,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
       :softhsm ->
         [
           run_test("SoftHSM Initialization", fn -> test_softhsm_initialization(state) end),
-          run_test("SoftHSM Key Generation", fn -> test_softhsm_key_generation(state) end)
+          run_test("SoftHSM Key Generation", fn -> test_softhsm_key_generation(_state) end)
         ]
 
       _ ->
@@ -321,7 +321,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
       [create_error_test("Provider #{provider} Tests", exception)]
   end
 
-  defp run_cryptographic_tests(state, _opts) do
+  defp run_cryptographic_tests(_state, _opts) do
     Logger.info("Running cryptographic operation tests")
 
     [
@@ -335,7 +335,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
     ]
   end
 
-  defp run_performance_benchmarks(state, _opts) do
+  defp run_performance_benchmarks(_state, _opts) do
     Logger.info("Running performance benchmarks")
 
     [
@@ -346,7 +346,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
     ]
   end
 
-  defp run_security_validation(state, _opts) do
+  defp run_security_validation(_state, _opts) do
     Logger.info("Running security validation tests")
 
     [
@@ -358,7 +358,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
     ]
   end
 
-  defp run_disaster_recovery_tests(state, _opts) do
+  defp run_disaster_recovery_tests(_state, _opts) do
     Logger.info("Running disaster recovery tests")
 
     [
@@ -383,7 +383,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
   defp interpret_health_result({:ok, %{status: status}}),
     do: {:error, "HSM service status: #{status}"}
 
-  defp interpret_health_result({:error, reason}),
+  defp interpret_health_result({:error, _reason}),
     do: {:error, "HSM service unavailable: #{inspect(reason)}"}
 
   defp test_network_connectivity(_state) do
@@ -411,7 +411,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
     {name, :ok}
   end
 
-  defp handle_connection_result({:error, reason}, name), do: {name, {:error, reason}}
+  defp handle_connection_result({:error, _reason}, name), do: {name, {:error, _reason}}
 
   defp evaluate_connectivity_results(results) do
     results
@@ -425,7 +425,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
     end
   end
 
-  defp test_hsm_authentication(state) do
+  defp test_hsm_authentication(_state) do
     state.hsm_providers
     |> Enum.map(&test_provider_authentication/1)
     |> aggregate_authentication_results()
@@ -440,17 +440,17 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
     {:ok, Map.put(acc, provider, result)}
   end
 
-  defp combine_auth_result({:error, reason}, _acc) do
-    {:error, reason}
+  defp combine_auth_result({:error, _reason}, _acc) do
+    {:error, _reason}
   end
 
-  defp combine_auth_result(_result, {:error, reason}) do
-    {:error, reason}
+  defp combine_auth_result(_result, {:error, _reason}) do
+    {:error, _reason}
   end
 
   defp test_provider_authentication(provider) do
     config = get_test_config_for_provider(provider)
-    
+
     case HSMIntegration.connect(provider, config) do
       result -> transform_auth_result(result, provider)
     end
@@ -460,7 +460,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
     {:ok, {provider, %{session_id: session_id, authenticated: true}}}
   end
 
-  defp transform_auth_result({:error, reason}, provider) do
+  defp transform_auth_result({:error, _reason}, provider) do
     {:error, "#{provider} authentication failed: #{inspect(reason)}"}
   end
 
@@ -479,7 +479,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
          health_check_passed: true
        }}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -490,20 +490,20 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
     |> attempt_aws_connection()
   end
 
-  defp validate_aws_config(config) do
+  defp validate_aws_config(_config) do
     required_fields = [:cluster_id, :user, :password, :region]
 
     required_fields
     |> Enum.all?(&Map.has_key?(config, &1))
     |> if do
-      {:ok, config}
+      {:ok, _config}
     else
       missing = Enum.filter(required_fields, &(not Map.has_key?(config, &1)))
       {:error, "Missing AWS CloudHSM configuration: #{inspect(missing)}"}
     end
   end
 
-  defp attempt_aws_connection({:ok, config}) do
+  defp attempt_aws_connection({:ok, _config}) do
     start_time = System.monotonic_time(:millisecond)
 
     case HSMIntegration.connect(:aws_cloudhsm, config) do
@@ -519,12 +519,12 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
            status: "connected"
          }}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
-  defp attempt_aws_connection({:error, reason}), do: {:error, reason}
+  defp attempt_aws_connection({:error, _reason}), do: {:error, _reason}
 
   defp test_aws_key_generation(_state) do
     key_id = "aws-integration-test-#{:rand.uniform(10000)}"
@@ -543,7 +543,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
       generation_time = System.monotonic_time(:millisecond) - start_time
       {:ok, key_info, generation_time}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -557,7 +557,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
      }}
   end
 
-  defp transform_key_generation_result({:error, reason}), do: {:error, reason}
+  defp transform_key_generation_result({:error, _reason}), do: {:error, _reason}
 
   defp test_aws_signing(_state) do
     # Simulate AWS CloudHSM signing test
@@ -677,8 +677,8 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
            generation_time_ms: 150
          }}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -695,8 +695,8 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
            key_usage: key_info.key_usage
          }}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -712,8 +712,8 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
            key_size: 2048
          }}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -731,7 +731,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
          algorithm: :ecdsa_sha256
        }}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -749,7 +749,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
          algorithm: :rsa_pss_sha256
        }}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -766,7 +766,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
         {:error, "Signature verification failed"}
       end
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -782,7 +782,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
          rotation_successful: true
        }}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -860,8 +860,8 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
     |> calculate_benchmark_statistics(num_operations)
   end
 
-  defp execute_signing_benchmark({:error, reason}, _key_id, _test_data, _num_operations) do
-    {:error, reason}
+  defp execute_signing_benchmark({:error, _reason}, _key_id, _test_data, _num_operations) do
+    {:error, _reason}
   end
 
   defp measure_signing_operation(key_id, test_data) do
@@ -945,8 +945,8 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
            key_id: key_id
          }}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -984,8 +984,8 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
           {:error, "Key extraction protection not properly set"}
         end
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -1016,8 +1016,8 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
            user_identity_logged: true
          }}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -1049,7 +1049,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
          lifecycle_complete: true
        }}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -1067,8 +1067,8 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
            timestamp: manifest.timestamp
          }}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -1090,8 +1090,8 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
           {:error, "Some backups failed integrity check"}
         end
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -1108,8 +1108,8 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
           {:error, "Recovery simulation failed"}
         end
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -1124,8 +1124,8 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
            failover_time_estimate_ms: 15000
          }}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -1142,7 +1142,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
 
   # Additional validation functions
 
-  defp run_disaster_recovery_validation(state, opts) do
+  defp run_disaster_recovery_validation(_state, opts) do
     Logger.info("Running comprehensive disaster recovery validation")
 
     validation_tests = [
@@ -1178,7 +1178,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
     end
   end
 
-  defp run_comprehensive_benchmarks(state, _opts) do
+  defp run_comprehensive_benchmarks(_state, _opts) do
     Logger.info("Running comprehensive HSM performance benchmarks")
 
     benchmark_suite = %{
@@ -1193,14 +1193,14 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
       Enum.reduce(benchmark_suite, %{}, fn {test_name, result}, acc ->
         case result do
           {:ok, data} -> Map.put(acc, test_name, data)
-          {:error, reason} -> Map.put(acc, test_name, %{error: reason})
+          {:error, _reason} -> Map.put(acc, test_name, %{error: reason})
         end
       end)
 
     {:ok, processed_results}
   end
 
-  defp run_security_audit(state, _opts) do
+  defp run_security_audit(_state, _opts) do
     Logger.info("Running HSM security audit")
 
     security_checks = [
@@ -1225,7 +1225,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
           {:ok, result} ->
             {find_acc, [%{check: check_name, result: result} | pass_acc], fail_acc}
 
-          {:error, reason} ->
+          {:error, _reason} ->
             finding = %{
               check: check_name,
               severity: :high,
@@ -1269,7 +1269,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
             performance_data: extract_performance_data(details)
           }
 
-        {:error, reason} ->
+        {:error, _reason} ->
           end_time = System.monotonic_time(:millisecond)
 
           %{
@@ -1296,7 +1296,7 @@ defmodule ExWire.Enterprise.HSMIntegrationTester do
     end
   end
 
-  defp create_skipped_test(test_name, reason) do
+  defp create_skipped_test(test_name, _reason) do
     %{
       test_name: test_name,
       status: :skipped,

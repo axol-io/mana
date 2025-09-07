@@ -36,7 +36,7 @@ defmodule ExWire.Enterprise.HSM.AzureKeyVaultProvider do
   Establishes connection to Azure Key Vault.
   """
   @impl true
-  def connect(config) do
+  def connect(_config) do
     with {:ok, credentials} <- get_azure_credentials(config),
          {:ok, access_token} <- acquire_access_token(credentials),
          {:ok, vault_info} <- validate_vault_access(config.vault_name, access_token) do
@@ -56,7 +56,7 @@ defmodule ExWire.Enterprise.HSM.AzureKeyVaultProvider do
 
       {:ok, connection}
     else
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Failed to connect to Azure Key Vault: #{inspect(reason)}")
         error
     end
@@ -127,7 +127,7 @@ defmodule ExWire.Enterprise.HSM.AzureKeyVaultProvider do
 
         {:ok, key_info}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Failed to generate key in Azure Key Vault: #{inspect(reason)}")
         error
     end
@@ -163,7 +163,7 @@ defmodule ExWire.Enterprise.HSM.AzureKeyVaultProvider do
 
         {:ok, signature}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Failed to sign with Azure Key Vault: #{inspect(reason)}")
         error
     end
@@ -199,7 +199,7 @@ defmodule ExWire.Enterprise.HSM.AzureKeyVaultProvider do
 
         {:ok, valid}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Failed to verify with Azure Key Vault: #{inspect(reason)}")
         error
     end
@@ -235,7 +235,7 @@ defmodule ExWire.Enterprise.HSM.AzureKeyVaultProvider do
 
         {:ok, encrypted_data}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Failed to encrypt with Azure Key Vault: #{inspect(reason)}")
         error
     end
@@ -264,7 +264,7 @@ defmodule ExWire.Enterprise.HSM.AzureKeyVaultProvider do
 
         {:ok, plaintext}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Failed to decrypt with Azure Key Vault: #{inspect(reason)}")
         error
     end
@@ -295,7 +295,7 @@ defmodule ExWire.Enterprise.HSM.AzureKeyVaultProvider do
 
         {:ok, keys}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Failed to list keys from Azure Key Vault: #{inspect(reason)}")
         error
     end
@@ -316,7 +316,7 @@ defmodule ExWire.Enterprise.HSM.AzureKeyVaultProvider do
         AuditLogger.log(:key_deletion, %{key_id: key_id, hsm: :azure_keyvault})
         :ok
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Failed to delete key from Azure Key Vault: #{inspect(reason)}")
         error
     end
@@ -343,14 +343,14 @@ defmodule ExWire.Enterprise.HSM.AzureKeyVaultProvider do
 
         {:ok, health_status}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         {:error, {:health_check_failed, reason}}
     end
   end
 
   # Private Functions
 
-  defp get_azure_credentials(config) do
+  defp get_azure_credentials(_config) do
     cond do
       config[:client_id] && config[:client_secret] ->
         # Service Principal authentication
@@ -433,7 +433,7 @@ defmodule ExWire.Enterprise.HSM.AzureKeyVaultProvider do
       {:ok, %{status_code: status, body: body}} ->
         {:error, {:token_acquisition_failed, status, body}}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         {:error, {:http_error, reason}}
     end
   rescue
@@ -601,7 +601,7 @@ defmodule ExWire.Enterprise.HSM.AzureKeyVaultProvider do
       {:ok, %{status_code: status, body: body}} ->
         {:error, {:api_error, status, body}}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         {:error, {:http_error, reason}}
     end
   rescue

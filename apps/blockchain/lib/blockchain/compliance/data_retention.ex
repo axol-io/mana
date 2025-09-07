@@ -352,7 +352,7 @@ defmodule Blockchain.Compliance.DataRetention do
     {:reply, {:ok, status}, state}
   end
 
-  def handle_call({:create_retention_policy, policy}, _from, state) do
+  def handle_call({:add_retention_policy, policy}, _from, state) do
     policy_id = generate_policy_id(policy.name)
     full_policy = Map.put(policy, :id, policy_id)
 
@@ -384,7 +384,7 @@ defmodule Blockchain.Compliance.DataRetention do
     {:noreply, final_state}
   end
 
-  def handle_info(:storage_verification, state) do
+  def handle_info(:verify_storage, state) do
     Logger.debug("Performing storage integrity verification")
 
     # Verify data integrity across storage tiers
@@ -569,32 +569,32 @@ defmodule Blockchain.Compliance.DataRetention do
 
           updated_stats =
             update_storage_stats(
-                  state.storage_stats,
-                  :hot,
-                  byte_size(encrypted_content),
-                  :add
-                )
+              state.storage_stats,
+              :hot,
+              byte_size(encrypted_content),
+              :add
+            )
 
-              new_state = %{
-                state
-                | active_records: new_active_records,
-                  storage_stats: updated_stats
-              }
+          new_state = %{
+            state
+            | active_records: new_active_records,
+              storage_stats: updated_stats
+          }
 
-              # Log retention event
-              AuditEngine.log_event(%{
-                category: :data_modification,
-                action: "data_stored_for_retention",
-                resource: %{record_id: record_id, policy: policy_id},
-                details: %{
-                  category: data_record.category,
-                  scheduled_deletion: scheduled_deletion,
-                  encryption_required: policy.encryption_required
-                },
-                compliance_tags: ["DATA_RETENTION"] ++ policy.regulatory_basis
-              })
+          # Log retention event
+          AuditEngine.log_event(%{
+            category: :data_modification,
+            action: "data_stored_for_retention",
+            resource: %{record_id: record_id, policy: policy_id},
+            details: %{
+              category: data_record.category,
+              scheduled_deletion: scheduled_deletion,
+              encryption_required: policy.encryption_required
+            },
+            compliance_tags: ["DATA_RETENTION"] ++ policy.regulatory_basis
+          })
 
-              {:ok, record_id, new_state}
+          {:ok, record_id, new_state}
       end
     rescue
       error ->
@@ -623,7 +623,7 @@ defmodule Blockchain.Compliance.DataRetention do
     end
   end
 
-  defp apply_legal_hold(record_ids, _hold_info, state) do
+  defp apply_legal_hold(record_ids, hold_info, state) do
     hold_id = generate_hold_id()
 
     updated_records =
@@ -736,15 +736,9 @@ defmodule Blockchain.Compliance.DataRetention do
 
     # Process archival
     Enum.reduce(records_for_archival, state, fn record, acc_state ->
-      case move_to_next_tier(record, acc_state) do
-        {:ok, updated_record, new_state} ->
-          Logger.debug("Moved record #{record.id} to #{updated_record.storage_tier}")
-          new_state
-
-        {:error, reason} ->
-          Logger.error("Failed to archive record #{record.id}: #{reason}")
-          acc_state
-      end
+      {:ok, updated_record, new_state} = move_to_next_tier(record, acc_state)
+      Logger.debug("Moved record #{record.id} to #{updated_record.storage_tier}")
+      new_state
     end)
   end
 
@@ -764,15 +758,9 @@ defmodule Blockchain.Compliance.DataRetention do
 
     # Process deletions
     Enum.reduce(records_for_deletion, state, fn record, acc_state ->
-      case securely_delete_record(record, acc_state) do
-        {:ok, new_state} ->
-          Logger.info("Securely deleted record #{record.id} per retention policy")
-          new_state
-
-        {:error, reason} ->
-          Logger.error("Failed to delete record #{record.id}: #{reason}")
-          acc_state
-      end
+      {:ok, new_state} = securely_delete_record(record, acc_state)
+      Logger.info("Securely deleted record #{record.id} per retention policy")
+      new_state
     end)
   end
 
@@ -860,7 +848,7 @@ defmodule Blockchain.Compliance.DataRetention do
     :ok
   end
 
-  defp retrieve_from_archive(_record_id, _config) do
+  defp retrieve_from_archive(data_id, config) do
     # Simulate archive retrieval
     {:error, "Archive retrieval not implemented"}
   end
@@ -901,30 +889,25 @@ defmodule Blockchain.Compliance.DataRetention do
       end
 
     # Move data between storage tiers
-    case store_in_tier(record, new_tier, state.config) do
-      :ok ->
-        updated_record = %{record | storage_tier: new_tier}
-        new_active_records = Map.put(state.active_records, record.id, updated_record)
+    :ok = store_in_tier(record, new_tier, state.config)
+    updated_record = %{record | storage_tier: new_tier}
+    new_active_records = Map.put(state.active_records, record.id, updated_record)
 
-        # Update storage statistics
-        old_size = byte_size(record.content)
+    # Update storage statistics
+    old_size = byte_size(record.content)
 
-        updated_stats =
-          state.storage_stats
-          |> update_storage_stats(record.storage_tier, old_size, :remove)
-          |> update_storage_stats(new_tier, old_size, :add)
+    updated_stats =
+      state.storage_stats
+      |> update_storage_stats(record.storage_tier, old_size, :remove)
+      |> update_storage_stats(new_tier, old_size, :add)
 
-        new_state = %{
-          state
-          | active_records: new_active_records,
-            storage_stats: updated_stats
-        }
+    new_state = %{
+      state
+      | active_records: new_active_records,
+        storage_stats: updated_stats
+    }
 
-        {:ok, updated_record, new_state}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
+    {:ok, updated_record, new_state}
   end
 
   defp securely_delete_record(record, state) do
