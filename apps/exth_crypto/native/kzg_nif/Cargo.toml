@@ -1,0 +1,20 @@
+[package]
+name = "kzg_nif"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "kzg_nif"
+crate-type = ["cdylib"]
+
+[dependencies]
+rustler = "0.29"
+blst = "0.3"
+hex = "0.4"
+rand = "0.8"
+
+[dependencies.num-bigint]
+version = "0.4"
+
+[features]
+default = ["rustler/nif_version_2_15"]
