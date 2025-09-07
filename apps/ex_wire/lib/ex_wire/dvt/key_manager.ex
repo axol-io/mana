@@ -10,8 +10,7 @@ defmodule ExWire.DVT.KeyManager do
   require Logger
 
   alias ExWire.DVT.Crypto
-  alias ExWire.Enterprise.{HSMIntegration, RBAC, AuditLogger}
-  alias ExWire.Enterprise.DisasterRecovery
+  alias ExWire.Enterprise.AuditLogger
 
   @type cluster_id :: String.t()
   @type validator_pubkey :: String.t() 
@@ -28,45 +27,43 @@ defmodule ExWire.DVT.KeyManager do
     :monitoring_pid     # Monitoring process PID
   ]
 
-  # Cluster configuration structure
-  defstruct cluster_config: [
-    :cluster_id,
-    :validator_pubkey,
-    :threshold,
-    :total_nodes,
-    :participants,      # %{node_id => node_info}
-    :status,           # :initializing | :active | :rotating | :archived
-    :created_at,
-    :last_rotation,
-    :next_rotation,
-    :backup_locations, # List of backup storage locations
-    :compliance_level  # :standard | :enterprise | :regulated
-  ]
+  # Type definitions for nested structures
+  @type cluster_config :: %{
+    cluster_id: String.t(),
+    validator_pubkey: String.t(),
+    threshold: pos_integer(),
+    total_nodes: pos_integer(),
+    participants: map(),      # %{node_id => node_info}
+    status: :initializing | :active | :rotating | :archived,           # :initializing | :active | :rotating | :archived
+    created_at: pos_integer(),
+    last_rotation: pos_integer(),
+    next_rotation: pos_integer(),
+    backup_locations: list(String.t()), # List of backup storage locations
+    compliance_level: :standard | :enterprise | :regulated  # :standard | :enterprise | :regulated
+  }
 
-  # Node information structure
-  defstruct node_info: [
-    :node_id,
-    :operator_id,
-    :endpoint,
-    :public_key,
-    :status,           # :online | :offline | :syncing | :faulty
-    :last_seen,
-    :performance_metrics,
-    :security_level
-  ]
+  @type node_info :: %{
+    node_id: String.t(),
+    operator_id: String.t(),
+    endpoint: String.t(),
+    public_key: binary(),
+    status: :online | :offline | :syncing | :faulty,           # :online | :offline | :syncing | :faulty
+    last_seen: pos_integer(),
+    performance_metrics: map(),
+    security_level: atom()
+  }
 
-  # Key share data structure
-  defstruct key_share_data: [
-    :node_id,
-    :cluster_id,
-    :share_data,       # Encrypted key share or HSM reference
-    :public_key_set,
-    :verification_data,
-    :created_at,
-    :last_used,
-    :backup_status,    # :backed_up | :pending | :failed
-    :hsm_key_id        # HSM key identifier if using HSM
-  ]
+  @type key_share_data :: %{
+    node_id: String.t(),
+    cluster_id: String.t(),
+    share_data: binary(),       # Encrypted key share or HSM reference
+    public_key_set: map(),
+    verification_data: map(),
+    created_at: pos_integer(),
+    last_used: pos_integer(),
+    backup_status: :backed_up | :pending | :failed,    # :backed_up | :pending | :failed
+    hsm_key_id: String.t()        # HSM key identifier if using HSM
+  }
 
   ## Public API
 
@@ -203,7 +200,7 @@ defmodule ExWire.DVT.KeyManager do
             {:reply, error, state}
         end
         
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         {:reply, error, state}
     end
   end
@@ -293,6 +290,18 @@ defmodule ExWire.DVT.KeyManager do
     end
   end
 
+  @impl true
+  def handle_call({:get_node_public_key, cluster_id, node_id}, _from, state) do
+    case get_cluster_config(cluster_id, state) do
+      {:ok, cluster_config} ->
+        case Map.get(cluster_config.participants, node_id) do
+          nil -> {:reply, {:error, :not_found}, state}
+          node_info -> {:reply, {:ok, node_info.public_key}, state}
+        end
+      error -> {:reply, error, state}
+    end
+  end
+
   # Periodic health check
   @impl true
   def handle_info(:health_check, state) do
@@ -372,7 +381,7 @@ defmodule ExWire.DVT.KeyManager do
     {:ok, cluster_config, new_state}
   end
 
-  defp initialize_dkg_impl(cluster_config, opts, state) do
+  defp initialize_dkg_impl(cluster_config, _opts, state) do
     cluster_id = cluster_config.cluster_id
     participants = Map.keys(cluster_config.participants)
     threshold = cluster_config.threshold
@@ -400,7 +409,7 @@ defmodule ExWire.DVT.KeyManager do
     end
   end
 
-  defp perform_threshold_signing(cluster_config, message, opts, state) do
+  defp perform_threshold_signing(cluster_config, message, _opts, state) do
     cluster_id = cluster_config.cluster_id
     threshold = cluster_config.threshold
     
@@ -475,10 +484,21 @@ defmodule ExWire.DVT.KeyManager do
     end
   end
 
-  defp get_cluster_public_key_set(cluster_id, state) do
+  defp get_cluster_public_key_set(_cluster_id, _state) do
     # This would retrieve the public key set from the cluster configuration
     # For now, return a placeholder
     <<0::256>>
+  end
+
+  @doc """
+  Get the public key for a specific node in a cluster.
+  """
+  @spec get_node_public_key(cluster_id(), node_id()) :: {:ok, binary()} | {:error, term()}
+  def get_node_public_key(cluster_id, node_id) do
+    case GenServer.call(__MODULE__, {:get_node_public_key, cluster_id, node_id}) do
+      {:ok, public_key} -> {:ok, public_key}
+      error -> error
+    end
   end
 
   defp check_signing_permissions(cluster_id, opts, state) do
