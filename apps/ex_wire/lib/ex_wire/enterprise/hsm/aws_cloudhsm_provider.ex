@@ -30,7 +30,7 @@ defmodule ExWire.Enterprise.HSM.AWSCloudHSMProvider do
   Establishes connection to AWS CloudHSM cluster.
   """
   @impl true
-  def connect(config) do
+  def connect(_config) do
     with {:ok, credentials} <- get_aws_credentials(config),
          {:ok, cluster_info} <- describe_cluster(config.cluster_id, config.region, credentials),
          {:ok, client} <- create_cloudhsm_client(cluster_info, credentials),
@@ -50,7 +50,7 @@ defmodule ExWire.Enterprise.HSM.AWSCloudHSMProvider do
 
       {:ok, connection}
     else
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Failed to connect to AWS CloudHSM: #{inspect(reason)}")
         error
     end
@@ -67,7 +67,7 @@ defmodule ExWire.Enterprise.HSM.AWSCloudHSMProvider do
         AuditLogger.log(:hsm_disconnection, %{cluster_id: connection.cluster_id})
         :ok
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.warning("Error during CloudHSM disconnection: #{inspect(reason)}")
         # Return ok anyway as we're disconnecting
         :ok
@@ -109,7 +109,7 @@ defmodule ExWire.Enterprise.HSM.AWSCloudHSMProvider do
 
         {:ok, key_info}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Failed to generate key in AWS CloudHSM: #{inspect(reason)}")
         error
     end
@@ -138,7 +138,7 @@ defmodule ExWire.Enterprise.HSM.AWSCloudHSMProvider do
 
           {:ok, signature}
 
-        {:error, reason} = error ->
+        {:error, _reason} = error ->
           Logger.error("Failed to sign with AWS CloudHSM: #{inspect(reason)}")
           error
       end
@@ -169,7 +169,7 @@ defmodule ExWire.Enterprise.HSM.AWSCloudHSMProvider do
 
           {:ok, valid}
 
-        {:error, reason} = error ->
+        {:error, _reason} = error ->
           Logger.error("Failed to verify with AWS CloudHSM: #{inspect(reason)}")
           error
       end
@@ -205,7 +205,7 @@ defmodule ExWire.Enterprise.HSM.AWSCloudHSMProvider do
 
           {:ok, encrypted_data}
 
-        {:error, reason} = error ->
+        {:error, _reason} = error ->
           Logger.error("Failed to encrypt with AWS CloudHSM: #{inspect(reason)}")
           error
       end
@@ -235,7 +235,7 @@ defmodule ExWire.Enterprise.HSM.AWSCloudHSMProvider do
 
           {:ok, plaintext}
 
-        {:error, reason} = error ->
+        {:error, _reason} = error ->
           Logger.error("Failed to decrypt with AWS CloudHSM: #{inspect(reason)}")
           error
       end
@@ -267,7 +267,7 @@ defmodule ExWire.Enterprise.HSM.AWSCloudHSMProvider do
 
         {:ok, keys}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Failed to list keys from AWS CloudHSM: #{inspect(reason)}")
         error
     end
@@ -289,7 +289,7 @@ defmodule ExWire.Enterprise.HSM.AWSCloudHSMProvider do
           AuditLogger.log(:key_deletion, %{key_id: key_id, hsm: :aws_cloudhsm})
           :ok
 
-        {:error, reason} = error ->
+        {:error, _reason} = error ->
           Logger.error("Failed to delete key from AWS CloudHSM: #{inspect(reason)}")
           error
       end
@@ -315,14 +315,14 @@ defmodule ExWire.Enterprise.HSM.AWSCloudHSMProvider do
 
         {:ok, health_status}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         {:error, {:health_check_failed, reason}}
     end
   end
 
   # Private Functions
 
-  defp get_aws_credentials(config) do
+  defp get_aws_credentials(_config) do
     cond do
       config[:access_key_id] && config[:secret_access_key] ->
         {:ok,
@@ -353,7 +353,7 @@ defmodule ExWire.Enterprise.HSM.AWSCloudHSMProvider do
            session_token: credentials.session_token
          }}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         {:error, {:assume_role_failed, reason}}
     end
   rescue
@@ -370,7 +370,7 @@ defmodule ExWire.Enterprise.HSM.AWSCloudHSMProvider do
   defp get_instance_credentials do
     # Get credentials from EC2 instance metadata
     case ExAws.Config.retrieve_runtime_config() do
-      {:ok, config} ->
+      {:ok, _config} ->
         {:ok,
          %{
            access_key_id: config[:access_key_id],
@@ -405,7 +405,7 @@ defmodule ExWire.Enterprise.HSM.AWSCloudHSMProvider do
            subnet_mapping: cluster["SubnetMapping"]
          }}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         {:error, {:describe_cluster_failed, reason}}
     end
   rescue
@@ -433,7 +433,7 @@ defmodule ExWire.Enterprise.HSM.AWSCloudHSMProvider do
     {:ok, client_config}
   end
 
-  defp establish_session(client, config) do
+  defp establish_session(client, _config) do
     # Establish PKCS#11 session with CloudHSM
     session_config = %{
       pin: config.pin || config.password,

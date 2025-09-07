@@ -142,11 +142,11 @@ defmodule ExWire.Enterprise.PrivateTransactions do
     }
 
     schedule_cleanup()
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:create_privacy_group, name, members, opts}, _from, state) do
+  def handle_call({:create_privacy_group, name, members, opts}, _from, _state) do
     group_id = generate_group_id()
 
     # Generate group encryption key
@@ -179,7 +179,7 @@ defmodule ExWire.Enterprise.PrivateTransactions do
   end
 
   @impl true
-  def handle_call({:send_private_transaction, transaction, privacy_group_id, opts}, _from, state) do
+  def handle_call({:send_private_transaction, transaction, privacy_group_id, opts}, _from, _state) do
     case Map.get(state.privacy_groups, privacy_group_id) do
       nil ->
         {:reply, {:error, :privacy_group_not_found}, state}
@@ -232,7 +232,7 @@ defmodule ExWire.Enterprise.PrivateTransactions do
   end
 
   @impl true
-  def handle_call({:get_private_transaction, tx_id, requester}, _from, state) do
+  def handle_call({:get_private_transaction, tx_id, requester}, _from, _state) do
     case Map.get(state.private_pools, tx_id) do
       nil ->
         {:reply, {:error, :transaction_not_found}, state}
@@ -261,7 +261,7 @@ defmodule ExWire.Enterprise.PrivateTransactions do
   end
 
   @impl true
-  def handle_call({:generate_zk_proof, transaction, witness}, _from, state) do
+  def handle_call({:generate_zk_proof, transaction, witness}, _from, _state) do
     proof = create_zk_proof(transaction, witness)
 
     proof_id = generate_proof_id()
@@ -271,7 +271,7 @@ defmodule ExWire.Enterprise.PrivateTransactions do
   end
 
   @impl true
-  def handle_call({:verify_zk_proof, proof, public_inputs}, _from, state) do
+  def handle_call({:verify_zk_proof, proof, public_inputs}, _from, _state) do
     valid = verify_proof(proof, public_inputs)
 
     AuditLogger.log(:zk_proof_verified, %{
@@ -283,7 +283,7 @@ defmodule ExWire.Enterprise.PrivateTransactions do
   end
 
   @impl true
-  def handle_call({:get_private_state, privacy_group_id, key, requester}, _from, state) do
+  def handle_call({:get_private_state, privacy_group_id, key, requester}, _from, _state) do
     case Map.get(state.privacy_groups, privacy_group_id) do
       nil ->
         {:reply, {:error, :privacy_group_not_found}, state}
@@ -307,7 +307,7 @@ defmodule ExWire.Enterprise.PrivateTransactions do
   end
 
   @impl true
-  def handle_call({:update_private_state, privacy_group_id, key, value, updater}, _from, state) do
+  def handle_call({:update_private_state, privacy_group_id, key, value, updater}, _from, _state) do
     case Map.get(state.privacy_groups, privacy_group_id) do
       nil ->
         {:reply, {:error, :privacy_group_not_found}, state}
@@ -339,7 +339,7 @@ defmodule ExWire.Enterprise.PrivateTransactions do
   end
 
   @impl true
-  def handle_call({:add_member, privacy_group_id, new_member, authorizer}, _from, state) do
+  def handle_call({:add_member, privacy_group_id, new_member, authorizer}, _from, _state) do
     case Map.get(state.privacy_groups, privacy_group_id) do
       nil ->
         {:reply, {:error, :privacy_group_not_found}, state}
@@ -367,7 +367,7 @@ defmodule ExWire.Enterprise.PrivateTransactions do
   end
 
   @impl true
-  def handle_call({:selective_disclosure, tx_id, recipient, authorizer}, _from, state) do
+  def handle_call({:selective_disclosure, tx_id, recipient, authorizer}, _from, _state) do
     case Map.get(state.private_pools, tx_id) do
       nil ->
         {:reply, {:error, :transaction_not_found}, state}
@@ -412,7 +412,7 @@ defmodule ExWire.Enterprise.PrivateTransactions do
   end
 
   @impl true
-  def handle_call({:list_privacy_groups, member}, _from, state) do
+  def handle_call({:list_privacy_groups, member}, _from, _state) do
     groups =
       Enum.filter(state.privacy_groups, fn {_id, group} ->
         member in group.members
@@ -430,7 +430,7 @@ defmodule ExWire.Enterprise.PrivateTransactions do
   end
 
   @impl true
-  def handle_info(:cleanup_expired, state) do
+  def handle_info(:cleanup_expired, _state) do
     # Clean up old pending reveals and expired proofs
     state = cleanup_expired_data(state)
     schedule_cleanup()
@@ -546,14 +546,14 @@ defmodule ExWire.Enterprise.PrivateTransactions do
 
   # Private Functions - Distribution
 
-  defp distribute_to_participants(private_tx, privacy_group, state) do
+  defp distribute_to_participants(private_tx, privacy_group, _state) do
     # Distribute encrypted transaction to all participants
     Enum.each(privacy_group.members, fn member ->
       send_to_participant(member, private_tx, state)
     end)
   end
 
-  defp send_to_participant(participant, private_tx, state) do
+  defp send_to_participant(participant, private_tx, _state) do
     # Send via Tessera or direct P2P
     if state.tessera_client do
       send_via_tessera(participant, private_tx, state.tessera_client)
@@ -613,22 +613,22 @@ defmodule ExWire.Enterprise.PrivateTransactions do
       Map.get(privacy_group.permissions, member, %{})[:admin] == true
   end
 
-  defp get_next_version(state, state_key) do
+  defp get_next_version(_state, state_key) do
     case Map.get(state.encrypted_states, state_key) do
       nil -> 1
       existing -> existing.version + 1
     end
   end
 
-  defp cleanup_expired_data(state) do
-    cutoff = DateTime.add(DateTime.utc_now(), -state.config.retention_hours * 3600, :second)
+  defp cleanup_expired_data(_state) do
+    cutoff = DateTime.add(DateTime.utc_now(), -state._config.retention_hours * 3600, :second)
 
     pending_reveals =
       Enum.filter(state.pending_reveals, fn reveal ->
         DateTime.compare(reveal.disclosed_at, cutoff) == :gt
       end)
 
-    %{state | pending_reveals: pending_reveals}
+    %{_state | pending_reveals: pending_reveals}
   end
 
   defp initialize_tessera(opts) do

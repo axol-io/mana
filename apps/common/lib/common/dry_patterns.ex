@@ -28,7 +28,7 @@ defmodule Common.DRYPatterns do
           end)
 
           Logger.info("#{__MODULE__} initialized")
-          {:ok, state}
+          {:ok, _state}
         end
       end
     end

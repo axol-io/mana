@@ -115,7 +115,7 @@ defmodule ExWire.Enterprise.SLAMonitor do
   @doc """
   Add notification channel
   """
-  def add_notification_channel(type, config) do
+  def add_notification_channel(type, _config) do
     GenServer.call(__MODULE__, {:add_notification_channel, type, config})
   end
 
@@ -147,11 +147,11 @@ defmodule ExWire.Enterprise.SLAMonitor do
     schedule_compliance_check()
     schedule_report_generation()
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:define_sla, name, customer, metrics, opts}, _from, state) do
+  def handle_call({:define_sla, name, customer, metrics, opts}, _from, _state) do
     sla_id = generate_sla_id()
 
     sla = %{
@@ -182,7 +182,7 @@ defmodule ExWire.Enterprise.SLAMonitor do
   end
 
   @impl true
-  def handle_call({:report_incident, sla_id, metric, severity, impact}, _from, state) do
+  def handle_call({:report_incident, sla_id, metric, severity, impact}, _from, _state) do
     incident = %{
       id: generate_incident_id(),
       sla_id: sla_id,
@@ -214,7 +214,7 @@ defmodule ExWire.Enterprise.SLAMonitor do
   end
 
   @impl true
-  def handle_call({:resolve_incident, incident_id, resolution}, _from, state) do
+  def handle_call({:resolve_incident, incident_id, resolution}, _from, _state) do
     case Enum.find_index(state.incidents, &(&1.id == incident_id)) do
       nil ->
         {:reply, {:error, :incident_not_found}, state}
@@ -249,7 +249,7 @@ defmodule ExWire.Enterprise.SLAMonitor do
   end
 
   @impl true
-  def handle_call({:get_compliance_status, sla_id, time_range}, _from, state) do
+  def handle_call({:get_compliance_status, sla_id, time_range}, _from, _state) do
     case Map.get(state.sla_definitions, sla_id) do
       nil ->
         {:reply, {:error, :sla_not_found}, state}
@@ -261,7 +261,7 @@ defmodule ExWire.Enterprise.SLAMonitor do
   end
 
   @impl true
-  def handle_call({:generate_report, sla_id, time_range}, _from, state) do
+  def handle_call({:generate_report, sla_id, time_range}, _from, _state) do
     case Map.get(state.sla_definitions, sla_id) do
       nil ->
         {:reply, {:error, :sla_not_found}, state}
@@ -277,7 +277,7 @@ defmodule ExWire.Enterprise.SLAMonitor do
   end
 
   @impl true
-  def handle_call(:get_real_time_metrics, _from, state) do
+  def handle_call(:get_real_time_metrics, _from, _state) do
     metrics = %{
       availability: calculate_current_availability(state),
       response_time: get_current_response_time(state),
@@ -290,7 +290,7 @@ defmodule ExWire.Enterprise.SLAMonitor do
   end
 
   @impl true
-  def handle_call({:set_alert_threshold, metric, threshold, action}, _from, state) do
+  def handle_call({:set_alert_threshold, metric, threshold, action}, _from, _state) do
     threshold_config = %{
       metric: metric,
       threshold: threshold,
@@ -304,7 +304,7 @@ defmodule ExWire.Enterprise.SLAMonitor do
   end
 
   @impl true
-  def handle_call({:add_notification_channel, type, config}, _from, state) do
+  def handle_call({:add_notification_channel, type, _config}, _from, _state) do
     channel = %{
       id: generate_channel_id(),
       type: type,
@@ -318,7 +318,7 @@ defmodule ExWire.Enterprise.SLAMonitor do
   end
 
   @impl true
-  def handle_call(:get_dashboard_data, _from, state) do
+  def handle_call(:get_dashboard_data, _from, _state) do
     dashboard = %{
       sla_count: map_size(state.sla_definitions),
       overall_compliance: calculate_overall_compliance(state),
@@ -332,7 +332,7 @@ defmodule ExWire.Enterprise.SLAMonitor do
   end
 
   @impl true
-  def handle_cast({:record_metric, metric_name, value, metadata}, state) do
+  def handle_cast({:record_metric, metric_name, value, metadata}, _state) do
     timestamp = DateTime.utc_now()
 
     metric_entry = %{
@@ -351,21 +351,21 @@ defmodule ExWire.Enterprise.SLAMonitor do
   end
 
   @impl true
-  def handle_info(:collect_metrics, state) do
+  def handle_info(:collect_metrics, _state) do
     state = collect_system_metrics(state)
     schedule_metric_collection()
     {:noreply, state}
   end
 
   @impl true
-  def handle_info(:check_compliance, state) do
+  def handle_info(:check_compliance, _state) do
     state = check_all_sla_compliance(state)
     schedule_compliance_check()
     {:noreply, state}
   end
 
   @impl true
-  def handle_info(:generate_reports, state) do
+  def handle_info(:generate_reports, _state) do
     state = generate_periodic_reports(state)
     schedule_report_generation()
     {:noreply, state}
@@ -383,19 +383,19 @@ defmodule ExWire.Enterprise.SLAMonitor do
     }
   end
 
-  defp initialize_sla_metrics(state, sla) do
+  defp initialize_sla_metrics(_state, sla) do
     # Set up metric tracking for each SLA metric
     Enum.reduce(sla.metrics, state, fn metric, acc_state ->
       initialize_metric_tracking(acc_state, sla.id, metric)
     end)
   end
 
-  defp initialize_metric_tracking(state, sla_id, metric) do
+  defp initialize_metric_tracking(_state, sla_id, metric) do
     # Initialize data structures for tracking this metric
     state
   end
 
-  defp store_metric(state, metric_entry) do
+  defp store_metric(_state, metric_entry) do
     metric_type = determine_metric_type(metric_entry.name)
 
     case metric_type do
@@ -416,12 +416,12 @@ defmodule ExWire.Enterprise.SLAMonitor do
     end
   end
 
-  defp collect_system_metrics(state) do
+  defp collect_system_metrics(_state) do
     # Collect availability
     availability = measure_availability()
 
     state =
-      store_metric(state, %{
+      store_metric(_state, %{
         name: "system.availability",
         value: availability,
         timestamp: DateTime.utc_now(),
@@ -547,8 +547,8 @@ defmodule ExWire.Enterprise.SLAMonitor do
     end
   end
 
-  defp check_all_sla_compliance(state) do
-    Enum.reduce(state.sla_definitions, state, fn {sla_id, sla}, acc_state ->
+  defp check_all_sla_compliance(_state) do
+    Enum.reduce(state.sla_definitions, _state, fn {sla_id, sla}, acc_state ->
       compliance = calculate_compliance(sla, acc_state.metrics, :current_period)
 
       # Check for violations
@@ -562,7 +562,7 @@ defmodule ExWire.Enterprise.SLAMonitor do
     end)
   end
 
-  defp handle_sla_violations(state, sla, violations) do
+  defp handle_sla_violations(_state, sla, violations) do
     # Create incidents for violations
     Enum.reduce(violations, state, fn violation, acc_state ->
       if should_create_incident?(violation) do
@@ -597,17 +597,17 @@ defmodule ExWire.Enterprise.SLAMonitor do
     end
   end
 
-  defp update_sla_compliance(state, sla_id, incident) do
+  defp update_sla_compliance(_state, sla_id, incident) do
     # Update compliance tracking based on incident
     state
   end
 
-  defp update_incident_metrics(state, incident) do
+  defp update_incident_metrics(_state, incident) do
     # Update MTTR and other incident metrics
     state
   end
 
-  defp calculate_overall_compliance(state) do
+  defp calculate_overall_compliance(_state) do
     if map_size(state.sla_definitions) == 0 do
       100.0
     else
@@ -624,14 +624,14 @@ defmodule ExWire.Enterprise.SLAMonitor do
     end
   end
 
-  defp calculate_compliance_trends(state) do
+  defp calculate_compliance_trends(_state) do
     # Calculate compliance trends over time
     []
   end
 
   # Private Functions - Reporting
 
-  defp generate_sla_report(sla, state, time_range) do
+  defp generate_sla_report(sla, _state, time_range) do
     {start_time, end_time} = get_time_range(time_range, sla.reporting_period)
 
     compliance = calculate_compliance(sla, state.metrics, time_range)
@@ -651,7 +651,7 @@ defmodule ExWire.Enterprise.SLAMonitor do
     }
   end
 
-  defp generate_periodic_reports(state) do
+  defp generate_periodic_reports(_state) do
     Enum.reduce(state.sla_definitions, state, fn {sla_id, sla}, acc_state ->
       if should_generate_report?(sla) do
         report = generate_sla_report(sla, acc_state, :current_period)
@@ -687,7 +687,7 @@ defmodule ExWire.Enterprise.SLAMonitor do
     case channel.type do
       :email -> send_email_report(report, channel.config)
       :slack -> send_slack_report(report, channel.config)
-      :webhook -> send_webhook_report(report, channel.config)
+      :webhook -> send_webhook_report(report, channel._config)
       _ -> :ok
     end
   end
@@ -719,7 +719,7 @@ defmodule ExWire.Enterprise.SLAMonitor do
 
   # Private Functions - Alerts
 
-  defp check_alert_thresholds(state, metric_name, value) do
+  defp check_alert_thresholds(_state, metric_name, value) do
     case Map.get(state.alert_thresholds, metric_name) do
       nil ->
         state
@@ -729,7 +729,7 @@ defmodule ExWire.Enterprise.SLAMonitor do
           trigger_alert(metric_name, value, threshold, state.notification_channels)
           state
         else
-          state
+          _state
         end
     end
   end
@@ -804,7 +804,7 @@ defmodule ExWire.Enterprise.SLAMonitor do
     case channel.type do
       :email -> send_email(message, channel.config)
       :slack -> send_slack_message(message, channel.config)
-      :pagerduty -> send_pagerduty_alert(message, channel.config)
+      :pagerduty -> send_pagerduty_alert(message, channel._config)
       :webhook -> Integrations.trigger_webhook(:sla_alert, message)
       _ -> :ok
     end
@@ -965,37 +965,37 @@ defmodule ExWire.Enterprise.SLAMonitor do
     end
   end
 
-  defp count_active_incidents(state) do
+  defp count_active_incidents(_state) do
     Enum.count(state.incidents, &(&1.status == :active))
   end
 
-  defp get_recent_incidents(state, limit) do
+  defp get_recent_incidents(_state, limit) do
     state.incidents
     |> Enum.sort_by(& &1.started_at, {:desc, DateTime})
     |> Enum.take(limit)
   end
 
-  defp calculate_current_availability(state) do
+  defp calculate_current_availability(_state) do
     recent_metrics = Enum.take(state.metrics.availability, 100)
     calculate_average(recent_metrics)
   end
 
-  defp get_current_response_time(state) do
+  defp get_current_response_time(_state) do
     recent_metrics = Enum.take(state.metrics.response_time, 100)
     calculate_average(recent_metrics)
   end
 
-  defp get_current_throughput(state) do
+  defp get_current_throughput(_state) do
     recent_metrics = Enum.take(state.metrics.throughput, 100)
     calculate_average(recent_metrics)
   end
 
-  defp get_current_error_rate(state) do
+  defp get_current_error_rate(_state) do
     recent_metrics = Enum.take(state.metrics.error_rate, 100)
     calculate_average(recent_metrics)
   end
 
-  defp get_metrics_summary(state) do
+  defp get_metrics_summary(_state) do
     %{
       availability: %{
         current: calculate_current_availability(state),

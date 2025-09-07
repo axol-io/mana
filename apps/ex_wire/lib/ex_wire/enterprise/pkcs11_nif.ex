@@ -93,7 +93,7 @@ defmodule ExWire.Enterprise.PKCS11NIF do
   def init_pkcs11(library_path) do
     case initialize_library(library_path) do
       {:ok, context_id} -> {:ok, context_id}
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -107,7 +107,7 @@ defmodule ExWire.Enterprise.PKCS11NIF do
          {:ok} <- login(context_id, session_id, user_type, pin) do
       {:ok, session_id}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -122,8 +122,8 @@ defmodule ExWire.Enterprise.PKCS11NIF do
         result = Enum.into(key_handles, %{})
         {:ok, result}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -138,8 +138,8 @@ defmodule ExWire.Enterprise.PKCS11NIF do
         result = Enum.into(key_handles, %{})
         {:ok, result}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 

@@ -366,7 +366,7 @@ defmodule ExWire.Enterprise.HSMSecurityAuditor do
       {:error, :authentication_failed} ->
         {:ok, "Strong authentication properly enforced"}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         {:warning, "Could not test authentication: #{inspect(reason)}"}
     end
   end
@@ -682,28 +682,30 @@ defmodule ExWire.Enterprise.HSMSecurityAuditor do
 
   defp test_key_encryption_standards(provider) do
     findings = []
-    
+
     # Test key encryption requirements
     approved_key_encryption = ["AES-256", "RSA-4096", "ECDSA-P384"]
     supported_encryption = get_supported_key_encryption(provider)
-    
+
     weak_encryption = supported_encryption -- approved_key_encryption
-    
-    findings = 
+
+    findings =
       if weak_encryption != [] do
-        finding = create_security_finding(
-          :medium,
-          :encryption,
-          "Weak Key Encryption Standards",
-          "Weak key encryption methods supported",
-          %{weak: weak_encryption},
-          "Use only approved key encryption standards"
-        )
+        finding =
+          create_security_finding(
+            :medium,
+            :encryption,
+            "Weak Key Encryption Standards",
+            "Weak key encryption methods supported",
+            %{weak: weak_encryption},
+            "Use only approved key encryption standards"
+          )
+
         [finding | findings]
       else
         findings
       end
-    
+
     if findings == [] do
       {:ok, "Only approved key encryption standards supported"}
     else
@@ -932,7 +934,7 @@ defmodule ExWire.Enterprise.HSMSecurityAuditor do
     Map.merge(get_provider_test_config(provider), %{mfa_enabled: false})
   end
 
-  defp attempt_single_factor_authentication(provider, config) do
+  defp attempt_single_factor_authentication(provider, _config) do
     HSMIntegration.connect(provider, config)
   end
 

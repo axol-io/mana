@@ -75,7 +75,7 @@ defmodule Common.GenServerDSL do
       end
 
       # Default init if not overridden
-      unless Module.defines?(__MODULE__, {:init, 1}) do
+      if !Module.defines?(__MODULE__, {:init, 1}) do
         def init(args) do
           {:ok, struct(__MODULE__.State, args)}
         end
