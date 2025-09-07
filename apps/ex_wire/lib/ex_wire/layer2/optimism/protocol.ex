@@ -80,7 +80,7 @@ defmodule ExWire.Layer2.Optimism.Protocol do
   Initiates a deposit from L1 to L2 through the OptimismPortal.
   """
   @spec deposit_transaction(map()) :: {:ok, String.t()} | {:error, term()}
-  def deposit_transaction(params) do
+  def deposit_transaction(_params) do
     GenServer.call(__MODULE__, {:deposit_transaction, params})
   end
 
@@ -89,7 +89,7 @@ defmodule ExWire.Layer2.Optimism.Protocol do
   Creates the withdrawal on L2 which can be proven and finalized on L1.
   """
   @spec initiate_withdrawal(map()) :: {:ok, map()} | {:error, term()}
-  def initiate_withdrawal(params) do
+  def initiate_withdrawal(_params) do
     GenServer.call(__MODULE__, {:initiate_withdrawal, params})
   end
 
@@ -148,11 +148,11 @@ defmodule ExWire.Layer2.Optimism.Protocol do
 
     Logger.info("Optimism protocol initialized for network: #{network}")
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:submit_l2_output, batch, state_root}, _from, state) do
+  def handle_call({:submit_l2_output, batch, state_root}, _from, _state) do
     output = build_l2_output(batch, state_root)
 
     case submit_to_oracle(output, state) do
@@ -165,14 +165,14 @@ defmodule ExWire.Layer2.Optimism.Protocol do
 
         {:reply, {:ok, submission}, new_state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Failed to submit L2 output: #{inspect(reason)}")
         {:reply, error, state}
     end
   end
 
   @impl true
-  def handle_call({:deposit_transaction, params}, _from, state) do
+  def handle_call({:deposit_transaction, _params}, _from, _state) do
     deposit = %{
       from: params[:from],
       to: params[:to],
@@ -191,7 +191,7 @@ defmodule ExWire.Layer2.Optimism.Protocol do
         Logger.info("Deposit transaction sent to L1: #{tx_hash}")
         {:reply, {:ok, tx_hash}, state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Failed to send deposit transaction: #{inspect(reason)}")
         # Fallback for testing - original simulation code
         if Mix.env() == :test do
@@ -203,13 +203,13 @@ defmodule ExWire.Layer2.Optimism.Protocol do
 
           {:reply, {:ok, Base.encode16(deposit_hash)}, state}
         else
-          {:reply, {:error, reason}, state}
+          {:reply, {:error, _reason}, state}
         end
     end
   end
 
   @impl true
-  def handle_call({:initiate_withdrawal, params}, _from, state) do
+  def handle_call({:initiate_withdrawal, _params}, _from, _state) do
     withdrawal = %{
       nonce: state.message_nonce,
       sender: params[:from],
@@ -234,7 +234,7 @@ defmodule ExWire.Layer2.Optimism.Protocol do
   end
 
   @impl true
-  def handle_call({:prove_withdrawal, withdrawal_hash, proof_data}, _from, state) do
+  def handle_call({:prove_withdrawal, withdrawal_hash, proof_data}, _from, _state) do
     case Map.get(state.pending_withdrawals, withdrawal_hash) do
       nil ->
         {:reply, {:error, :withdrawal_not_found}, state}
@@ -263,7 +263,7 @@ defmodule ExWire.Layer2.Optimism.Protocol do
   end
 
   @impl true
-  def handle_call({:finalize_withdrawal, withdrawal_hash}, _from, state) do
+  def handle_call({:finalize_withdrawal, withdrawal_hash}, _from, _state) do
     case Map.get(state.pending_withdrawals, withdrawal_hash) do
       nil ->
         {:reply, {:error, :withdrawal_not_found}, state}
@@ -278,7 +278,7 @@ defmodule ExWire.Layer2.Optimism.Protocol do
             :ok ->
               finalized = Map.put(withdrawal, :finalized_at, DateTime.utc_now())
               new_withdrawals = Map.put(state.pending_withdrawals, withdrawal_hash, finalized)
-              new_state = %{state | pending_withdrawals: new_withdrawals}
+              new_state = %{_state | pending_withdrawals: new_withdrawals}
 
               Logger.info("Withdrawal finalized: #{Base.encode16(withdrawal_hash)}")
               {:reply, {:ok, finalized}, new_state}
@@ -293,7 +293,7 @@ defmodule ExWire.Layer2.Optimism.Protocol do
   end
 
   @impl true
-  def handle_call({:send_message, direction, target, message, gas_limit}, _from, state) do
+  def handle_call({:send_message, direction, target, message, gas_limit}, _from, _state) do
     msg = %{
       nonce: state.message_nonce,
       sender: get_messenger_address(direction, state),
@@ -313,7 +313,7 @@ defmodule ExWire.Layer2.Optimism.Protocol do
   end
 
   @impl true
-  def handle_call({:create_dispute_game, l2_block_number, claimed_output_root}, _from, state) do
+  def handle_call({:create_dispute_game, l2_block_number, claimed_output_root}, _from, _state) do
     game_id = generate_game_id()
 
     dispute_game = %{
@@ -336,7 +336,7 @@ defmodule ExWire.Layer2.Optimism.Protocol do
   end
 
   @impl true
-  def handle_info(:submit_output, state) do
+  def handle_info(:submit_output, _state) do
     # Periodic L2 output submission
     # In production, this would be done by the proposer role
     schedule_output_submission()
@@ -344,7 +344,7 @@ defmodule ExWire.Layer2.Optimism.Protocol do
   end
 
   @impl true
-  def handle_info(:relay_messages, state) do
+  def handle_info(:relay_messages, _state) do
     # Periodic message relay check
     schedule_message_relay()
     {:noreply, state}
@@ -387,7 +387,7 @@ defmodule ExWire.Layer2.Optimism.Protocol do
     StateCommitment.merkle_root(batch.transactions)
   end
 
-  defp submit_to_oracle(output, state) do
+  defp submit_to_oracle(output, _state) do
     # Submit to the actual L2OutputOracle contract on L1
     oracle_address = state.l1_contracts.l2_output_oracle
 
@@ -403,7 +403,7 @@ defmodule ExWire.Layer2.Optimism.Protocol do
         Logger.info("Submitted L2 output to oracle, tx: #{tx_hash}")
         {:ok, Map.put(output, :submission_hash, tx_hash)}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Failed to submit L2 output: #{inspect(reason)}")
         # Fallback for testing/development
         if Mix.env() == :test do
@@ -482,11 +482,11 @@ defmodule ExWire.Layer2.Optimism.Protocol do
     :ok
   end
 
-  defp get_messenger_address(:l1_to_l2, state) do
+  defp get_messenger_address(:l1_to_l2, _state) do
     state.l1_contracts.l1_cross_domain_messenger
   end
 
-  defp get_messenger_address(:l2_to_l1, state) do
+  defp get_messenger_address(:l2_to_l1, _state) do
     state.l2_contracts.l2_cross_domain_messenger
   end
 

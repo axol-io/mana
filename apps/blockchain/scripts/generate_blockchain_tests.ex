@@ -48,17 +48,13 @@ defmodule GenerateBlockchainTests do
 
   defp log_passing_count(hardfork, passing_count, all_tests) do
     IO.puts(
-      "Passing #{hardfork} tests: #{passing_count}/#{all_tests} = #{
-        round(passing_count / all_tests * 1000) / 10
-      }%"
+      "Passing #{hardfork} tests: #{passing_count}/#{all_tests} = #{round(passing_count / all_tests * 1000) / 10}%"
     )
   end
 
   defp log_failing_count(hardfork, failing_count, all_tests) do
     IO.puts(
-      "Failing #{hardfork} tests: #{failing_count}/#{all_tests} = #{
-        trunc(Float.round(failing_count / all_tests, 2) * 100)
-      }%"
+      "Failing #{hardfork} tests: #{failing_count}/#{all_tests} = #{trunc(Float.round(failing_count / all_tests, 2) * 100)}%"
     )
   end
 
@@ -150,7 +146,7 @@ defmodule GenerateBlockchainTests do
     Chain.test_config(hardfork)
   end
 
-  defp add_genesis_block(blocktree, json_test, state, chain) do
+  defp add_genesis_block(blocktree, json_test, _state, chain) do
     block =
       if json_test["genesisRLP"] do
         case Blockchain.Block.decode_rlp(json_test["genesisRLP"]) do
@@ -178,7 +174,7 @@ defmodule GenerateBlockchainTests do
     Blocktree.new_tree()
   end
 
-  defp add_blocks({blocktree, state}, json_test, chain) do
+  defp add_blocks({blocktree, _state}, json_test, chain) do
     Enum.reduce(json_test["blocks"], {blocktree, state}, fn json_block, {acc, state_acc} ->
       block = json_block["rlp"] |> Blockchain.Block.decode_rlp()
 

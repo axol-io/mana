@@ -176,7 +176,7 @@ defmodule ExWire.Config do
   def chain(given_params \\ []) do
     case get_env!(given_params, :chain) do
       chain when is_atom(chain) -> Chain.load_chain(chain)
-      _ -> raise "Chain config should be an atom"
+      _ -> raise "Chain _config should be an atom"
     end
   end
 

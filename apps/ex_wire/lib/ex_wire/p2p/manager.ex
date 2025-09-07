@@ -117,7 +117,7 @@ defmodule ExWire.P2P.Manager do
 
         conn_after_handle =
           case get_packet(session, message_id, packet_data) do
-            {:ok, packet_mod, packet} ->
+            {:ok, packet_mod, _packet} ->
               :ok =
                 Logger.debug(fn ->
                   "[Network] [#{peer}] Got packet `#{inspect(packet_mod)}` from #{peer.host_name}"
@@ -143,7 +143,7 @@ defmodule ExWire.P2P.Manager do
       {:error, :insufficient_data} ->
         %{conn | queued_data: total_data}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         _ =
           Logger.error(
             "[Network] [#{peer}] Failed to read incoming packet from #{peer.host_name} `#{to_string(reason)}`)"
@@ -154,7 +154,7 @@ defmodule ExWire.P2P.Manager do
   end
 
   @spec handle_packet(module(), Packet.packet(), Connection.t()) :: Connection.t()
-  defp handle_packet(packet_mod, packet, conn) do
+  defp handle_packet(packet_mod, _packet, conn) do
     packet_handle_response = packet_mod.handle(packet)
     session_status = if DEVp2p.session_active?(conn.session), do: :active, else: :inactive
 
@@ -176,7 +176,7 @@ defmodule ExWire.P2P.Manager do
     )
   end
 
-  defp do_handle_packet(packet, :inactive, {:activate, caps, p2p_version}, conn) do
+  defp do_handle_packet(_packet, :inactive, {:activate, caps, p2p_version}, conn) do
     new_session = attempt_session_activation(conn.session, packet)
     %{conn | peer: %{conn.peer | p2p_version: p2p_version, caps: caps}, session: new_session}
   end
@@ -196,7 +196,7 @@ defmodule ExWire.P2P.Manager do
   end
 
   @spec attempt_session_activation(Session.t(), Packet.packet()) :: Session.t()
-  defp attempt_session_activation(session, packet) do
+  defp attempt_session_activation(session, _packet) do
     case DEVp2p.handle_message(session, packet) do
       {:ok, updated_session} ->
         updated_session
@@ -243,7 +243,7 @@ defmodule ExWire.P2P.Manager do
   end
 
   @spec notify_subscribers(Packet.packet(), Connection.t()) :: list(any())
-  defp notify_subscribers(packet, conn) do
+  defp notify_subscribers(_packet, conn) do
     for subscriber <- Map.get(conn, :subscribers, []) do
       case subscriber do
         {module, function, args} -> apply(module, function, [packet | args])
@@ -298,7 +298,7 @@ defmodule ExWire.P2P.Manager do
   Function for sending a packet over to a peer.
   """
   @spec send_packet(Connection.t(), Packet.packet()) :: Connection.t()
-  def send_packet(conn, packet) do
+  def send_packet(conn, _packet) do
     %{socket: socket, secrets: secrets, peer: peer, session: session} = conn
 
     {:ok, message_id} = PacketIdMap.get_packet_id(session.packet_id_map, packet)

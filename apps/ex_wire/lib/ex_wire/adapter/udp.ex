@@ -22,7 +22,7 @@ defmodule ExWire.Adapter.UDP do
   Initialize by opening up a `gen_udp` server on a given port.
   """
   @impl true
-  def init(state = %{port: port}) do
+  def init(_state = %{port: port}) do
     {:ok, socket} = :gen_udp.open(port, [:binary])
 
     {:ok, Map.put(state, :socket, socket)}
@@ -38,7 +38,7 @@ defmodule ExWire.Adapter.UDP do
   @impl true
   def handle_info(
         {:udp, _socket, ip, port, data},
-        state = %{network: network, network_args: network_args}
+        _state = %{network: network, network_args: network_args}
       ) do
     Exth.trace(fn ->
       "Got UDP message from #{inspect(ip)}:#{to_string(port)} with #{byte_size(data)} bytes, handling with {#{Atom.to_string(network)}, #{inspect(network_args)}}"
@@ -75,7 +75,7 @@ defmodule ExWire.Adapter.UDP do
   @impl true
   def handle_cast(
         {:send, %{to: %{ip: ip, udp_port: udp_port}, data: data}},
-        state = %{socket: socket}
+        _state = %{socket: socket}
       )
       when not is_nil(udp_port) do
     Exth.trace(fn ->

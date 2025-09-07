@@ -19,7 +19,7 @@ defmodule ExWire.LoadTest.TransactionGenerator do
   @erc20_transfer_gas 65_000
   @simple_transfer_gas 21_000
   @contract_call_gas 100_000
-  @complex_operation_gas 300_000
+  # @complex_operation_gas 300_000 # TODO: Unused attribute
 
   # Common mainnet contract addresses for realistic testing
   @contracts %{

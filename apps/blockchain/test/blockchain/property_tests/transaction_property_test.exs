@@ -82,7 +82,7 @@ defmodule Blockchain.PropertyTests.TransactionPropertyTest do
   property_test "intrinsic gas cost properties" do
     check all(tx <- transaction()) do
       # Create a mock EVM config
-      config = %{contract_creation_cost: 32000}
+      _config = %{contract_creation_cost: 32000}
 
       gas_cost = Transaction.intrinsic_gas_cost(tx, config)
 

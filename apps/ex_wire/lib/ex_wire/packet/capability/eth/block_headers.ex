@@ -49,7 +49,7 @@ defmodule ExWire.Packet.Capability.Eth.BlockHeaders do
   """
   @impl true
   @spec serialize(t) :: ExRLP.t()
-  def serialize(packet = %__MODULE__{}) do
+  def serialize(_packet = %__MODULE__{}) do
     for header <- packet.headers, do: Header.serialize(header)
   end
 
@@ -88,7 +88,7 @@ defmodule ExWire.Packet.Capability.Eth.BlockHeaders do
   """
   @impl true
   @spec handle(ExWire.Packet.packet()) :: ExWire.Packet.handle_response()
-  def handle(packet = %__MODULE__{}) do
+  def handle(_packet = %__MODULE__{}) do
     # Process received block headers
     # These are typically requested during sync or validation
 

@@ -139,7 +139,7 @@ defmodule MerklePatriciaTree.DB.Antidote do
 
   @doc """
   Stores a key in the database (non-bang version for compatibility).
-  Returns {:ok, :ok} on success or {:error, reason} on failure.
+  Returns {:ok, :ok} on success or {:error, _reason} on failure.
   """
   def put(db_ref, key, value) do
     try do

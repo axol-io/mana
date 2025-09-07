@@ -104,7 +104,7 @@ defmodule ExWire.Layer2.Sequencer.Sequencer do
   Updates sequencer configuration.
   """
   @spec update_config(String.t(), map()) :: :ok | {:error, term()}
-  def update_config(sequencer_id, config) do
+  def update_config(sequencer_id, _config) do
     GenServer.call(via_tuple(sequencer_id), {:update_config, config})
   end
 
@@ -141,11 +141,11 @@ defmodule ExWire.Layer2.Sequencer.Sequencer do
     # Every minute
     Process.send_after(self(), :cleanup_mempool, 60_000)
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:submit_transaction, tx_params}, _from, state) do
+  def handle_call({:submit_transaction, tx_params}, _from, _state) do
     tx_hash = compute_tx_hash(tx_params)
 
     transaction = %{
@@ -169,32 +169,32 @@ defmodule ExWire.Layer2.Sequencer.Sequencer do
           if state.mev_protection do
             add_with_mev_protection(transaction, state.mempool)
           else
-            add_to_mempool(transaction, state.mempool, state.ordering_mode)
+            add_to_mempool(transaction, state.mempool, _state.ordering_mode)
           end
 
         Logger.debug("Transaction added to mempool: #{Base.encode16(tx_hash)}")
 
         {:reply, {:ok, tx_hash}, %{state | mempool: new_mempool}}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.warning("Transaction rejected: #{inspect(reason)}")
         {:reply, error, state}
     end
   end
 
   @impl true
-  def handle_call(:force_batch, _from, state) do
+  def handle_call(:force_batch, _from, _state) do
     case create_and_submit_batch(state) do
       {:ok, batch_id, new_state} ->
         {:reply, {:ok, batch_id}, new_state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         {:reply, error, state}
     end
   end
 
   @impl true
-  def handle_call(:get_mempool_status, _from, state) do
+  def handle_call(:get_mempool_status, _from, _state) do
     status = %{
       pending_count: length(state.mempool),
       current_batch_size: length(state.current_batch),
@@ -208,12 +208,12 @@ defmodule ExWire.Layer2.Sequencer.Sequencer do
   end
 
   @impl true
-  def handle_call({:get_transaction_status, tx_hash}, _from, state) do
+  def handle_call({:get_transaction_status, tx_hash}, _from, _state) do
     # Check mempool
     case find_transaction(tx_hash, state.mempool) do
       nil ->
         # Check current batch
-        case find_transaction(tx_hash, state.current_batch) do
+        case find_transaction(tx_hash, _state.current_batch) do
           nil ->
             {:reply, {:error, :not_found}, state}
 
@@ -227,7 +227,7 @@ defmodule ExWire.Layer2.Sequencer.Sequencer do
   end
 
   @impl true
-  def handle_call({:update_config, config}, _from, state) do
+  def handle_call({:update_config, _config}, _from, _state) do
     new_state = %{
       state
       | ordering_mode: config[:ordering_mode] || state.ordering_mode,
@@ -247,7 +247,7 @@ defmodule ExWire.Layer2.Sequencer.Sequencer do
   end
 
   @impl true
-  def handle_call({:handle_reorg, old_block, new_block}, _from, state) do
+  def handle_call({:handle_reorg, old_block, new_block}, _from, _state) do
     Logger.warning("Handling reorg from block #{old_block} to #{new_block}")
 
     # Re-add transactions from invalidated batches to mempool
@@ -260,7 +260,7 @@ defmodule ExWire.Layer2.Sequencer.Sequencer do
   end
 
   @impl true
-  def handle_info(:check_batch_creation, state) do
+  def handle_info(:check_batch_creation, _state) do
     time_since_last = DateTime.diff(DateTime.utc_now(), state.last_batch_time, :millisecond)
 
     new_state =
@@ -269,7 +269,7 @@ defmodule ExWire.Layer2.Sequencer.Sequencer do
           {:ok, _batch_id, updated_state} ->
             updated_state
 
-          {:error, reason} ->
+          {:error, _reason} ->
             Logger.error("Failed to create batch: #{inspect(reason)}")
             state
         end
@@ -282,7 +282,7 @@ defmodule ExWire.Layer2.Sequencer.Sequencer do
   end
 
   @impl true
-  def handle_info(:cleanup_mempool, state) do
+  def handle_info(:cleanup_mempool, _state) do
     # Remove expired transactions
     now = DateTime.utc_now()
     # 10 minutes
@@ -316,7 +316,7 @@ defmodule ExWire.Layer2.Sequencer.Sequencer do
     :crypto.hash(:sha256, data)
   end
 
-  defp validate_transaction(tx, state) do
+  defp validate_transaction(tx, _state) do
     cond do
       tx.gas_limit < 21_000 ->
         {:error, :gas_limit_too_low}
@@ -345,7 +345,7 @@ defmodule ExWire.Layer2.Sequencer.Sequencer do
     tx.nonce >= account_nonce && tx.nonce < account_nonce + 10
   end
 
-  defp get_account_nonce(address, state) do
+  defp get_account_nonce(address, _state) do
     # Check pending transactions in mempool for highest nonce
     pending_nonces =
       state.mempool
@@ -404,7 +404,7 @@ defmodule ExWire.Layer2.Sequencer.Sequencer do
         true
 
       # Critical transactions pending (high priority fees)
-      has_critical_transactions?(state.mempool) ->
+      has_critical_transactions?(_state.mempool) ->
         true
 
       true ->
@@ -420,7 +420,7 @@ defmodule ExWire.Layer2.Sequencer.Sequencer do
     end)
   end
 
-  defp create_and_submit_batch(state) do
+  defp create_and_submit_batch(_state) do
     # Select transactions for batch
     {batch_txs, remaining} =
       select_batch_transactions(
@@ -465,7 +465,7 @@ defmodule ExWire.Layer2.Sequencer.Sequencer do
 
           {:ok, batch_id, new_state}
 
-        {:error, reason} = error ->
+        {:error, _reason} = error ->
           Logger.error("Failed to submit batch: #{inspect(reason)}")
           error
       end

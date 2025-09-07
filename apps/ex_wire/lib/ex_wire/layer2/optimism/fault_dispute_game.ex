@@ -75,13 +75,13 @@ defmodule ExWire.Layer2.Optimism.FaultDisputeGame do
   Creates a new dispute game challenging an output root.
   """
   @spec create_game(map()) :: {:ok, String.t()} | {:error, term()}
-  def create_game(params) do
+  def create_game(_params) do
     game_id = generate_game_id()
     opts = Map.put(params, :game_id, game_id)
 
     case GenServer.start(__MODULE__, opts, name: via_tuple(game_id)) do
       {:ok, _pid} -> {:ok, game_id}
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -171,11 +171,11 @@ defmodule ExWire.Layer2.Optimism.FaultDisputeGame do
     # Schedule game timeout
     Process.send_after(self(), :check_timeout, 60_000)
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:move, parent_index, claim_data}, {from_pid, _}, state) do
+  def handle_call({:move, parent_index, claim_data}, {from_pid, _}, _state) do
     case get_claim(state, parent_index) do
       nil ->
         {:reply, {:error, :parent_not_found}, state}
@@ -205,7 +205,7 @@ defmodule ExWire.Layer2.Optimism.FaultDisputeGame do
   end
 
   @impl true
-  def handle_call({:defend, parent_index, claim_data}, {from_pid, _}, state) do
+  def handle_call({:defend, parent_index, claim_data}, {from_pid, _}, _state) do
     case get_claim(state, parent_index) do
       nil ->
         {:reply, {:error, :parent_not_found}, state}
@@ -248,7 +248,7 @@ defmodule ExWire.Layer2.Optimism.FaultDisputeGame do
   end
 
   @impl true
-  def handle_call({:step, claim_index, prestate, proof}, _from, state) do
+  def handle_call({:step, claim_index, prestate, proof}, _from, _state) do
     case get_claim(state, claim_index) do
       nil ->
         {:reply, {:error, :claim_not_found}, state}
@@ -271,7 +271,7 @@ defmodule ExWire.Layer2.Optimism.FaultDisputeGame do
               Logger.info("Step proof invalid - attacker wins at claim #{claim_index}")
               {:reply, {:ok, :invalid}, state}
 
-            {:error, reason} = error ->
+            {:error, _reason} = error ->
               Logger.error("Step verification failed: #{inspect(reason)}")
               {:reply, error, state}
           end
@@ -280,7 +280,7 @@ defmodule ExWire.Layer2.Optimism.FaultDisputeGame do
   end
 
   @impl true
-  def handle_call(:resolve, _from, state) do
+  def handle_call(:resolve, _from, _state) do
     case resolve_game(state) do
       {:ok, status} ->
         new_state = %{state | status: status, resolved_at: DateTime.utc_now()}
@@ -295,12 +295,12 @@ defmodule ExWire.Layer2.Optimism.FaultDisputeGame do
   end
 
   @impl true
-  def handle_call(:get_state, _from, state) do
-    {:reply, {:ok, state}, state}
+  def handle_call(:get_state, _from, _state) do
+    {:reply, {:ok, _state}, state}
   end
 
   @impl true
-  def handle_info(:check_timeout, state) do
+  def handle_info(:check_timeout, _state) do
     # Check if any clocks have expired
     now = DateTime.utc_now()
     game_age = DateTime.diff(now, state.created_at)
@@ -331,7 +331,7 @@ defmodule ExWire.Layer2.Optimism.FaultDisputeGame do
     "dispute_" <> Base.encode16(:crypto.strong_rand_bytes(16))
   end
 
-  defp get_claim(state, index) when index >= 0 and index < length(state.claims) do
+  defp get_claim(_state, index) when index >= 0 and index < length(state.claims) do
     Enum.at(state.claims, index)
   end
 
@@ -379,7 +379,7 @@ defmodule ExWire.Layer2.Optimism.FaultDisputeGame do
     div(parent_claim.clock, 2)
   end
 
-  defp verify_step_proof(claim, prestate, proof, state) do
+  defp verify_step_proof(claim, prestate, proof, _state) do
     # This would run the MIPS VM step function
     # For now, simulate verification
 
@@ -413,7 +413,7 @@ defmodule ExWire.Layer2.Optimism.FaultDisputeGame do
     {:ok, Enum.random([:valid, :invalid])}
   end
 
-  defp resolve_game(state) do
+  defp resolve_game(_state) do
     # Determine winner based on game tree
     # The uncountered claim closest to the root wins
 

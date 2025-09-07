@@ -64,9 +64,9 @@ defmodule ExWire.Telemetry.PrometheusExporter do
         Logger.info("Prometheus exporter started on port #{port}")
         {:ok, port}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Failed to start Prometheus exporter: #{inspect(reason)}")
-        {:error, reason}
+        {:error, _reason}
     end
   end
 
@@ -75,7 +75,7 @@ defmodule ExWire.Telemetry.PrometheusExporter do
   end
 
   @impl true
-  def handle_info(:update_metrics, state) do
+  def handle_info(:update_metrics, _state) do
     update_metrics()
     schedule_metric_update()
     {:noreply, state}
@@ -211,7 +211,7 @@ defmodule ExWire.Telemetry.PrometheusExporter do
   defmodule HealthHandler do
     @behaviour :cowboy_handler
 
-    def init(req, state) do
+    def init(req, _state) do
       req =
         :cowboy_req.reply(
           200,
@@ -228,7 +228,7 @@ defmodule ExWire.Telemetry.PrometheusExporter do
   defmodule ReadyHandler do
     @behaviour :cowboy_handler
 
-    def init(req, state) do
+    def init(req, _state) do
       # Check if node is synced and ready
       status =
         if is_node_ready?() do

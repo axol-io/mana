@@ -131,11 +131,11 @@ defmodule ExWire.Network.PartitionHandler do
       "[PartitionHandler] Started with detection threshold: #{config.detection_threshold}"
     )
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call(:get_partition_status, _from, state) do
+  def handle_call(:get_partition_status, _from, _state) do
     connectivity_ratio = calculate_connectivity_ratio(state.connectivity_matrix)
 
     status = %{
@@ -149,36 +149,36 @@ defmodule ExWire.Network.PartitionHandler do
   end
 
   @impl true
-  def handle_cast(:trigger_partition_check, state) do
+  def handle_cast(:trigger_partition_check, _state) do
     new_state = perform_partition_detection(state)
     {:noreply, new_state}
   end
 
-  def handle_cast(:force_recovery, state) do
+  def handle_cast(:force_recovery, _state) do
     Logger.info("[PartitionHandler] Forcing partition recovery")
     new_state = initiate_recovery(state)
     {:noreply, new_state}
   end
 
-  def handle_cast({:add_recovery_strategy, strategy}, state) do
+  def handle_cast({:add_recovery_strategy, strategy}, _state) do
     new_strategies = [strategy | state.recovery_strategies]
     {:noreply, %{state | recovery_strategies: new_strategies}}
   end
 
   @impl true
-  def handle_info(:partition_check, state) do
+  def handle_info(:partition_check, _state) do
     new_state = perform_partition_detection(state)
     schedule_partition_check(state.config.partition_check_interval)
     {:noreply, new_state}
   end
 
-  def handle_info(:recovery_timeout, state) do
+  def handle_info(:recovery_timeout, _state) do
     Logger.warning("[PartitionHandler] Recovery timeout reached")
 
     case state.partition_state do
       :recovery_in_progress ->
         # Recovery failed, try alternative strategies
-        new_state = try_alternative_recovery(state)
+        new_state = try_alternative_recovery(_state)
         {:noreply, new_state}
 
       _ ->
@@ -188,7 +188,7 @@ defmodule ExWire.Network.PartitionHandler do
 
   # Private functions
 
-  defp perform_partition_detection(state) do
+  defp perform_partition_detection(_state) do
     Logger.debug("[PartitionHandler] Performing partition detection")
 
     # Get current peer connectivity
@@ -339,7 +339,7 @@ defmodule ExWire.Network.PartitionHandler do
     end
   end
 
-  defp determine_partition_state(current_state, connectivity_ratio, group_count, config) do
+  defp determine_partition_state(current_state, connectivity_ratio, group_count, _config) do
     cond do
       # Healthy network: good connectivity, single group
       connectivity_ratio >= config.min_connectivity_ratio and group_count <= 1 ->
@@ -355,7 +355,7 @@ defmodule ExWire.Network.PartitionHandler do
 
       # Recovery conditions
       current_state == :recovery_in_progress ->
-        if connectivity_ratio >= config.min_connectivity_ratio and group_count <= 1 do
+        if connectivity_ratio >= _config.min_connectivity_ratio and group_count <= 1 do
           :healthy
         else
           :recovery_in_progress
@@ -366,9 +366,9 @@ defmodule ExWire.Network.PartitionHandler do
     end
   end
 
-  defp handle_partition_state_change(old_state, new_state, state) do
+  defp handle_partition_state_change(old_state, new_state, _state) do
     if old_state != new_state do
-      Logger.info("[PartitionHandler] Partition state changed: #{old_state} -> #{new_state}")
+      Logger.info("[PartitionHandler] Partition _state changed: #{old_state} -> #{new_state}")
 
       case new_state do
         :suspected_partition ->
@@ -391,11 +391,11 @@ defmodule ExWire.Network.PartitionHandler do
     end
   end
 
-  defp initiate_recovery(state) do
+  defp initiate_recovery(_state) do
     Logger.info("[PartitionHandler] Initiating partition recovery")
 
     # Update state to recovery mode
-    new_state = %{state | partition_state: :recovery_in_progress}
+    new_state = %{_state | partition_state: :recovery_in_progress}
 
     # Execute recovery strategies in order of priority
     enabled_strategies = Enum.filter(state.recovery_strategies, & &1.enabled)
@@ -412,12 +412,12 @@ defmodule ExWire.Network.PartitionHandler do
     end
 
     # Schedule recovery timeout
-    Process.send_after(self(), :recovery_timeout, state.config.recovery_timeout)
+    Process.send_after(self(), :recovery_timeout, _state._config.recovery_timeout)
 
     new_state
   end
 
-  defp execute_recovery_strategy(strategy, state) do
+  defp execute_recovery_strategy(strategy, _state) do
     Logger.info("[PartitionHandler] Executing recovery strategy: #{strategy.name}")
 
     case strategy.name do
@@ -428,7 +428,7 @@ defmodule ExWire.Network.PartitionHandler do
         execute_peer_discovery_boost(strategy.config, state)
 
       "connection_reset" ->
-        execute_connection_reset(strategy.config, state)
+        execute_connection_reset(strategy._config, _state)
 
       _ ->
         Logger.warning("[PartitionHandler] Unknown recovery strategy: #{strategy.name}")
@@ -436,7 +436,7 @@ defmodule ExWire.Network.PartitionHandler do
     end
   end
 
-  defp execute_bootstrap_reconnect(config, state) do
+  defp execute_bootstrap_reconnect(_config, _state) do
     Logger.info("[PartitionHandler] Attempting bootstrap node reconnection")
 
     bootstrap_nodes = Map.get(config, :nodes, state.config.bootstrap_nodes)
@@ -457,7 +457,7 @@ defmodule ExWire.Network.PartitionHandler do
             end
           end)
 
-        {:error, reason} ->
+        {:error, _reason} ->
           Logger.warning(
             "[PartitionHandler] Failed to parse bootstrap node URI: #{inspect(reason)}"
           )
@@ -467,7 +467,7 @@ defmodule ExWire.Network.PartitionHandler do
     state
   end
 
-  defp execute_peer_discovery_boost(_config, state) do
+  defp execute_peer_discovery_boost(_config, _state) do
     Logger.info("[PartitionHandler] Boosting peer discovery")
 
     # Trigger additional discovery rounds
@@ -483,7 +483,7 @@ defmodule ExWire.Network.PartitionHandler do
     state
   end
 
-  defp execute_connection_reset(_config, state) do
+  defp execute_connection_reset(_config, _state) do
     Logger.info("[PartitionHandler] Resetting problematic connections")
 
     # Get poorly performing peers and disconnect them
@@ -512,7 +512,7 @@ defmodule ExWire.Network.PartitionHandler do
     state
   end
 
-  defp try_alternative_recovery(state) do
+  defp try_alternative_recovery(_state) do
     Logger.info("[PartitionHandler] Trying alternative recovery strategies")
 
     # Get unused strategies
@@ -528,7 +528,7 @@ defmodule ExWire.Network.PartitionHandler do
 
       [] ->
         Logger.error("[PartitionHandler] All recovery strategies exhausted")
-        %{state | partition_state: :confirmed_partition}
+        %{_state | partition_state: :confirmed_partition}
     end
   end
 

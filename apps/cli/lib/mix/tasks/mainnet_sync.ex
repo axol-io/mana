@@ -173,7 +173,7 @@ defmodule Mix.Tasks.MainnetSync do
       {:ok, _blocktree} ->
         :ok = Logger.info("✅ P2P sync completed successfully!")
 
-      {:error, reason} ->
+      {:error, _reason} ->
         _ = Logger.error("❌ P2P sync failed: #{inspect(reason)}")
         System.halt(1)
     end
@@ -192,7 +192,7 @@ defmodule Mix.Tasks.MainnetSync do
       {:ok, _blocktree} ->
         :ok = Logger.info("✅ RPC sync completed successfully!")
 
-      {:error, reason} ->
+      {:error, _reason} ->
         _ = Logger.error("❌ RPC sync failed: #{inspect(reason)}")
         System.halt(1)
     end
@@ -213,7 +213,7 @@ defmodule Mix.Tasks.MainnetSync do
       {:ok, _blocktree} ->
         :ok = Logger.info("✅ Hybrid sync completed via P2P!")
 
-      {:error, reason} ->
+      {:error, _reason} ->
         :ok = Logger.warning("⚠️  P2P sync failed (#{inspect(reason)}), falling back to RPC...")
 
         # Fallback to RPC

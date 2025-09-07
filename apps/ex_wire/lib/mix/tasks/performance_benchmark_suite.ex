@@ -1,16 +1,16 @@
 defmodule Mix.Tasks.PerformanceBenchmarkSuite do
   @moduledoc """
   Comprehensive performance benchmarking suite for the entire Mana Ethereum client.
-  
+
   This task runs end-to-end performance benchmarks across all major components:
   - Verkle trees (targeting 35x speedup vs MPT)
   - Network layer (GossipSub optimization)
   - HSM operations (production provider performance)
   - EVM execution (opcode-level benchmarks)
   - Database operations (AntidoteDB CRDT performance)
-  
+
   ## Usage
-  
+
       mix performance.benchmark_suite --full
       mix performance.benchmark_suite --component verkle
       mix performance.benchmark_suite --duration 300 --samples 10000
@@ -27,9 +27,12 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
   @shortdoc "Run comprehensive performance benchmarks"
 
   @default_options %{
-    duration: 60,        # seconds
-    samples: 1000,       # number of operations per test
-    components: [:all],  # components to benchmark
+    # seconds
+    duration: 60,
+    # number of operations per test
+    samples: 1000,
+    # components to benchmark
+    components: [:all],
     output_format: :table,
     save_results: true,
     warmup_duration: 10,
@@ -40,116 +43,126 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
 
   def run(args) do
     options = parse_args(args)
-    
+
     Logger.info("Starting Mana Performance Benchmark Suite")
     Logger.info("Configuration: #{inspect(options)}")
-    
+
     # Start performance coordinator
     {:ok, _coordinator} = start_performance_coordinator()
-    
+
     # Run benchmarks based on selected components
     results = execute_benchmark_suite(options)
-    
+
     # Analyze and display results
     analysis = analyze_benchmark_results(results)
     display_results(results, analysis, options)
-    
+
     # Save results if requested
     if options.save_results do
       save_benchmark_results(results, analysis)
     end
-    
+
     # Generate performance report
     generate_performance_report(results, analysis)
-    
+
     Mix.shell().info("Benchmark suite completed successfully!")
   end
 
   ## Private Implementation
 
   defp parse_args(args) do
-    {parsed, _, _} = OptionParser.parse(args,
-      switches: [
-        full: :boolean,
-        component: :string,
-        duration: :integer,
-        samples: :integer,
-        output_format: :string,
-        save_results: :boolean,
-        warmup_duration: :integer,
-        parallel_workers: :integer,
-        verbose: :boolean
-      ],
-      aliases: [
-        c: :component,
-        d: :duration,
-        s: :samples,
-        v: :verbose
-      ]
-    )
-    
+    {parsed, _, _} =
+      OptionParser.parse(args,
+        switches: [
+          full: :boolean,
+          component: :string,
+          duration: :integer,
+          samples: :integer,
+          output_format: :string,
+          save_results: :boolean,
+          warmup_duration: :integer,
+          parallel_workers: :integer,
+          verbose: :boolean
+        ],
+        aliases: [
+          c: :component,
+          d: :duration,
+          s: :samples,
+          v: :verbose
+        ]
+      )
+
     options = Enum.into(parsed, @default_options)
-    
+
     # Parse component selection
-    components = cond do
-      options[:full] -> @benchmark_components
-      options[:component] -> [String.to_atom(options[:component])]
-      true -> [:all]
-    end
-    
+    components =
+      cond do
+        options[:full] -> @benchmark_components
+        options[:component] -> [String.to_atom(options[:component])]
+        true -> [:all]
+      end
+
     %{options | components: components}
   end
 
   defp start_performance_coordinator do
     case PerformanceCoordinator.start_link(auto_optimization: false) do
-      {:ok, pid} -> 
+      {:ok, pid} ->
         {:ok, pid}
-      {:error, {:already_started, pid}} -> 
+
+      {:error, {:already_started, pid}} ->
         {:ok, pid}
-      {:error, reason} -> 
+
+      {:error, _reason} ->
         Logger.warning("Failed to start performance coordinator: #{inspect(reason)}")
         {:ok, nil}
     end
   end
 
   defp execute_benchmark_suite(options) do
-    components_to_test = if :all in options.components do
-      @benchmark_components
-    else
-      options.components
-    end
-    
+    components_to_test =
+      if :all in options.components do
+        @benchmark_components
+      else
+        options.components
+      end
+
     Mix.shell().info("Running benchmarks for components: #{inspect(components_to_test)}")
-    
+
     # Warmup phase
     if options.warmup_duration > 0 do
       Mix.shell().info("Warmup phase: #{options.warmup_duration} seconds...")
       execute_warmup_phase(components_to_test, options)
     end
-    
+
     # Execute benchmarks for each component
-    results = Enum.map(components_to_test, fn component ->
-      Mix.shell().info("Benchmarking #{component}...")
-      {component, benchmark_component(component, options)}
-    end)
-    
+    results =
+      Enum.map(components_to_test, fn component ->
+        Mix.shell().info("Benchmarking #{component}...")
+        {component, benchmark_component(component, options)}
+      end)
+
     Map.new(results)
   end
 
   defp execute_warmup_phase(components, options) do
-    warmup_options = %{options | duration: options.warmup_duration, samples: div(options.samples, 10)}
-    
+    warmup_options = %{
+      options
+      | duration: options.warmup_duration,
+        samples: div(options.samples, 10)
+    }
+
     Enum.each(components, fn component ->
       benchmark_component(component, warmup_options)
     end)
-    
+
     # Allow system to stabilize
     Process.sleep(2000)
   end
 
   defp benchmark_component(:verkle, options) do
     Mix.shell().info("  → Verkle tree performance benchmarks")
-    
+
     %{
       insert_performance: benchmark_verkle_inserts(options),
       read_performance: benchmark_verkle_reads(options),
@@ -162,7 +175,7 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
 
   defp benchmark_component(:network, options) do
     Mix.shell().info("  → Network layer (GossipSub) benchmarks")
-    
+
     %{
       message_propagation: benchmark_message_propagation(options),
       mesh_optimization: benchmark_mesh_performance(options),
@@ -174,7 +187,7 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
 
   defp benchmark_component(:hsm, options) do
     Mix.shell().info("  → HSM performance benchmarks")
-    
+
     %{
       key_generation: benchmark_hsm_key_generation(options),
       signing_performance: benchmark_hsm_signing(options),
@@ -186,7 +199,7 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
 
   defp benchmark_component(:evm, options) do
     Mix.shell().info("  → EVM execution benchmarks")
-    
+
     %{
       opcode_execution: benchmark_evm_opcodes(options),
       gas_efficiency: benchmark_gas_efficiency(options),
@@ -198,7 +211,7 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
 
   defp benchmark_component(:database, options) do
     Mix.shell().info("  → Database (AntidoteDB CRDT) benchmarks")
-    
+
     %{
       crdt_operations: benchmark_crdt_operations(options),
       replication_performance: benchmark_replication(options),
@@ -210,7 +223,7 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
 
   defp benchmark_component(:system, options) do
     Mix.shell().info("  → System-wide performance benchmarks")
-    
+
     %{
       overall_throughput: benchmark_overall_throughput(options),
       resource_utilization: benchmark_resource_utilization(options),
@@ -224,21 +237,22 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
 
   defp benchmark_verkle_inserts(options) do
     samples = options.samples
-    
+
     # Generate test keys
     test_keys = generate_test_keys(samples, :sequential)
-    
+
     start_time = System.monotonic_time(:microsecond)
-    
+
     # Execute inserts
-    results = Enum.map(test_keys, fn key ->
-      value = :crypto.strong_rand_bytes(32)
-      measure_verkle_insert(key, value)
-    end)
-    
+    results =
+      Enum.map(test_keys, fn key ->
+        value = :crypto.strong_rand_bytes(32)
+        measure_verkle_insert(key, value)
+      end)
+
     end_time = System.monotonic_time(:microsecond)
-    successful_ops = Enum.count(results, & &1 != nil)
-    
+    successful_ops = Enum.count(results, &(&1 != nil))
+
     %{
       total_operations: samples,
       successful_operations: successful_ops,
@@ -253,21 +267,22 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
 
   defp benchmark_verkle_reads(options) do
     samples = options.samples
-    
+
     # Pre-populate with test data
     test_keys = generate_test_keys(samples, :random)
     populate_verkle_test_data(test_keys)
-    
+
     start_time = System.monotonic_time(:microsecond)
-    
+
     # Execute reads
-    results = Enum.map(test_keys, fn key ->
-      measure_verkle_read(key)
-    end)
-    
+    results =
+      Enum.map(test_keys, fn key ->
+        measure_verkle_read(key)
+      end)
+
     end_time = System.monotonic_time(:microsecond)
-    successful_ops = Enum.count(results, & &1 != nil)
-    
+    successful_ops = Enum.count(results, &(&1 != nil))
+
     %{
       total_operations: samples,
       successful_operations: successful_ops,
@@ -282,31 +297,32 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
 
   defp benchmark_witness_generation(options) do
     witness_counts = [10, 50, 100, 500, 1000]
-    
-    results = Enum.map(witness_counts, fn count ->
-      test_keys = generate_test_keys(count, :witness)
-      tree = create_test_verkle_tree()
-      
-      start_time = System.monotonic_time(:microsecond)
-      
-      case PerformanceWitness.generate_batch_optimized(tree, test_keys) do
-        {:ok, witnesses} ->
-          end_time = System.monotonic_time(:microsecond)
-          duration = end_time - start_time
-          
-          %{
-            witness_count: count,
-            generation_time_microseconds: duration,
-            witnesses_per_second: calculate_ops_per_second(count, duration),
-            average_witness_size: calculate_average_witness_size(witnesses),
-            success: true
-          }
-          
-        {:error, reason} ->
-          %{witness_count: count, success: false, error: reason}
-      end
-    end)
-    
+
+    results =
+      Enum.map(witness_counts, fn count ->
+        test_keys = generate_test_keys(count, :witness)
+        tree = create_test_verkle_tree()
+
+        start_time = System.monotonic_time(:microsecond)
+
+        case PerformanceWitness.generate_batch_optimized(tree, test_keys) do
+          {:ok, witnesses} ->
+            end_time = System.monotonic_time(:microsecond)
+            duration = end_time - start_time
+
+            %{
+              witness_count: count,
+              generation_time_microseconds: duration,
+              witnesses_per_second: calculate_ops_per_second(count, duration),
+              average_witness_size: calculate_average_witness_size(witnesses),
+              success: true
+            }
+
+          {:error, _reason} ->
+            %{witness_count: count, success: false, error: reason}
+        end
+      end)
+
     %{
       witness_generation_scaling: results,
       peak_witnesses_per_second: extract_peak_performance(results, :witnesses_per_second),
@@ -321,38 +337,43 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
       {:warm_cache, 0.5},
       {:hot_cache, 0.9}
     ]
-    
-    results = Enum.map(scenarios, fn {scenario_name, cache_warmth} ->
-      setup_cache_scenario(cache_warmth, options.samples)
-      
-      test_keys = generate_test_keys(options.samples, :cache_test)
-      
-      start_time = System.monotonic_time(:microsecond)
-      
-      cache_results = Enum.map(test_keys, fn key ->
-        case AdvancedCacheOptimizer.optimize_access_pattern(key, %{operation: :benchmark}) do
-          {:ok, result, _prefetch} -> 
-            {result, System.monotonic_time(:microsecond) - start_time}
-          {:error, _} -> 
-            nil
-        end
+
+    results =
+      Enum.map(scenarios, fn {scenario_name, cache_warmth} ->
+        setup_cache_scenario(cache_warmth, options.samples)
+
+        test_keys = generate_test_keys(options.samples, :cache_test)
+
+        start_time = System.monotonic_time(:microsecond)
+
+        cache_results =
+          Enum.map(test_keys, fn key ->
+            case AdvancedCacheOptimizer.optimize_access_pattern(key, %{operation: :benchmark}) do
+              {:ok, result, _prefetch} ->
+                {result, System.monotonic_time(:microsecond) - start_time}
+
+              {:error, _} ->
+                nil
+            end
+          end)
+
+        successful_ops = Enum.count(cache_results, &(&1 != nil))
+
+        cache_hits =
+          Enum.count(cache_results, fn
+            {{:cache_hit, _}, _} -> true
+            _ -> false
+          end)
+
+        %{
+          scenario: scenario_name,
+          total_operations: options.samples,
+          successful_operations: successful_ops,
+          cache_hit_rate: cache_hits / successful_ops,
+          average_response_time_microseconds: calculate_average_response_time(cache_results)
+        }
       end)
-      
-      successful_ops = Enum.count(cache_results, & &1 != nil)
-      cache_hits = Enum.count(cache_results, fn 
-        {{:cache_hit, _}, _} -> true
-        _ -> false
-      end)
-      
-      %{
-        scenario: scenario_name,
-        total_operations: options.samples,
-        successful_operations: successful_ops,
-        cache_hit_rate: cache_hits / successful_ops,
-        average_response_time_microseconds: calculate_average_response_time(cache_results)
-      }
-    end)
-    
+
     %{
       cache_scenarios: results,
       overall_cache_efficiency: calculate_overall_cache_efficiency(results)
@@ -361,32 +382,33 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
 
   defp benchmark_verkle_memory(options) do
     operation_counts = [100, 500, 1000, 5000, 10000]
-    
-    results = Enum.map(operation_counts, fn count ->
-      initial_memory = :erlang.memory(:total)
-      
-      # Execute operations
-      test_keys = generate_test_keys(count, :memory_test)
-      execute_verkle_operations(test_keys)
-      
-      peak_memory = :erlang.memory(:total)
-      
-      # Force garbage collection
-      :erlang.garbage_collect()
-      Process.sleep(100)
-      
-      final_memory = :erlang.memory(:total)
-      
-      %{
-        operation_count: count,
-        initial_memory_mb: bytes_to_mb(initial_memory),
-        peak_memory_mb: bytes_to_mb(peak_memory),
-        final_memory_mb: bytes_to_mb(final_memory),
-        memory_per_operation_kb: bytes_to_kb(peak_memory - initial_memory) / count,
-        memory_leaked_kb: bytes_to_kb(final_memory - initial_memory)
-      }
-    end)
-    
+
+    results =
+      Enum.map(operation_counts, fn count ->
+        initial_memory = :erlang.memory(:total)
+
+        # Execute operations
+        test_keys = generate_test_keys(count, :memory_test)
+        execute_verkle_operations(test_keys)
+
+        peak_memory = :erlang.memory(:total)
+
+        # Force garbage collection
+        :erlang.garbage_collect()
+        Process.sleep(100)
+
+        final_memory = :erlang.memory(:total)
+
+        %{
+          operation_count: count,
+          initial_memory_mb: bytes_to_mb(initial_memory),
+          peak_memory_mb: bytes_to_mb(peak_memory),
+          final_memory_mb: bytes_to_mb(final_memory),
+          memory_per_operation_kb: bytes_to_kb(peak_memory - initial_memory) / count,
+          memory_leaked_kb: bytes_to_kb(final_memory - initial_memory)
+        }
+      end)
+
     %{
       memory_scaling: results,
       memory_efficiency_score: calculate_memory_efficiency_score(results)
@@ -395,28 +417,29 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
 
   defp benchmark_verkle_vs_mpt(options) do
     comparison_sizes = [100, 500, 1000, 5000]
-    
-    results = Enum.map(comparison_sizes, fn size ->
-      test_keys = generate_test_keys(size, :comparison)
-      
-      # Benchmark Verkle performance
-      verkle_time = benchmark_verkle_operations(test_keys)
-      
-      # Benchmark MPT performance (simulated)
-      mpt_time = benchmark_mpt_operations(test_keys)
-      
-      speedup = mpt_time / verkle_time
-      
-      %{
-        data_size: size,
-        verkle_time_microseconds: verkle_time,
-        mpt_time_microseconds: mpt_time,
-        speedup_factor: speedup,
-        target_speedup: 35.0,
-        target_achieved: speedup >= 35.0
-      }
-    end)
-    
+
+    results =
+      Enum.map(comparison_sizes, fn size ->
+        test_keys = generate_test_keys(size, :comparison)
+
+        # Benchmark Verkle performance
+        verkle_time = benchmark_verkle_operations(test_keys)
+
+        # Benchmark MPT performance (simulated)
+        mpt_time = benchmark_mpt_operations(test_keys)
+
+        speedup = mpt_time / verkle_time
+
+        %{
+          data_size: size,
+          verkle_time_microseconds: verkle_time,
+          mpt_time_microseconds: mpt_time,
+          speedup_factor: speedup,
+          target_speedup: 35.0,
+          target_achieved: speedup >= 35.0
+        }
+      end)
+
     %{
       mpt_comparisons: results,
       overall_speedup: calculate_overall_speedup(results),
@@ -427,27 +450,29 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
   # Network Layer Benchmarks
 
   defp benchmark_message_propagation(options) do
-    message_sizes = [100, 1000, 10000, 100000]  # bytes
-    
-    results = Enum.map(message_sizes, fn size ->
-      message = :crypto.strong_rand_bytes(size)
-      
-      start_time = System.monotonic_time(:microsecond)
-      
-      # Simulate message propagation
-      propagation_result = simulate_gossipsub_propagation(message)
-      
-      end_time = System.monotonic_time(:microsecond)
-      
-      %{
-        message_size_bytes: size,
-        propagation_time_microseconds: end_time - start_time,
-        nodes_reached: propagation_result.nodes_reached,
-        success_rate: propagation_result.success_rate,
-        average_hop_latency_microseconds: propagation_result.average_hop_latency
-      }
-    end)
-    
+    # bytes
+    message_sizes = [100, 1000, 10000, 100_000]
+
+    results =
+      Enum.map(message_sizes, fn size ->
+        message = :crypto.strong_rand_bytes(size)
+
+        start_time = System.monotonic_time(:microsecond)
+
+        # Simulate message propagation
+        propagation_result = simulate_gossipsub_propagation(message)
+
+        end_time = System.monotonic_time(:microsecond)
+
+        %{
+          message_size_bytes: size,
+          propagation_time_microseconds: end_time - start_time,
+          nodes_reached: propagation_result.nodes_reached,
+          success_rate: propagation_result.success_rate,
+          average_hop_latency_microseconds: propagation_result.average_hop_latency
+        }
+      end)
+
     %{
       propagation_scaling: results,
       optimal_message_size: determine_optimal_message_size(results)
@@ -456,23 +481,24 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
 
   defp benchmark_mesh_performance(options) do
     mesh_sizes = [6, 8, 10, 12, 15]
-    
-    results = Enum.map(mesh_sizes, fn mesh_size ->
-      # Configure mesh
-      mesh_config = %{d: mesh_size, d_low: mesh_size - 2, d_high: mesh_size + 2}
-      
-      # Benchmark mesh performance
-      performance_metrics = measure_mesh_performance(mesh_config, options)
-      
-      %{
-        mesh_size: mesh_size,
-        message_latency_ms: performance_metrics.latency,
-        mesh_stability: performance_metrics.stability,
-        bandwidth_efficiency: performance_metrics.bandwidth_efficiency,
-        fault_tolerance: performance_metrics.fault_tolerance
-      }
-    end)
-    
+
+    results =
+      Enum.map(mesh_sizes, fn mesh_size ->
+        # Configure mesh
+        mesh_config = %{d: mesh_size, d_low: mesh_size - 2, d_high: mesh_size + 2}
+
+        # Benchmark mesh performance
+        performance_metrics = measure_mesh_performance(mesh_config, options)
+
+        %{
+          mesh_size: mesh_size,
+          message_latency_ms: performance_metrics.latency,
+          mesh_stability: performance_metrics.stability,
+          bandwidth_efficiency: performance_metrics.bandwidth_efficiency,
+          fault_tolerance: performance_metrics.fault_tolerance
+        }
+      end)
+
     %{
       mesh_scaling: results,
       optimal_mesh_size: determine_optimal_mesh_size(results)
@@ -483,31 +509,34 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
 
   defp benchmark_hsm_key_generation(options) do
     key_types = [:ecdsa, :rsa]
-    
-    results = Enum.map(key_types, fn key_type ->
-      samples = div(options.samples, 10)  # HSM operations are slower
-      
-      start_time = System.monotonic_time(:microsecond)
-      
-      generation_times = Enum.map(1..samples, fn i ->
-        key_id = "bench-#{key_type}-#{i}"
-        measure_hsm_key_generation(key_type, key_id)
+
+    results =
+      Enum.map(key_types, fn key_type ->
+        # HSM operations are slower
+        samples = div(options.samples, 10)
+
+        start_time = System.monotonic_time(:microsecond)
+
+        generation_times =
+          Enum.map(1..samples, fn i ->
+            key_id = "bench-#{key_type}-#{i}"
+            measure_hsm_key_generation(key_type, key_id)
+          end)
+
+        successful_ops = Enum.count(generation_times, &(&1 != nil))
+        end_time = System.monotonic_time(:microsecond)
+
+        %{
+          key_type: key_type,
+          total_operations: samples,
+          successful_operations: successful_ops,
+          total_duration_microseconds: end_time - start_time,
+          operations_per_second: calculate_ops_per_second(successful_ops, end_time - start_time),
+          average_latency_microseconds: calculate_average_latency(generation_times),
+          p99_latency_microseconds: calculate_percentile(generation_times, 99)
+        }
       end)
-      
-      successful_ops = Enum.count(generation_times, & &1 != nil)
-      end_time = System.monotonic_time(:microsecond)
-      
-      %{
-        key_type: key_type,
-        total_operations: samples,
-        successful_operations: successful_ops,
-        total_duration_microseconds: end_time - start_time,
-        operations_per_second: calculate_ops_per_second(successful_ops, end_time - start_time),
-        average_latency_microseconds: calculate_average_latency(generation_times),
-        p99_latency_microseconds: calculate_percentile(generation_times, 99)
-      }
-    end)
-    
+
     %{
       key_generation_performance: results
     }
@@ -515,35 +544,38 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
 
   defp benchmark_hsm_signing(options) do
     signing_algorithms = [:ecdsa_sha256, :rsa_pss_sha256]
-    
-    results = Enum.map(signing_algorithms, fn algorithm ->
-      samples = div(options.samples, 5)
-      
-      # Pre-create test key
-      test_key_id = "signing-bench-#{algorithm}"
-      key_type = algorithm_to_key_type(algorithm)
-      create_hsm_test_key(key_type, test_key_id)
-      
-      test_data = "benchmark signing data"
-      
-      signing_times = Enum.map(1..samples, fn _i ->
-        measure_hsm_signing_operation(test_key_id, test_data, algorithm)
+
+    results =
+      Enum.map(signing_algorithms, fn algorithm ->
+        samples = div(options.samples, 5)
+
+        # Pre-create test key
+        test_key_id = "signing-bench-#{algorithm}"
+        key_type = algorithm_to_key_type(algorithm)
+        create_hsm_test_key(key_type, test_key_id)
+
+        test_data = "benchmark signing data"
+
+        signing_times =
+          Enum.map(1..samples, fn _i ->
+            measure_hsm_signing_operation(test_key_id, test_data, algorithm)
+          end)
+
+        successful_ops = Enum.count(signing_times, &(&1 != nil))
+
+        # Cleanup
+        cleanup_hsm_test_key(test_key_id)
+
+        %{
+          algorithm: algorithm,
+          total_operations: samples,
+          successful_operations: successful_ops,
+          # Estimate
+          operations_per_second: calculate_ops_per_second(successful_ops, samples * 1000),
+          average_latency_microseconds: calculate_average_latency(signing_times)
+        }
       end)
-      
-      successful_ops = Enum.count(signing_times, & &1 != nil)
-      
-      # Cleanup
-      cleanup_hsm_test_key(test_key_id)
-      
-      %{
-        algorithm: algorithm,
-        total_operations: samples,
-        successful_operations: successful_ops,
-        operations_per_second: calculate_ops_per_second(successful_ops, samples * 1000),  # Estimate
-        average_latency_microseconds: calculate_average_latency(signing_times)
-      }
-    end)
-    
+
     %{
       signing_performance: results
     }
@@ -582,41 +614,55 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
   end
 
   defp display_table_format(results, analysis) do
-    Mix.shell().info("\n" <> IO.ANSI.bright() <> "MANA PERFORMANCE BENCHMARK RESULTS" <> IO.ANSI.reset())
+    Mix.shell().info(
+      "\n" <> IO.ANSI.bright() <> "MANA PERFORMANCE BENCHMARK RESULTS" <> IO.ANSI.reset()
+    )
+
     Mix.shell().info("=" <> String.duplicate("=", 50))
-    
+
     # Overall Performance Score
     overall_score = analysis.performance_summary.overall_score
     score_color = if overall_score >= 80, do: IO.ANSI.green(), else: IO.ANSI.yellow()
-    Mix.shell().info("Overall Performance Score: #{score_color}#{Float.round(overall_score, 1)}%#{IO.ANSI.reset()}")
-    
+
+    Mix.shell().info(
+      "Overall Performance Score: #{score_color}#{Float.round(overall_score, 1)}%#{IO.ANSI.reset()}"
+    )
+
     # Component Results
     Enum.each(results, fn {component, component_results} ->
       display_component_results(component, component_results)
     end)
-    
+
     # Key Achievements
     Mix.shell().info("\n" <> IO.ANSI.bright() <> "KEY ACHIEVEMENTS:" <> IO.ANSI.reset())
+
     Enum.each(analysis.performance_summary.achievement_highlights, fn achievement ->
       Mix.shell().info("  ✅ #{achievement}")
     end)
-    
+
     # Recommendations
-    Mix.shell().info("\n" <> IO.ANSI.bright() <> "OPTIMIZATION RECOMMENDATIONS:" <> IO.ANSI.reset())
+    Mix.shell().info(
+      "\n" <> IO.ANSI.bright() <> "OPTIMIZATION RECOMMENDATIONS:" <> IO.ANSI.reset()
+    )
+
     Enum.each(analysis.optimization_recommendations, fn rec ->
-      priority_color = case rec.priority do
-        :critical -> IO.ANSI.red()
-        :high -> IO.ANSI.yellow()
-        :medium -> IO.ANSI.blue()
-        :low -> IO.ANSI.green()
-      end
-      Mix.shell().info("  #{priority_color}#{String.upcase(to_string(rec.priority))}#{IO.ANSI.reset()}: #{rec.description}")
+      priority_color =
+        case rec.priority do
+          :critical -> IO.ANSI.red()
+          :high -> IO.ANSI.yellow()
+          :medium -> IO.ANSI.blue()
+          :low -> IO.ANSI.green()
+        end
+
+      Mix.shell().info(
+        "  #{priority_color}#{String.upcase(to_string(rec.priority))}#{IO.ANSI.reset()}: #{rec.description}"
+      )
     end)
   end
 
   defp display_component_results(component, results) do
     Mix.shell().info("\n#{String.upcase(to_string(component))} PERFORMANCE:")
-    
+
     case component do
       :verkle -> display_verkle_results(results)
       :network -> display_network_results(results)
@@ -629,29 +675,36 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
 
   defp display_verkle_results(results) do
     if insert_perf = results[:insert_performance] do
-      Mix.shell().info("  Inserts: #{format_ops_per_sec(insert_perf.operations_per_second)} (#{format_latency(insert_perf.average_latency_microseconds)})")
+      Mix.shell().info(
+        "  Inserts: #{format_ops_per_sec(insert_perf.operations_per_second)} (#{format_latency(insert_perf.average_latency_microseconds)})"
+      )
     end
-    
+
     if read_perf = results[:read_performance] do
-      Mix.shell().info("  Reads: #{format_ops_per_sec(read_perf.operations_per_second)} (cache hit: #{Float.round(read_perf.cache_hit_rate * 100, 1)}%)")
+      Mix.shell().info(
+        "  Reads: #{format_ops_per_sec(read_perf.operations_per_second)} (cache hit: #{Float.round(read_perf.cache_hit_rate * 100, 1)}%)"
+      )
     end
-    
+
     if witness_perf = results[:witness_generation] do
       peak_witnesses = witness_perf.peak_witnesses_per_second
       Mix.shell().info("  Witness Generation: #{format_number(peak_witnesses)} witnesses/sec")
     end
-    
+
     if mpt_comparison = results[:mpt_comparison] do
       speedup = mpt_comparison.overall_speedup
       color = if speedup >= 35.0, do: IO.ANSI.green(), else: IO.ANSI.yellow()
-      Mix.shell().info("  MPT Speedup: #{color}#{Float.round(speedup, 1)}x#{IO.ANSI.reset()} (target: 35x)")
+
+      Mix.shell().info(
+        "  MPT Speedup: #{color}#{Float.round(speedup, 1)}x#{IO.ANSI.reset()} (target: 35x)"
+      )
     end
   end
 
   defp save_benchmark_results(results, analysis) do
     timestamp = DateTime.utc_now() |> DateTime.to_string() |> String.replace(~r/[^\w\-]/, "_")
     filename = "mana_performance_benchmark_#{timestamp}.json"
-    
+
     benchmark_data = %{
       timestamp: DateTime.utc_now(),
       results: results,
@@ -659,13 +712,13 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
       system_info: get_system_info(),
       configuration: get_benchmark_configuration()
     }
-    
+
     case Jason.encode(benchmark_data, pretty: true) do
       {:ok, json} ->
         File.write!(filename, json)
         Mix.shell().info("Results saved to: #{filename}")
-        
-      {:error, reason} ->
+
+      {:error, _reason} ->
         Logger.error("Failed to save results: #{inspect(reason)}")
     end
   end
@@ -673,28 +726,28 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
   defp generate_performance_report(results, analysis) do
     report_content = """
     # Mana Ethereum Client Performance Report
-    
+
     Generated: #{DateTime.utc_now()}
-    
+
     ## Executive Summary
-    
+
     Overall Performance Score: #{Float.round(analysis.performance_summary.overall_score, 1)}%
-    
+
     #{generate_executive_summary(results, analysis)}
-    
+
     ## Detailed Results
-    
+
     #{generate_detailed_report_content(results, analysis)}
-    
+
     ## Recommendations
-    
+
     #{generate_recommendations_content(analysis.optimization_recommendations)}
-    
+
     ## Conclusion
-    
+
     #{generate_conclusion(results, analysis)}
     """
-    
+
     File.write!("PERFORMANCE_REPORT.md", report_content)
     Mix.shell().info("Detailed performance report saved to: PERFORMANCE_REPORT.md")
   end
@@ -703,29 +756,36 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
 
   defp generate_test_keys(count, type) do
     case type do
-      :sequential -> 
-        1..count |> Enum.map(&("sequential_key_#{&1}"))
+      :sequential ->
+        1..count |> Enum.map(&"sequential_key_#{&1}")
+
       :random ->
         1..count |> Enum.map(fn _ -> "random_key_#{:rand.uniform(1_000_000)}" end)
+
       :witness ->
-        1..count |> Enum.map(&("witness_key_#{&1}"))
+        1..count |> Enum.map(&"witness_key_#{&1}")
+
       :cache_test ->
-        1..count |> Enum.map(&("cache_test_key_#{&1}"))
+        1..count |> Enum.map(&"cache_test_key_#{&1}")
+
       :memory_test ->
-        1..count |> Enum.map(&("memory_test_key_#{&1}"))
+        1..count |> Enum.map(&"memory_test_key_#{&1}")
+
       :comparison ->
-        1..count |> Enum.map(&("comparison_key_#{&1}"))
+        1..count |> Enum.map(&"comparison_key_#{&1}")
     end
   end
 
-  defp calculate_ops_per_second(operations, duration_microseconds) when duration_microseconds > 0 do
+  defp calculate_ops_per_second(operations, duration_microseconds)
+       when duration_microseconds > 0 do
     operations * 1_000_000 / duration_microseconds
   end
-  
+
   defp calculate_ops_per_second(_, 0), do: 0
 
   defp calculate_average_latency(latencies) do
-    valid_latencies = Enum.filter(latencies, & &1 != nil)
+    valid_latencies = Enum.filter(latencies, &(&1 != nil))
+
     if length(valid_latencies) > 0 do
       Enum.sum(valid_latencies) / length(valid_latencies)
     else
@@ -734,9 +794,9 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
   end
 
   defp calculate_percentile(values, percentile) do
-    valid_values = Enum.filter(values, & &1 != nil) |> Enum.sort()
+    valid_values = Enum.filter(values, &(&1 != nil)) |> Enum.sort()
     count = length(valid_values)
-    
+
     if count > 0 do
       index = max(1, ceil(count * percentile / 100)) - 1
       Enum.at(valid_values, index)
@@ -748,11 +808,11 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
   defp format_ops_per_sec(ops) when ops > 1_000_000 do
     "#{Float.round(ops / 1_000_000, 2)}M ops/sec"
   end
-  
+
   defp format_ops_per_sec(ops) when ops > 1_000 do
     "#{Float.round(ops / 1_000, 1)}K ops/sec"
   end
-  
+
   defp format_ops_per_sec(ops) do
     "#{Float.round(ops, 0)} ops/sec"
   end
@@ -760,7 +820,7 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
   defp format_latency(latency_microseconds) when latency_microseconds > 1_000 do
     "#{Float.round(latency_microseconds / 1_000, 2)}ms"
   end
-  
+
   defp format_latency(latency_microseconds) do
     "#{Float.round(latency_microseconds, 0)}μs"
   end
@@ -768,11 +828,11 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
   defp format_number(number) when number > 1_000_000 do
     "#{Float.round(number / 1_000_000, 2)}M"
   end
-  
+
   defp format_number(number) when number > 1_000 do
     "#{Float.round(number / 1_000, 1)}K"
   end
-  
+
   defp format_number(number) do
     "#{Float.round(number, 0)}"
   end
@@ -781,14 +841,17 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
   defp bytes_to_kb(bytes), do: bytes / 1024
 
   # Placeholder implementations for complex benchmarking functions
-  
+
   defp measure_verkle_insert(_key, _value), do: :rand.uniform(100)
   defp measure_verkle_read(_key), do: :rand.uniform(10)
   defp populate_verkle_test_data(_keys), do: :ok
   defp calculate_cache_hit_rate(_keys), do: 0.92
   defp create_test_verkle_tree, do: %{}
   defp calculate_average_witness_size(_witnesses), do: 1024
-  defp extract_peak_performance(results, field), do: results |> Enum.map(&Map.get(&1, field, 0)) |> Enum.max()
+
+  defp extract_peak_performance(results, field),
+    do: results |> Enum.map(&Map.get(&1, field, 0)) |> Enum.max()
+
   defp determine_optimal_batch_size(_results), do: 64
   defp setup_cache_scenario(_warmth, _samples), do: :ok
   defp calculate_average_response_time(_results), do: 50.0
@@ -796,14 +859,24 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
   defp execute_verkle_operations(_keys), do: :ok
   defp calculate_memory_efficiency_score(_results), do: 85.0
   defp benchmark_verkle_operations(_keys), do: 1000
-  defp benchmark_mpt_operations(keys), do: length(keys) * 35  # Simulate 35x slower
-  defp calculate_overall_speedup(results), do: (results |> Enum.map(&Map.get(&1, :speedup_factor, 1)) |> Enum.sum()) / length(results)
-  defp calculate_target_achievement_rate(results), do: Enum.count(results, &Map.get(&1, :target_achieved, false)) / length(results)
+  # Simulate 35x slower
+  defp benchmark_mpt_operations(keys), do: length(keys) * 35
+
+  defp calculate_overall_speedup(results),
+    do: (results |> Enum.map(&Map.get(&1, :speedup_factor, 1)) |> Enum.sum()) / length(results)
+
+  defp calculate_target_achievement_rate(results),
+    do: Enum.count(results, &Map.get(&1, :target_achieved, false)) / length(results)
 
   # Network benchmarking placeholders
-  defp simulate_gossipsub_propagation(_message), do: %{nodes_reached: 50, success_rate: 0.95, average_hop_latency: 25}
+  defp simulate_gossipsub_propagation(_message),
+    do: %{nodes_reached: 50, success_rate: 0.95, average_hop_latency: 25}
+
   defp determine_optimal_message_size(_results), do: 1024
-  defp measure_mesh_performance(_config, _options), do: %{latency: 45, stability: 0.9, bandwidth_efficiency: 0.85, fault_tolerance: 0.95}
+
+  defp measure_mesh_performance(_config, _options),
+    do: %{latency: 45, stability: 0.9, bandwidth_efficiency: 0.85, fault_tolerance: 0.95}
+
   defp determine_optimal_mesh_size(_results), do: 10
 
   # HSM benchmarking placeholders
@@ -813,12 +886,12 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
   defp create_hsm_test_key(_type, _id), do: :ok
   defp measure_hsm_signing_operation(_key_id, _data, _algorithm), do: :rand.uniform(10_000)
   defp cleanup_hsm_test_key(_id), do: :ok
-  
+
   # Missing HSM benchmark functions
   defp benchmark_hsm_providers(_options), do: %{throughput: 10000}
   defp benchmark_hsm_concurrency(_options), do: %{concurrent_operations: 100}
   defp benchmark_hsm_verification(_options), do: %{verifications_per_second: 5000}
-  
+
   # Missing network benchmark functions
   defp benchmark_blob_propagation(_options), do: %{propagation_time_ms: 250}
   defp benchmark_gossip_efficiency(_options), do: %{efficiency_rate: 0.95}
@@ -847,12 +920,24 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
 
   # Analysis placeholders
   defp calculate_overall_performance_score(_results), do: 82.5
-  defp calculate_component_scores(_results), do: %{verkle: 85, network: 78, hsm: 72, evm: 80, database: 88}
+
+  defp calculate_component_scores(_results),
+    do: %{verkle: 85, network: 78, hsm: 72, evm: 80, database: 88}
+
   defp extract_key_metrics(_results), do: %{peak_throughput: "6.8M ops/sec", avg_latency: "45ms"}
-  defp identify_achievements(_results), do: ["Verkle trees achieving 10.9x speedup vs MPT", "Cache hit rate of 92%"]
-  defp identify_improvement_areas(_results), do: ["HSM operation optimization", "Network mesh tuning"]
-  defp identify_performance_bottlenecks(_results), do: %{primary: "HSM key generation", secondary: "Network propagation latency"}
-  defp generate_optimization_recommendations(_results), do: [%{priority: :high, description: "Enable advanced cache optimizer"}]
+
+  defp identify_achievements(_results),
+    do: ["Verkle trees achieving 10.9x speedup vs MPT", "Cache hit rate of 92%"]
+
+  defp identify_improvement_areas(_results),
+    do: ["HSM operation optimization", "Network mesh tuning"]
+
+  defp identify_performance_bottlenecks(_results),
+    do: %{primary: "HSM key generation", secondary: "Network propagation latency"}
+
+  defp generate_optimization_recommendations(_results),
+    do: [%{priority: :high, description: "Enable advanced cache optimizer"}]
+
   defp assess_target_achievement(_results), do: %{targets_met: 7, targets_total: 10}
   defp perform_regression_analysis(_results), do: %{trend: :improving}
   defp perform_comparative_analysis(_results), do: %{vs_previous: "+15%"}
@@ -870,8 +955,15 @@ defmodule Mix.Tasks.PerformanceBenchmarkSuite do
   # Reporting placeholders
   defp get_system_info, do: %{os: "Linux", cores: 8, memory: "32GB"}
   defp get_benchmark_configuration, do: %{version: "1.0", mode: "production"}
-  defp generate_executive_summary(_results, _analysis), do: "Performance is within expected parameters."
-  defp generate_detailed_report_content(_results, _analysis), do: "Detailed analysis shows strong performance across all components."
-  defp generate_recommendations_content(_recommendations), do: "Enable advanced optimizations for improved performance."
+
+  defp generate_executive_summary(_results, _analysis),
+    do: "Performance is within expected parameters."
+
+  defp generate_detailed_report_content(_results, _analysis),
+    do: "Detailed analysis shows strong performance across all components."
+
+  defp generate_recommendations_content(_recommendations),
+    do: "Enable advanced optimizations for improved performance."
+
   defp generate_conclusion(_results, _analysis), do: "System is ready for production deployment."
 end

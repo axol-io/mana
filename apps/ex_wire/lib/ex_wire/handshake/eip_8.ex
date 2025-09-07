@@ -135,7 +135,7 @@ defmodule ExWire.Handshake.EIP8 do
 
             {:ok, rlp, auth_size <> ecies_encoded_message, frame_rest}
           else
-            {:error, reason} ->
+            {:error, _reason} ->
               Logger.error("[EIP-8] ECIES decryption failed: #{inspect(reason)}")
               {:error, "ECIES decryption failed: #{inspect(reason)}"}
           end

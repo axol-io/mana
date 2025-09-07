@@ -624,7 +624,7 @@ td.source {
 <tr class="miss">
 <td class="line" id="L104"><a href="#L104">104</a></td>
 <td class="hits"><pre style="display: inline;">:-(</pre></td>
-<td class="source"><code>    {:ok, config} = ConfigManager.get_component_config(:monitoring)</code></td>
+<td class="source"><code>    {:ok, _config} = ConfigManager.get_component_config(:monitoring)</code></td>
 </tr>
 <tr>
 <td class="line" id="L105"><a href="#L105">105</a></td>
@@ -744,7 +744,7 @@ td.source {
 <tr>
 <td class="line" id="L128"><a href="#L128">128</a></td>
 <td class="hits"></td>
-<td class="source"><code>    {:ok, state}</code></td>
+<td class="source"><code>    {:ok, _state}</code></td>
 </tr>
 <tr>
 <td class="line" id="L129"><a href="#L129">129</a></td>
@@ -759,7 +759,7 @@ td.source {
 <tr>
 <td class="line" id="L131"><a href="#L131">131</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_info({:health_check, component}, state) do</code></td>
+<td class="source"><code>  def handle_info({:health_check, component}, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L132"><a href="#L132">132</a></td>
@@ -819,7 +819,7 @@ td.source {
 <tr>
 <td class="line" id="L143"><a href="#L143">143</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_info(:collect_performance_metrics, state) do</code></td>
+<td class="source"><code>  def handle_info(:collect_performance_metrics, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L144"><a href="#L144">144</a></td>
@@ -894,7 +894,7 @@ td.source {
 <tr>
 <td class="line" id="L158"><a href="#L158">158</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_call(:get_health_status, _from, state) do</code></td>
+<td class="source"><code>  def handle_call(:get_health_status, _from, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L159"><a href="#L159">159</a></td>
@@ -959,7 +959,7 @@ td.source {
 <tr>
 <td class="line" id="L171"><a href="#L171">171</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_call(:get_performance_metrics, _from, state) do</code></td>
+<td class="source"><code>  def handle_call(:get_performance_metrics, _from, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L172"><a href="#L172">172</a></td>
@@ -1019,7 +1019,7 @@ td.source {
 <tr>
 <td class="line" id="L183"><a href="#L183">183</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_call(:get_alerts, _from, state) do</code></td>
+<td class="source"><code>  def handle_call(:get_alerts, _from, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L184"><a href="#L184">184</a></td>
@@ -1069,7 +1069,7 @@ td.source {
 <tr>
 <td class="line" id="L193"><a href="#L193">193</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_call({:resolve_alert, alert_id}, _from, state) do</code></td>
+<td class="source"><code>  def handle_call({:resolve_alert, alert_id}, _from, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L194"><a href="#L194">194</a></td>
@@ -1189,7 +1189,7 @@ td.source {
 <tr>
 <td class="line" id="L217"><a href="#L217">217</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_call({:trigger_health_check, component}, _from, state) do</code></td>
+<td class="source"><code>  def handle_call({:trigger_health_check, component}, _from, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L218"><a href="#L218">218</a></td>
@@ -1214,7 +1214,7 @@ td.source {
 <tr>
 <td class="line" id="L222"><a href="#L222">222</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_call(:get_stats, _from, state) do</code></td>
+<td class="source"><code>  def handle_call(:get_stats, _from, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L223"><a href="#L223">223</a></td>
@@ -1689,7 +1689,7 @@ td.source {
 <tr>
 <td class="line" id="L317"><a href="#L317">317</a></td>
 <td class="hits"></td>
-<td class="source"><code>  defp perform_health_check(component, state) do</code></td>
+<td class="source"><code>  defp perform_health_check(component, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L318"><a href="#L318">318</a></td>
@@ -2749,7 +2749,7 @@ td.source {
 <tr>
 <td class="line" id="L529"><a href="#L529">529</a></td>
 <td class="hits"></td>
-<td class="source"><code>  defp check_and_generate_alerts(component, health_result, state) do</code></td>
+<td class="source"><code>  defp check_and_generate_alerts(component, health_result, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L530"><a href="#L530">530</a></td>
@@ -3009,7 +3009,7 @@ td.source {
 <tr>
 <td class="line" id="L581"><a href="#L581">581</a></td>
 <td class="hits"></td>
-<td class="source"><code>  defp check_performance_alerts(metrics, state) do</code></td>
+<td class="source"><code>  defp check_performance_alerts(metrics, _state) do</code></td>
 </tr>
 <tr>
 <td class="line" id="L582"><a href="#L582">582</a></td>
@@ -3044,7 +3044,7 @@ td.source {
 <tr>
 <td class="line" id="L588"><a href="#L588">588</a></td>
 <td class="hits"></td>
-<td class="source"><code>  defp check_component_performance_alerts(component, metrics, state) do</code></td>
+<td class="source"><code>  defp check_component_performance_alerts(component, metrics, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L589"><a href="#L589">589</a></td>
@@ -3484,7 +3484,7 @@ td.source {
 <tr>
 <td class="line" id="L676"><a href="#L676">676</a></td>
 <td class="hits"></td>
-<td class="source"><code>  defp add_alert(alert, state) do</code></td>
+<td class="source"><code>  defp add_alert(alert, _state) do</code></td>
 </tr>
 <tr>
 <td class="line" id="L677"><a href="#L677">677</a></td>

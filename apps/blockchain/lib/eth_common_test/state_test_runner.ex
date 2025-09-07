@@ -119,7 +119,7 @@ defmodule EthCommonTest.StateTestRunner do
     }
   end
 
-  defp create_accounts(state, test) do
+  defp create_accounts(_state, test) do
     db = state.db
 
     Enum.reduce(test["pre"], state, fn {address, account}, state ->

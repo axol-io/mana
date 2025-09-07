@@ -116,7 +116,7 @@ defmodule ExWire.Sync do
       request_next_block(@startup_delay)
     end
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   defp request_next_block(timeout \\ 0) do
@@ -126,7 +126,7 @@ defmodule ExWire.Sync do
   @impl true
   def handle_cast(
         {:processed_block_chunk, chunk_hash, processed_blocks, block},
-        state = %{warp_queue: warp_queue}
+        _state = %{warp_queue: warp_queue}
       ) do
     next_state =
       warp_queue
@@ -139,7 +139,7 @@ defmodule ExWire.Sync do
 
   def handle_cast(
         {:processed_state_chunk, chunk_hash, processed_accounts, state_root},
-        state = %{warp_queue: warp_queue}
+        _state = %{warp_queue: warp_queue}
       ) do
     next_state =
       warp_queue
@@ -157,14 +157,14 @@ defmodule ExWire.Sync do
   @impl true
   def handle_info(
         :request_next_block,
-        state = %{block_queue: block_queue, block_tree: block_tree}
+        _state = %{block_queue: block_queue, block_tree: block_tree}
       ) do
     new_state = handle_request_next_block(block_queue, block_tree, state)
 
     {:noreply, new_state}
   end
 
-  def handle_info(:resume_warp, state = %{warp_queue: warp_queue}) do
+  def handle_info(:resume_warp, _state = %{warp_queue: warp_queue}) do
     new_state =
       warp_queue
       |> dispatch_new_warp_queue_requests()
@@ -173,45 +173,45 @@ defmodule ExWire.Sync do
     {:noreply, new_state}
   end
 
-  def handle_info(:request_manifest, state) do
+  def handle_info(:request_manifest, _state) do
     new_state = handle_request_manifest(state)
 
     {:noreply, new_state}
   end
 
-  def handle_info({:request_chunk, chunk_hash}, state) do
+  def handle_info({:request_chunk, chunk_hash}, _state) do
     new_state = handle_request_chunk(chunk_hash, state)
 
     {:noreply, new_state}
   end
 
-  def handle_info({:packet, %BlockHeaders{} = block_headers, peer}, state) do
+  def handle_info({:_packet, %BlockHeaders{} = block_headers, peer}, _state) do
     {:noreply, handle_block_headers(block_headers, peer, state)}
   end
 
-  def handle_info({:packet, %BlockBodies{} = block_bodies, _peer}, state) do
+  def handle_info({:_packet, %BlockBodies{} = block_bodies, _peer}, _state) do
     {:noreply, handle_block_bodies(block_bodies, state)}
   end
 
-  def handle_info({:packet, %SnapshotManifest{} = snapshot_manifest, peer}, state) do
+  def handle_info({:_packet, %SnapshotManifest{} = snapshot_manifest, peer}, _state) do
     {:noreply, handle_snapshot_manifest(snapshot_manifest, peer, state)}
   end
 
   def handle_info(
-        {:packet, %SnapshotData{} = snapshot_data, peer},
-        state
+        {:_packet, %SnapshotData{} = snapshot_data, peer},
+        _state
       ) do
     {:noreply, handle_snapshot_data(snapshot_data, peer, state)}
   end
 
-  def handle_info({:packet, packet, peer}, state) do
+  def handle_info({:packet, _packet, peer}, _state) do
     :ok = Exth.trace(fn -> "[Sync] Ignoring packet #{packet.__struct__} from #{peer}" end)
 
     {:noreply, state}
   end
 
   @impl true
-  def handle_call(:get_state, _from, state) do
+  def handle_call(:get_state, _from, _state) do
     {:reply, state, state}
   end
 
@@ -221,7 +221,7 @@ defmodule ExWire.Sync do
   # Sends to all peers that support snapshot protocol
   """
   @spec handle_request_manifest(state()) :: state()
-  def handle_request_manifest(state) do
+  def handle_request_manifest(_state) do
     if send_with_retry(%GetSnapshotManifest{}, :all, :request_manifest) do
       :ok = Logger.debug(fn -> "[Sync] Requested snapshot manifests" end)
     end
@@ -235,7 +235,7 @@ defmodule ExWire.Sync do
   # Sends to a random peer that supports snapshot protocol
   """
   @spec handle_request_chunk(EVM.hash(), state()) :: state()
-  def handle_request_chunk(chunk_hash, state) do
+  def handle_request_chunk(chunk_hash, _state) do
     if send_with_retry(
          %GetSnapshotData{chunk_hash: chunk_hash},
          :random,
@@ -252,7 +252,7 @@ defmodule ExWire.Sync do
   number that we don't have in our block queue or state tree.
   """
   @spec handle_request_next_block(BlockQueue.t(), Blocktree.t(), state()) :: state()
-  def handle_request_next_block(block_queue, block_tree, state) do
+  def handle_request_next_block(block_queue, block_tree, _state) do
     next_block_to_request = get_next_block_to_request(block_queue, block_tree)
 
     if send_with_retry(
@@ -279,8 +279,8 @@ defmodule ExWire.Sync do
   request. We may already, however, be waiting on blocks, in which case we
   do nothing.
   """
-  @spec handle_snapshot_manifest(SnapshotManifest.t(), Peer.t(), state()) :: state()
-  def handle_snapshot_manifest(%SnapshotManifest{manifest: nil}, _peer, state) do
+  @spec handle_snapshot_manifest(SnapshotManifest.t(), Peer.t(), state()) :: _state()
+  def handle_snapshot_manifest(%SnapshotManifest{manifest: nil}, _peer, _state) do
     :ok = Logger.info("Received empty Snapshot Manifest")
 
     state
@@ -289,7 +289,7 @@ defmodule ExWire.Sync do
   def handle_snapshot_manifest(
         %SnapshotManifest{manifest: manifest},
         _peer,
-        state = %{warp_queue: warp_queue}
+        _state = %{warp_queue: warp_queue}
       ) do
     next_state =
       warp_queue
@@ -321,7 +321,7 @@ defmodule ExWire.Sync do
   warp queue. We may decide to request new blocks at this time.
   """
   @spec handle_snapshot_data(SnapshotData.t(), Peer.t(), state()) :: state()
-  def handle_snapshot_data(%SnapshotData{chunk: nil}, _peer, state) do
+  def handle_snapshot_data(%SnapshotData{chunk: nil}, _peer, _state) do
     :ok = Logger.debug("Received empty SnapshotData message.")
 
     state
@@ -330,7 +330,7 @@ defmodule ExWire.Sync do
   def handle_snapshot_data(
         %SnapshotData{hash: block_chunk_hash, chunk: block_chunk = %BlockChunk{}},
         _peer,
-        state = %{warp_queue: warp_queue, warp_processor: warp_processor}
+        _state = %{warp_queue: warp_queue, warp_processor: warp_processor}
       ) do
     next_warp_queue =
       warp_queue
@@ -345,7 +345,7 @@ defmodule ExWire.Sync do
   def handle_snapshot_data(
         %SnapshotData{hash: state_chunk_hash, chunk: state_chunk = %StateChunk{}},
         _peer,
-        state = %{warp_queue: warp_queue, warp_processor: warp_processor}
+        _state = %{warp_queue: warp_queue, warp_processor: warp_processor}
       ) do
     next_warp_queue =
       warp_queue
@@ -374,7 +374,7 @@ defmodule ExWire.Sync do
   def handle_block_headers(
         block_headers,
         peer,
-        state = %{
+        _state = %{
           block_queue: block_queue,
           block_tree: block_tree,
           chain: chain,
@@ -450,7 +450,7 @@ defmodule ExWire.Sync do
   @spec handle_block_bodies(BlockBodies.t(), state()) :: state()
   def handle_block_bodies(
         block_bodies,
-        state = %{
+        _state = %{
           block_queue: block_queue,
           block_tree: block_tree,
           chain: chain,
@@ -527,13 +527,13 @@ defmodule ExWire.Sync do
   end
 
   @spec save_and_check_warp_complete(WarpQueue.t(), state(), boolean()) :: state()
-  defp save_and_check_warp_complete(warp_queue, state = %{trie: trie}, save \\ true) do
+  defp save_and_check_warp_complete(warp_queue, _state = %{trie: trie}, save \\ true) do
     if save do
       :ok = WarpState.save_warp_queue(TrieStorage.permanent_db(trie), warp_queue)
     end
 
     case WarpQueue.status(warp_queue) do
-      {:pending, reason} ->
+      {:pending, _reason} ->
         Exth.trace(fn ->
           "[Sync] Warp incomplete due to #{to_string(reason)}"
         end)
@@ -589,7 +589,7 @@ defmodule ExWire.Sync do
           PeerSupervisor.node_selector(),
           :request_manifest | :request_next_block | {:request_chunk, EVM.hash()}
         ) :: boolean()
-  defp send_with_retry(packet, node_selector, retry_message) do
+  defp send_with_retry(_packet, node_selector, retry_message) do
     send_packet_result =
       PeerSupervisor.send_packet(
         packet,
@@ -603,7 +603,7 @@ defmodule ExWire.Sync do
       :unsent ->
         :ok =
           Logger.debug(fn ->
-            "[Sync] No connected peers to send #{packet.__struct__}, trying again in #{@retry_delay / 1000} second(s)"
+            "[Sync] No connected peers to send #{_packet.__struct__}, trying again in #{@retry_delay / 1000} second(s)"
           end)
 
         Process.send_after(self(), retry_message, @retry_delay)

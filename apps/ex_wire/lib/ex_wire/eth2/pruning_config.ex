@@ -269,14 +269,14 @@ defmodule ExWire.Eth2.PruningConfig do
   @doc """
   Validate pruning configuration
   """
-  def validate_config(config) do
+  def validate_config(_config) do
     with :ok <- validate_retention_settings(config),
          :ok <- validate_performance_settings(config),
          :ok <- validate_safety_settings(config),
          :ok <- validate_consistency(config) do
-      {:ok, config}
+      {:ok, _config}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -289,8 +289,8 @@ defmodule ExWire.Eth2.PruningConfig do
         merged = Map.merge(base_config, user_overrides)
         validate_config(merged)
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -333,7 +333,7 @@ defmodule ExWire.Eth2.PruningConfig do
   @doc """
   Calculate estimated storage usage for a configuration
   """
-  def estimate_storage_usage(config, days \\ 30) do
+  def estimate_storage_usage(_config, days \\ 30) do
     # ~32 slots per epoch, ~225 epochs per day
     slots_per_day = 32 * 225
     total_slots = days * slots_per_day
@@ -356,7 +356,7 @@ defmodule ExWire.Eth2.PruningConfig do
   @doc """
   Get performance impact assessment for configuration
   """
-  def assess_performance_impact(config) do
+  def assess_performance_impact(_config) do
     %{
       pruning_overhead: assess_pruning_overhead(config),
       storage_io_impact: assess_storage_io_impact(config),
@@ -368,7 +368,7 @@ defmodule ExWire.Eth2.PruningConfig do
 
   # Private Functions - Validation
 
-  defp validate_retention_settings(config) do
+  defp validate_retention_settings(_config) do
     cond do
       config.finalized_block_retention != :unlimited and config.finalized_block_retention < 32 ->
         {:error, "finalized_block_retention must be at least 32 slots (1 epoch)"}
@@ -384,7 +384,7 @@ defmodule ExWire.Eth2.PruningConfig do
     end
   end
 
-  defp validate_performance_settings(config) do
+  defp validate_performance_settings(_config) do
     cond do
       config.max_concurrent_pruners < 1 or config.max_concurrent_pruners > 16 ->
         {:error, "max_concurrent_pruners must be between 1 and 16"}
@@ -400,7 +400,7 @@ defmodule ExWire.Eth2.PruningConfig do
     end
   end
 
-  defp validate_safety_settings(config) do
+  defp validate_safety_settings(_config) do
     cond do
       config.storage_usage_threshold < 0.5 or config.storage_usage_threshold > 0.99 ->
         {:error, "storage_usage_threshold must be between 0.5 and 0.99"}
@@ -417,7 +417,7 @@ defmodule ExWire.Eth2.PruningConfig do
     end
   end
 
-  defp validate_consistency(config) do
+  defp validate_consistency(_config) do
     cond do
       # Archive mode should have minimal pruning
       config.archive_mode and config.aggressive_pruning ->
@@ -439,7 +439,7 @@ defmodule ExWire.Eth2.PruningConfig do
 
   # Private Functions - Storage Estimation
 
-  defp adjust_for_storage_limit(config, storage_limit_gb) do
+  defp adjust_for_storage_limit(_config, storage_limit_gb) do
     # Calculate current estimated usage
     current_estimate = estimate_storage_usage(config)
 
@@ -469,7 +469,7 @@ defmodule ExWire.Eth2.PruningConfig do
     max(32, round(slots * factor))
   end
 
-  defp estimate_block_storage(config, total_slots) do
+  defp estimate_block_storage(_config, total_slots) do
     if config.finalized_block_retention == :unlimited do
       # 500KB per block -> GB
       total_slots * 0.5 / 1024
@@ -478,7 +478,7 @@ defmodule ExWire.Eth2.PruningConfig do
     end
   end
 
-  defp estimate_state_storage(config, total_slots) do
+  defp estimate_state_storage(_config, total_slots) do
     if config.state_retention == :unlimited do
       # 50MB per state -> GB
       total_slots * 50 / 1024
@@ -487,7 +487,7 @@ defmodule ExWire.Eth2.PruningConfig do
     end
   end
 
-  defp estimate_attestation_storage(config, total_slots) do
+  defp estimate_attestation_storage(_config, total_slots) do
     if config.attestation_retention == :unlimited do
       # 10KB per slot worth of attestations -> GB
       total_slots * 0.01
@@ -496,7 +496,7 @@ defmodule ExWire.Eth2.PruningConfig do
     end
   end
 
-  defp estimate_log_storage(config, total_slots) do
+  defp estimate_log_storage(_config, total_slots) do
     if config.execution_log_retention == :unlimited do
       # 1MB per slot of logs -> GB
       total_slots * 1 / 1024
@@ -505,7 +505,7 @@ defmodule ExWire.Eth2.PruningConfig do
     end
   end
 
-  defp estimate_trie_storage(config, total_slots) do
+  defp estimate_trie_storage(_config, total_slots) do
     # State trie grows over time but gets pruned
     # 10GB base trie size
     base_trie_size = 10.0
@@ -526,7 +526,7 @@ defmodule ExWire.Eth2.PruningConfig do
 
   # Private Functions - Performance Assessment
 
-  defp assess_pruning_overhead(config) do
+  defp assess_pruning_overhead(_config) do
     # 5% base overhead
     base_overhead = 0.05
 
@@ -546,7 +546,7 @@ defmodule ExWire.Eth2.PruningConfig do
     }
   end
 
-  defp assess_storage_io_impact(config) do
+  defp assess_storage_io_impact(_config) do
     # More aggressive pruning = more I/O
     # MB/min baseline
     base_io = 100
@@ -565,7 +565,7 @@ defmodule ExWire.Eth2.PruningConfig do
     }
   end
 
-  defp assess_memory_usage(config) do
+  defp assess_memory_usage(_config) do
     # MB
     base_memory = 512
 
@@ -585,7 +585,7 @@ defmodule ExWire.Eth2.PruningConfig do
     }
   end
 
-  defp assess_cpu_usage(config) do
+  defp assess_cpu_usage(_config) do
     # 2% baseline
     base_cpu = 2.0
 
@@ -604,7 +604,7 @@ defmodule ExWire.Eth2.PruningConfig do
     }
   end
 
-  defp assess_network_impact(config) do
+  defp assess_network_impact(_config) do
     # Cold storage may involve network I/O
     network_mb =
       if config.enable_cold_storage do

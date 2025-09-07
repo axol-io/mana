@@ -158,11 +158,11 @@ defmodule ExWire.Sync.FastSync do
     # Start sync process after a delay
     Process.send_after(self(), :start_sync, 1000)
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call(:get_status, _from, state) do
+  def handle_call(:get_status, _from, _state) do
     status = %{
       mode: state.mode,
       pivot_block: state.pivot_header && state.pivot_header.number,
@@ -177,19 +177,19 @@ defmodule ExWire.Sync.FastSync do
   end
 
   @impl true
-  def handle_call(:get_progress, _from, state) do
+  def handle_call(:get_progress, _from, _state) do
     progress = calculate_progress(state)
     {:reply, progress, state}
   end
 
   @impl true
-  def handle_call({:switch_mode, mode}, _from, state) do
+  def handle_call({:switch_mode, mode}, _from, _state) do
     Logger.info("Switching sync mode from #{state.mode} to #{mode}")
     {:reply, :ok, %{state | mode: mode}}
   end
 
   @impl true
-  def handle_info(:start_sync, state) do
+  def handle_info(:start_sync, _state) do
     Logger.info("Starting fast sync...")
 
     # Get peers and determine pivot block
@@ -221,7 +221,7 @@ defmodule ExWire.Sync.FastSync do
 
         {:noreply, new_state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Failed to select pivot block: #{inspect(reason)}")
         Process.send_after(self(), :start_sync, 5000)
         {:noreply, state}
@@ -229,7 +229,7 @@ defmodule ExWire.Sync.FastSync do
   end
 
   @impl true
-  def handle_info(:start_state_sync, state = %{state_root: state_root}) when state_root != nil do
+  def handle_info(:start_state_sync, _state = %{state_root: state_root}) when state_root != nil do
     Logger.info("Starting state sync for root: #{encode_hex(state_root)}")
 
     # Queue the state root for download
@@ -239,7 +239,7 @@ defmodule ExWire.Sync.FastSync do
   end
 
   @impl true
-  def handle_info(:process_download_queue, state) do
+  def handle_info(:process_download_queue, _state) do
     # Process different download queues
     new_state =
       state
@@ -250,7 +250,7 @@ defmodule ExWire.Sync.FastSync do
       |> check_sync_complete()
 
     # Continue processing if not complete
-    unless all_sync_complete?(new_state) do
+    if !all_sync_complete?(new_state) do
       Process.send_after(self(), :process_download_queue, 100)
     end
 
@@ -258,7 +258,7 @@ defmodule ExWire.Sync.FastSync do
   end
 
   @impl true
-  def handle_info(:report_progress, state) do
+  def handle_info(:report_progress, _state) do
     report_sync_progress(state)
 
     # Schedule next report
@@ -268,38 +268,38 @@ defmodule ExWire.Sync.FastSync do
   end
 
   @impl true
-  def handle_info({:packet, %BlockHeaders{headers: headers}, peer}, state) do
+  def handle_info({:_packet, %BlockHeaders{headers: headers}, peer}, _state) do
     new_state = handle_block_headers(headers, peer, state)
     {:noreply, new_state}
   end
 
   @impl true
-  def handle_info({:packet, %BlockBodies{blocks: blocks}, peer}, state) do
+  def handle_info({:_packet, %BlockBodies{blocks: blocks}, peer}, _state) do
     new_state = handle_block_bodies(blocks, peer, state)
     {:noreply, new_state}
   end
 
   @impl true
-  def handle_info({:packet, %Receipts{receipts: receipts}, peer}, state) do
+  def handle_info({:_packet, %Receipts{receipts: receipts}, peer}, _state) do
     new_state = handle_receipts(receipts, peer, state)
     {:noreply, new_state}
   end
 
   @impl true
-  def handle_info({:packet, %NodeData{hashes_to_nodes: hashes_to_nodes}, peer}, state) do
+  def handle_info({:_packet, %NodeData{hashes_to_nodes: hashes_to_nodes}, peer}, _state) do
     new_state = handle_node_data(hashes_to_nodes, peer, state)
     {:noreply, new_state}
   end
 
   @impl true
-  def handle_info({:request_timeout, request_ref}, state) do
+  def handle_info({:request_timeout, request_ref}, _state) do
     new_state = handle_request_timeout(request_ref, state)
     {:noreply, new_state}
   end
 
   # Private Functions
 
-  defp select_pivot_block(state) do
+  defp select_pivot_block(_state) do
     # Get connected peers
     peers = PeerSupervisor.connected_peers()
 
@@ -370,7 +370,7 @@ defmodule ExWire.Sync.FastSync do
      }}
   end
 
-  defp queue_header_downloads(state, from_block, to_block) do
+  defp queue_header_downloads(_state, from_block, to_block) do
     # Queue headers for download in batches
     headers_to_queue =
       from_block..to_block
@@ -383,7 +383,7 @@ defmodule ExWire.Sync.FastSync do
     %{state | header_queue: headers_to_queue}
   end
 
-  defp queue_recent_block_downloads(state, from_block) do
+  defp queue_recent_block_downloads(_state, from_block) do
     # Queue recent blocks for body and receipt download
     blocks_to_queue = from_block..state.highest_block
 
@@ -400,12 +400,12 @@ defmodule ExWire.Sync.FastSync do
     %{state | body_queue: body_queue, receipt_queue: receipt_queue}
   end
 
-  defp queue_state_download(state, state_root) do
+  defp queue_state_download(_state, state_root) do
     new_queue = MapSet.put(state.state_queue, state_root)
     %{state | state_queue: new_queue}
   end
 
-  defp process_header_queue(state) do
+  defp process_header_queue(_state) do
     # Find pending headers to download
     pending_headers =
       state.header_queue
@@ -417,7 +417,7 @@ defmodule ExWire.Sync.FastSync do
     end)
   end
 
-  defp process_body_queue(state) do
+  defp process_body_queue(_state) do
     # Process body downloads
     pending_bodies =
       state.body_queue
@@ -429,7 +429,7 @@ defmodule ExWire.Sync.FastSync do
     end)
   end
 
-  defp process_receipt_queue(state) do
+  defp process_receipt_queue(_state) do
     # Process receipt downloads
     pending_receipts =
       state.receipt_queue
@@ -441,7 +441,7 @@ defmodule ExWire.Sync.FastSync do
     end)
   end
 
-  defp process_state_queue(state) do
+  defp process_state_queue(_state) do
     # Process state node downloads
     if MapSet.size(state.state_queue) > 0 and
          map_size(state.active_requests) < @max_concurrent_requests do
@@ -455,7 +455,7 @@ defmodule ExWire.Sync.FastSync do
     end
   end
 
-  defp download_headers(state, block_number) do
+  defp download_headers(_state, block_number) do
     peers = PeerSupervisor.connected_peers()
 
     if length(peers) > 0 do
@@ -483,17 +483,17 @@ defmodule ExWire.Sync.FastSync do
     end
   end
 
-  defp download_bodies(state, block_number) do
+  defp download_bodies(_state, block_number) do
     # Similar to download_headers but for block bodies
     state
   end
 
-  defp download_receipts(state, block_number) do
+  defp download_receipts(_state, block_number) do
     # Similar to download_headers but for receipts
     state
   end
 
-  defp download_state_nodes(state, nodes) do
+  defp download_state_nodes(_state, nodes) do
     peers = PeerSupervisor.connected_peers()
 
     if length(peers) > 0 do
@@ -523,7 +523,7 @@ defmodule ExWire.Sync.FastSync do
     end
   end
 
-  defp handle_block_headers(headers, _peer, state) do
+  defp handle_block_headers(headers, _peer, _state) do
     # Process received headers
     valid_headers = Enum.filter(headers, &validate_header(&1, state))
 
@@ -542,17 +542,17 @@ defmodule ExWire.Sync.FastSync do
     check_headers_complete(new_state)
   end
 
-  defp handle_block_bodies(blocks, _peer, state) do
+  defp handle_block_bodies(blocks, _peer, _state) do
     # Process received blocks (bodies)
     %{state | bodies_downloaded: state.bodies_downloaded + length(blocks)}
   end
 
-  defp handle_receipts(receipts, _peer, state) do
+  defp handle_receipts(receipts, _peer, _state) do
     # Process received receipts  
     %{state | receipts_downloaded: state.receipts_downloaded + length(receipts)}
   end
 
-  defp handle_node_data(hashes_to_nodes, _peer, state) do
+  defp handle_node_data(hashes_to_nodes, _peer, _state) do
     # Process received state nodes
     Enum.reduce(hashes_to_nodes, state, fn {_hash, node}, acc ->
       # Store node in trie
@@ -572,10 +572,10 @@ defmodule ExWire.Sync.FastSync do
     end)
   end
 
-  defp handle_request_timeout(request_ref, state) do
+  defp handle_request_timeout(request_ref, _state) do
     case Map.get(state.active_requests, request_ref) do
       nil ->
-        state
+        _state
 
       {type, data, _peer} ->
         # Retry the request
@@ -618,12 +618,12 @@ defmodule ExWire.Sync.FastSync do
     true
   end
 
-  defp store_header(_header, state) do
+  defp store_header(_header, _state) do
     # Store header in database
     state
   end
 
-  defp store_state_node(_node, state) do
+  defp store_state_node(_node, _state) do
     # Store state node in trie
     state
   end
@@ -633,7 +633,7 @@ defmodule ExWire.Sync.FastSync do
     []
   end
 
-  defp check_headers_complete(state) do
+  defp check_headers_complete(_state) do
     all_complete =
       state.header_queue
       |> Map.values()
@@ -647,7 +647,7 @@ defmodule ExWire.Sync.FastSync do
     end
   end
 
-  defp check_sync_complete(state) do
+  defp check_sync_complete(_state) do
     if all_sync_complete?(state) do
       Logger.info("Fast sync complete! Switching to full sync mode...")
 
@@ -665,7 +665,7 @@ defmodule ExWire.Sync.FastSync do
       state.state_sync_complete
   end
 
-  defp calculate_progress(state) do
+  defp calculate_progress(_state) do
     header_progress =
       if map_size(state.header_queue) > 0 do
         complete = Enum.count(state.header_queue, fn {_, status} -> status == :complete end)
@@ -693,7 +693,7 @@ defmodule ExWire.Sync.FastSync do
     }
   end
 
-  defp report_sync_progress(state) do
+  defp report_sync_progress(_state) do
     progress = calculate_progress(state)
 
     Logger.info("""

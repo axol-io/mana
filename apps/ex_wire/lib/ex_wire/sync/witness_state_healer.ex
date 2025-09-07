@@ -312,11 +312,11 @@ defmodule ExWire.Sync.WitnessStateHealer do
     # Start initial scan
     send(self(), :perform_scan)
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call(:get_status, _from, state) do
+  def handle_call(:get_status, _from, _state) do
     status = %{
       healing_status: state.healing_status,
       missing_keys_count: MapSet.size(state.missing_keys),
@@ -333,7 +333,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
   end
 
   @impl true
-  def handle_call(:get_stats, _from, state) do
+  def handle_call(:get_stats, _from, _state) do
     stats = %{
       expected_root: encode_hex(state.expected_root),
       healing_status: state.healing_status,
@@ -351,7 +351,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
   end
 
   @impl true
-  def handle_call({:heal_keys, keys}, _from, state) do
+  def handle_call({:heal_keys, keys}, _from, _state) do
     # Add specific keys to the healing process
     new_missing_keys = MapSet.union(state.missing_keys, MapSet.new(keys))
 
@@ -376,37 +376,37 @@ defmodule ExWire.Sync.WitnessStateHealer do
   end
 
   @impl true
-  def handle_call(:force_scan, _from, state) do
+  def handle_call(:force_scan, _from, _state) do
     send(self(), :perform_scan)
     {:reply, :ok, state}
   end
 
   @impl true
-  def handle_call(:stop_healing, _from, state) do
+  def handle_call(:stop_healing, _from, _state) do
     new_state = %{state | healing_status: :complete}
     {:reply, :ok, new_state}
   end
 
   @impl true
-  def handle_call({:set_healing_priorities, key_priority_map}, _from, state) do
+  def handle_call({:set_healing_priorities, key_priority_map}, _from, _state) do
     new_priorities = Map.merge(state.key_priorities, key_priority_map)
     new_state = %{state | key_priorities: new_priorities}
     {:reply, :ok, new_state}
   end
 
   @impl true
-  def handle_call({:resurrect_expired_state, resurrection_requests}, _from, state) do
+  def handle_call({:resurrect_expired_state, resurrection_requests}, _from, _state) do
     new_state = process_resurrection_requests(state, resurrection_requests)
     {:reply, :ok, new_state}
   end
 
   @impl true
-  def handle_call(:get_peer_reputation, _from, state) do
+  def handle_call(:get_peer_reputation, _from, _state) do
     {:reply, state.peer_reputation, state}
   end
 
   @impl true
-  def handle_call(:get_performance_metrics, _from, state) do
+  def handle_call(:get_performance_metrics, _from, _state) do
     performance_stats = %{
       healing_performance: state.healing_performance,
       current_batch_size: state.current_batch_size,
@@ -420,7 +420,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
   end
 
   @impl true
-  def handle_call({:set_adaptive_batching, enabled}, _from, state) do
+  def handle_call({:set_adaptive_batching, enabled}, _from, _state) do
     new_state = %{state | adaptive_batching: enabled}
 
     if enabled do
@@ -431,7 +431,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
   end
 
   @impl true
-  def handle_call({:get_audit_events, since_timestamp}, _from, state) do
+  def handle_call({:get_audit_events, since_timestamp}, _from, _state) do
     filtered_events =
       case since_timestamp do
         nil ->
@@ -443,11 +443,11 @@ defmodule ExWire.Sync.WitnessStateHealer do
           end)
       end
 
-    {:reply, filtered_events, state}
+    {:reply, filtered_events, _state}
   end
 
   @impl true
-  def handle_info(:perform_scan, state) do
+  def handle_info(:perform_scan, _state) do
     Logger.info("Scanning for missing state data...")
 
     new_state =
@@ -466,7 +466,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
   end
 
   @impl true
-  def handle_info(:start_healing, state) do
+  def handle_info(:start_healing, _state) do
     new_state =
       %{state | healing_status: :requesting}
       |> start_healing_process()
@@ -475,7 +475,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
   end
 
   @impl true
-  def handle_info(:process_healing_queue, state) do
+  def handle_info(:process_healing_queue, _state) do
     new_state = process_healing_requests(state)
 
     # Continue processing if healing is active
@@ -487,19 +487,19 @@ defmodule ExWire.Sync.WitnessStateHealer do
   end
 
   @impl true
-  def handle_info({:witness_response, witnesses, peer, request_ref}, state) do
+  def handle_info({:witness_response, witnesses, peer, request_ref}, _state) do
     new_state = handle_witness_response(witnesses, peer, request_ref, state)
     {:noreply, new_state}
   end
 
   @impl true
-  def handle_info({:healing_timeout, request_ref}, state) do
+  def handle_info({:healing_timeout, request_ref}, _state) do
     new_state = handle_healing_timeout(request_ref, state)
     {:noreply, new_state}
   end
 
   @impl true
-  def handle_info(:adapt_batch_size, state) do
+  def handle_info(:adapt_batch_size, _state) do
     new_state = adapt_batch_size_based_on_performance(state)
 
     # Schedule next adaptation
@@ -511,7 +511,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
   end
 
   @impl true
-  def handle_info(:check_state_expiry, state) do
+  def handle_info(:check_state_expiry, _state) do
     new_state = check_and_handle_expired_state(state)
 
     # Schedule next expiry check
@@ -522,7 +522,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
   end
 
   @impl true
-  def handle_info(:audit_log_cleanup, state) do
+  def handle_info(:audit_log_cleanup, _state) do
     new_state = cleanup_audit_logs(state)
 
     # Schedule next cleanup
@@ -532,20 +532,20 @@ defmodule ExWire.Sync.WitnessStateHealer do
   end
 
   @impl true
-  def handle_cast(:trigger_expiry_check, state) do
+  def handle_cast(:trigger_expiry_check, _state) do
     new_state = check_and_handle_expired_state(state)
     {:noreply, new_state}
   end
 
   @impl true
-  def handle_cast(:priority_healing_mode, state) do
+  def handle_cast(:priority_healing_mode, _state) do
     new_state = switch_to_priority_healing_mode(state)
     {:noreply, new_state}
   end
 
   # Private Functions
 
-  defp scan_for_missing_keys(state) do
+  defp scan_for_missing_keys(_state) do
     # Scan the local Verkle tree to find missing keys
     missing_keys = find_missing_verkle_keys(state.verkle_tree, state.expected_root)
 
@@ -594,7 +594,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
     end)
   end
 
-  defp start_healing_process(state) do
+  defp start_healing_process(_state) do
     Logger.info("Starting healing process for #{MapSet.size(state.missing_keys)} keys")
 
     # Start processing healing requests
@@ -603,7 +603,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
     %{state | healing_rounds: state.healing_rounds + 1}
   end
 
-  defp process_healing_requests(state) do
+  defp process_healing_requests(_state) do
     # Get keys that need healing
     keys_to_heal = get_keys_needing_healing(state)
 
@@ -628,7 +628,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
     end
   end
 
-  defp get_keys_needing_healing(state) do
+  defp get_keys_needing_healing(_state) do
     state.missing_keys
     |> MapSet.difference(state.healing_keys)
     |> MapSet.difference(state.verified_keys)
@@ -637,7 +637,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
     |> Enum.take(@witness_batch_size * @max_healing_requests)
   end
 
-  defp send_healing_request(state, keys) do
+  defp send_healing_request(_state, keys) do
     peers = PeerSupervisor.connected_peers()
 
     if length(peers) > 0 do
@@ -671,10 +671,10 @@ defmodule ExWire.Sync.WitnessStateHealer do
     end
   end
 
-  defp handle_witness_response(witnesses, peer, request_ref, state) do
+  defp handle_witness_response(witnesses, peer, request_ref, _state) do
     case Map.get(state.active_heal_requests, request_ref) do
       nil ->
-        state
+        _state
 
       {keys, _original_peer} ->
         Logger.debug("Received #{length(witnesses)} healing witnesses from peer")
@@ -706,7 +706,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
     end)
   end
 
-  defp process_witnesses_for_validation(state, keys) do
+  defp process_witnesses_for_validation(_state, keys) do
     Enum.reduce(keys, state, fn key, acc_state ->
       key_responses = Map.get(acc_state.peer_responses, key, %{})
 
@@ -718,7 +718,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
     end)
   end
 
-  defp validate_and_apply_witness(state, key, peer_witnesses) do
+  defp validate_and_apply_witness(_state, key, peer_witnesses) do
     # Cross-validate witnesses from multiple peers
     witnesses = Map.values(peer_witnesses)
 
@@ -738,7 +738,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
             |> update_in([:keys_healed], &(&1 + 1))
             |> update_in([:cross_validations_performed], &(&1 + 1))
 
-          {:error, reason} ->
+          {:error, _reason} ->
             Logger.warning(
               "Failed to apply healing witness for key #{encode_hex(key)}: #{inspect(reason)}"
             )
@@ -746,7 +746,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
             mark_key_as_failed(state, key)
         end
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.warning("Cross-validation failed for key #{encode_hex(key)}: #{inspect(reason)}")
         mark_key_as_failed(state, key)
     end
@@ -803,17 +803,17 @@ defmodule ExWire.Sync.WitnessStateHealer do
     end
   end
 
-  defp mark_key_as_failed(state, key) do
+  defp mark_key_as_failed(_state, key) do
     state
     |> update_in([:failed_keys], &MapSet.put(&1, key))
     |> update_in([:healing_keys], &MapSet.delete(&1, key))
     |> put_in([:key_status, key], :failed)
   end
 
-  defp handle_healing_timeout(request_ref, state) do
+  defp handle_healing_timeout(request_ref, _state) do
     case Map.get(state.active_heal_requests, request_ref) do
       nil ->
-        state
+        _state
 
       {keys, _peer} ->
         Logger.debug("Healing request timeout for #{length(keys)} keys")
@@ -851,7 +851,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
     end
   end
 
-  defp check_healing_complete(state) do
+  defp check_healing_complete(_state) do
     no_active_requests = map_size(state.active_heal_requests) == 0
 
     no_pending_keys =
@@ -880,7 +880,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
 
   # Helper functions
 
-  defp calculate_healing_progress(state) do
+  defp calculate_healing_progress(_state) do
     if state.total_keys_to_heal > 0 do
       Float.round(state.keys_healed / state.total_keys_to_heal * 100, 2)
     else
@@ -888,7 +888,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
     end
   end
 
-  defp calculate_success_rate(state) do
+  defp calculate_success_rate(_state) do
     total_processed = state.keys_healed + MapSet.size(state.failed_keys)
 
     if total_processed > 0 do
@@ -947,13 +947,13 @@ defmodule ExWire.Sync.WitnessStateHealer do
     }
   end
 
-  defp add_audit_event(state, event) do
+  defp add_audit_event(_state, event) do
     # Keep only the last 1000 audit events
     new_events = [event | state.audit_events] |> Enum.take(1000)
     %{state | audit_events: new_events}
   end
 
-  defp process_resurrection_requests(state, resurrection_requests) do
+  defp process_resurrection_requests(_state, resurrection_requests) do
     Logger.info("Processing #{length(resurrection_requests)} state resurrection requests")
 
     # Add resurrection keys to the queue and mark as expired
@@ -990,7 +990,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
     |> add_audit_event(audit_event)
   end
 
-  defp calculate_network_efficiency(state) do
+  defp calculate_network_efficiency(_state) do
     if state.witnesses_collected > 0 do
       success_rate = state.keys_healed / state.witnesses_collected
       avg_response_time = calculate_avg_peer_response_time(state)
@@ -1003,7 +1003,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
     end
   end
 
-  defp calculate_verification_rate(state) do
+  defp calculate_verification_rate(_state) do
     if state.cross_validations_performed > 0 and state.witnesses_collected > 0 do
       Float.round(state.cross_validations_performed / state.witnesses_collected, 3)
     else
@@ -1011,7 +1011,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
     end
   end
 
-  defp calculate_avg_peer_response_time(state) do
+  defp calculate_avg_peer_response_time(_state) do
     if map_size(state.peer_reputation) > 0 do
       total_time =
         state.peer_reputation
@@ -1026,7 +1026,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
     end
   end
 
-  defp adapt_batch_size_based_on_performance(state) do
+  defp adapt_batch_size_based_on_performance(_state) do
     current_time = System.system_time(:second)
 
     if current_time - state.last_batch_adaptation > 10 do
@@ -1073,7 +1073,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
     end
   end
 
-  defp check_and_handle_expired_state(state) do
+  defp check_and_handle_expired_state(_state) do
     Logger.debug("Checking for expired state...")
 
     # Check for expired keys in the Verkle tree
@@ -1115,7 +1115,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
     end
   end
 
-  defp find_expired_keys(state) do
+  defp find_expired_keys(_state) do
     # This would integrate with the state expiry manager to find expired keys
     # For now, return an empty list as a placeholder
     case Map.get(state.state_expiry_manager, :check_expired_keys) do
@@ -1127,12 +1127,12 @@ defmodule ExWire.Sync.WitnessStateHealer do
     end
   end
 
-  defp switch_to_priority_healing_mode(state) do
+  defp switch_to_priority_healing_mode(_state) do
     Logger.info("Switching to priority healing mode")
 
     # Identify critical and high priority keys
     critical_keys =
-      state.key_priorities
+      _state.key_priorities
       |> Enum.filter(fn {_key, priority} -> priority == :critical end)
       |> Enum.map(fn {key, _priority} -> key end)
 
@@ -1157,7 +1157,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
     |> add_audit_event(audit_event)
   end
 
-  defp cleanup_audit_logs(state) do
+  defp cleanup_audit_logs(_state) do
     current_time = System.system_time(:second)
 
     # 5 minutes
@@ -1184,7 +1184,7 @@ defmodule ExWire.Sync.WitnessStateHealer do
     end
   end
 
-  defp update_peer_reputation(state, peer, response_time, success) do
+  defp update_peer_reputation(_state, peer, response_time, success) do
     current_reputation =
       Map.get(state.peer_reputation, peer, %{
         reliability: 1.0,

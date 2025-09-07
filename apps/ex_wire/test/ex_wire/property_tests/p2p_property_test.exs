@@ -540,7 +540,7 @@ defmodule ExWire.PropertyTests.P2PPropertyTest do
     }
   end
 
-  defp apply_peer_operation({:connect, peer_info}, state) do
+  defp apply_peer_operation({:connect, peer_info}, _state) do
     %{
       state
       | status: :connected,
@@ -550,15 +550,15 @@ defmodule ExWire.PropertyTests.P2PPropertyTest do
     }
   end
 
-  defp apply_peer_operation(:disconnect, state) do
+  defp apply_peer_operation(:disconnect, _state) do
     %{state | status: :disconnected, remote_id: nil, established_at: nil, protocol_version: nil}
   end
 
-  defp apply_peer_operation({:send_message, _message}, state) do
+  defp apply_peer_operation({:send_message, _message}, _state) do
     %{state | last_seen: :os.system_time(:second)}
   end
 
-  defp apply_peer_operation(_, state), do: state
+  defp apply_peer_operation(_, _state), do: state
 
   defp valid_peer_state?(state) do
     # Basic state validation
@@ -712,20 +712,20 @@ defmodule ExWire.PropertyTests.P2PPropertyTest do
     end
   end
 
-  defp apply_random_operation({:connect, peer_info}, state) do
+  defp apply_random_operation({:connect, peer_info}, _state) do
     apply_peer_operation({:connect, peer_info}, state)
   end
 
-  defp apply_random_operation(:disconnect, state) do
+  defp apply_random_operation(:disconnect, _state) do
     apply_peer_operation(:disconnect, state)
   end
 
-  defp apply_random_operation({:send_message, _data}, state) do
+  defp apply_random_operation({:send_message, _data}, _state) do
     # Ignore malformed send attempts
     state
   end
 
-  defp apply_random_operation(_, state) do
+  defp apply_random_operation(_, _state) do
     # Ignore unknown operations
     state
   end

@@ -150,7 +150,7 @@ defmodule ExWire.Sync.SnapshotServer do
   Update serving configuration.
   """
   @spec update_config(Keyword.t()) :: :ok
-  def update_config(config) do
+  def update_config(_config) do
     GenServer.cast(@name, {:update_config, config})
   end
 
@@ -184,11 +184,11 @@ defmodule ExWire.Sync.SnapshotServer do
       "[SnapshotServer] Started with serving_enabled=#{serving_enabled}, max_peers=#{max_concurrent_peers}"
     )
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl GenServer
-  def handle_call({:handle_manifest_request, peer_id, ip_address}, _from, state) do
+  def handle_call({:handle_manifest_request, peer_id, ip_address}, _from, _state) do
     if not state.serving_enabled do
       {:reply, {:error, :serving_disabled}, state}
     else
@@ -228,7 +228,7 @@ defmodule ExWire.Sync.SnapshotServer do
   end
 
   @impl GenServer
-  def handle_call({:handle_chunk_request, peer_id, ip_address, chunk_hash}, _from, state) do
+  def handle_call({:handle_chunk_request, peer_id, ip_address, chunk_hash}, _from, _state) do
     if not state.serving_enabled do
       {:reply, {:error, :serving_disabled}, state}
     else
@@ -279,7 +279,7 @@ defmodule ExWire.Sync.SnapshotServer do
   end
 
   @impl GenServer
-  def handle_call({:handle_warp_status_request, peer_id, ip_address}, _from, state) do
+  def handle_call({:handle_warp_status_request, peer_id, ip_address}, _from, _state) do
     if not state.serving_enabled do
       {:reply, {:error, :serving_disabled}, state}
     else
@@ -293,7 +293,7 @@ defmodule ExWire.Sync.SnapshotServer do
               [] ->
                 %WarpStatus{
                   protocol_version: 1,
-                  network_id: ExWire.Config.chain().params.network_id,
+                  network_id: ExWire.Config.chain()._params.network_id,
                   total_difficulty: 0,
                   best_hash: <<0::256>>,
                   genesis_hash: <<0::256>>,
@@ -335,7 +335,7 @@ defmodule ExWire.Sync.SnapshotServer do
   end
 
   @impl GenServer
-  def handle_call(:get_stats, _from, state) do
+  def handle_call(:get_stats, _from, _state) do
     # Calculate current uptime
     uptime_seconds = DateTime.diff(DateTime.utc_now(), state.start_time, :second)
     updated_stats = %{state.serving_stats | uptime_seconds: uptime_seconds}
@@ -343,12 +343,12 @@ defmodule ExWire.Sync.SnapshotServer do
   end
 
   @impl GenServer
-  def handle_call(:get_peer_info, _from, state) do
+  def handle_call(:get_peer_info, _from, _state) do
     {:reply, state.peer_info, state}
   end
 
   @impl GenServer
-  def handle_cast({:set_serving_enabled, enabled}, state) do
+  def handle_cast({:set_serving_enabled, enabled}, _state) do
     Logger.info(
       "[SnapshotServer] Serving enabled changed: #{state.serving_enabled} -> #{enabled}"
     )
@@ -357,7 +357,7 @@ defmodule ExWire.Sync.SnapshotServer do
   end
 
   @impl GenServer
-  def handle_cast({:update_config, config}, state) do
+  def handle_cast({:update_config, _config}, _state) do
     new_state = %{
       state
       | max_concurrent_peers:
@@ -376,7 +376,7 @@ defmodule ExWire.Sync.SnapshotServer do
   end
 
   @impl GenServer
-  def handle_info(:update_stats, state) do
+  def handle_info(:update_stats, _state) do
     # Clean up old rate limiter entries
     current_time = System.system_time(:millisecond)
     window_start = current_time - @rate_limit_window_ms
@@ -407,7 +407,7 @@ defmodule ExWire.Sync.SnapshotServer do
 
   # Private functions
 
-  defp check_rate_limit(peer_id, ip_address, state) do
+  defp check_rate_limit(peer_id, ip_address, _state) do
     # Check if we've exceeded max concurrent peers
     if map_size(state.peer_info) >= state.max_concurrent_peers and
          not Map.has_key?(state.peer_info, peer_id) do
@@ -443,12 +443,12 @@ defmodule ExWire.Sync.SnapshotServer do
     Map.put(rate_limiter, key, new_requests)
   end
 
-  defp update_peer_info(state, peer_id, ip_address, request_type, bytes_served \\ 0) do
+  defp update_peer_info(_state, peer_id, ip_address, request_type, bytes_served \\ 0) do
     current_time = DateTime.utc_now()
 
     updated_peer_info =
       Map.update(
-        state.peer_info,
+        _state.peer_info,
         peer_id,
         %{
           peer_id: peer_id,
@@ -472,7 +472,7 @@ defmodule ExWire.Sync.SnapshotServer do
     %{state | peer_info: updated_peer_info}
   end
 
-  defp update_serving_stats(state, event_type, bytes \\ 0, response_time_ms \\ 0) do
+  defp update_serving_stats(_state, event_type, bytes \\ 0, response_time_ms \\ 0) do
     stats = state.serving_stats
 
     updated_stats =

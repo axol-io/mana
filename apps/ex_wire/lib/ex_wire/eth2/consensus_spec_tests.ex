@@ -45,13 +45,13 @@ defmodule ExWire.Eth2.ConsensusSpecTests do
         |> Enum.reduce_while(store, fn {block_data, index}, acc_store ->
           case process_finality_block(acc_store, block_data, index) do
             {:ok, new_store} -> {:cont, new_store}
-            {:error, reason} -> {:halt, {:error, "Block #{index}: #{reason}"}}
+            {:error, _reason} -> {:halt, {:error, "Block #{index}: #{reason}"}}
           end
         end)
 
       case final_store do
-        {:error, reason} ->
-          {:error, reason}
+        {:error, _reason} ->
+          {:error, _reason}
 
         store ->
           # Verify expected finality outcomes
@@ -85,7 +85,7 @@ defmodule ExWire.Eth2.ConsensusSpecTests do
             {:ok, new_store, step_result} ->
               {:cont, {:ok, new_store, [step_result | results]}}
 
-            {:error, reason} ->
+            {:error, _reason} ->
               {:halt, {:error, "Step #{index}: #{reason}"}}
           end
         end)
@@ -94,8 +94,8 @@ defmodule ExWire.Eth2.ConsensusSpecTests do
         {:ok, _final_store, step_results} ->
           {:ok, %{steps: Enum.reverse(step_results)}}
 
-        {:error, reason} ->
-          {:error, reason}
+        {:error, _reason} ->
+          {:error, _reason}
       end
     rescue
       error ->
@@ -123,7 +123,7 @@ defmodule ExWire.Eth2.ConsensusSpecTests do
             {:ok, %{post_state: serialize_beacon_state(post_state)}}
           end
 
-        {:error, reason} ->
+        {:error, _reason} ->
           # Check if this was expected to fail
           if Map.has_key?(test_data, "post") do
             {:error, "Block processing failed unexpectedly: #{reason}"}
@@ -157,7 +157,7 @@ defmodule ExWire.Eth2.ConsensusSpecTests do
             {:ok, %{post_state: serialize_beacon_state(post_state)}}
           end
 
-        {:error, reason} ->
+        {:error, _reason} ->
           if Map.has_key?(test_data, "post") do
             {:error, "Attestation processing failed unexpectedly: #{reason}"}
           else
@@ -189,7 +189,7 @@ defmodule ExWire.Eth2.ConsensusSpecTests do
             {:ok, %{post_state: serialize_beacon_state(post_state)}}
           end
 
-        {:error, reason} ->
+        {:error, _reason} ->
           if Map.has_key?(test_data, "post") do
             {:error, "Voluntary exit failed unexpectedly: #{reason}"}
           else
@@ -221,7 +221,7 @@ defmodule ExWire.Eth2.ConsensusSpecTests do
             {:ok, %{post_state: serialize_beacon_state(post_state)}}
           end
 
-        {:error, reason} ->
+        {:error, _reason} ->
           if Map.has_key?(test_data, "post") do
             {:error, "Deposit processing failed unexpectedly: #{reason}"}
           else
@@ -261,7 +261,7 @@ defmodule ExWire.Eth2.ConsensusSpecTests do
         process_finality_block(store, block_data, index)
         |> case do
           {:ok, new_store} -> {:ok, new_store, %{type: "on_block", success: true}}
-          {:error, reason} -> {:error, reason}
+          {:error, _reason} -> {:error, _reason}
         end
 
       "on_attestation" ->
@@ -288,7 +288,7 @@ defmodule ExWire.Eth2.ConsensusSpecTests do
     end
   end
 
-  defp validate_and_process_block(state, block) do
+  defp validate_and_process_block(_state, block) do
     # Simplified block processing - in reality this would be much more complex
     # involving signature verification, state transitions, etc.
 
@@ -298,28 +298,28 @@ defmodule ExWire.Eth2.ConsensusSpecTests do
          {:ok, new_state} <- apply_block_to_state(state, block) do
       {:ok, new_state}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
       error -> {:error, "Block processing failed: #{inspect(error)}"}
     end
   end
 
-  defp process_attestation(state, attestation) do
+  defp process_attestation(_state, attestation) do
     # Simplified attestation processing
     with :ok <- validate_attestation(state, attestation),
          {:ok, new_state} <- apply_attestation_to_state(state, attestation) do
       {:ok, new_state}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
       error -> {:error, "Attestation processing failed: #{inspect(error)}"}
     end
   end
 
-  defp process_voluntary_exit(state, voluntary_exit) do
+  defp process_voluntary_exit(_state, voluntary_exit) do
     # Simplified voluntary exit processing
     {:error, "Voluntary exit processing not implemented"}
   end
 
-  defp process_deposit(state, deposit) do
+  defp process_deposit(_state, deposit) do
     # Simplified deposit processing
     {:error, "Deposit processing not implemented"}
   end
@@ -403,9 +403,9 @@ defmodule ExWire.Eth2.ConsensusSpecTests do
     :ok
   end
 
-  defp apply_block_to_state(state, _block) do
+  defp apply_block_to_state(_state, _block) do
     # Apply block to state - very simplified
-    {:ok, state}
+    {:ok, _state}
   end
 
   defp validate_attestation(_state, _attestation) do
@@ -413,9 +413,9 @@ defmodule ExWire.Eth2.ConsensusSpecTests do
     :ok
   end
 
-  defp apply_attestation_to_state(state, _attestation) do
+  defp apply_attestation_to_state(_state, _attestation) do
     # Apply attestation to state
-    {:ok, state}
+    {:ok, _state}
   end
 
   # Utility functions
@@ -467,7 +467,7 @@ defmodule ExWire.Eth2.ConsensusSpecTests do
     end
   end
 
-  defp serialize_beacon_state(state) do
+  defp serialize_beacon_state(_state) do
     # Convert beacon state back to test format
     %{
       "slot" => state.slot,

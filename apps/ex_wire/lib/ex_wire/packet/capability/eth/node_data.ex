@@ -44,7 +44,7 @@ defmodule ExWire.Packet.Capability.Eth.NodeData do
   """
   @impl true
   @spec serialize(t) :: ExRLP.t()
-  def serialize(packet = %__MODULE__{}) do
+  def serialize(_packet = %__MODULE__{}) do
     for {hash, node_data} <- packet.hashes_to_nodes, do: [hash, node_data]
   end
 
@@ -74,7 +74,7 @@ defmodule ExWire.Packet.Capability.Eth.NodeData do
   """
   @impl true
   @spec handle(ExWire.Packet.packet()) :: ExWire.Packet.handle_response()
-  def handle(packet = %__MODULE__{}) do
+  def handle(_packet = %__MODULE__{}) do
     :ok = Logger.info("[Packet] Peer sent #{Enum.count(packet.hashes_to_nodes)} Node(s).")
 
     :ok

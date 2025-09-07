@@ -224,11 +224,11 @@ defmodule ExWire.Profiler.GasProfiler do
 
     Logger.info("[GasProfiler] Started with advanced multi-datacenter gas analysis")
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl GenServer
-  def handle_call({:profile_transaction, tx_hash}, _from, state) do
+  def handle_call({:profile_transaction, tx_hash}, _from, _state) do
     case perform_transaction_gas_analysis(tx_hash, state) do
       {:ok, profile} ->
         Logger.info(
@@ -237,14 +237,14 @@ defmodule ExWire.Profiler.GasProfiler do
 
         {:reply, {:ok, profile}, state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("[GasProfiler] Failed to profile transaction: #{inspect(reason)}")
-        {:reply, {:error, reason}, state}
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl GenServer
-  def handle_call({:estimate_gas_with_crdt, to_address, call_data, opts}, _from, state) do
+  def handle_call({:estimate_gas_with_crdt, to_address, call_data, opts}, _from, _state) do
     try do
       # Base gas estimation
       base_gas = estimate_base_gas_cost(to_address, call_data)
@@ -270,37 +270,37 @@ defmodule ExWire.Profiler.GasProfiler do
   end
 
   @impl GenServer
-  def handle_call({:get_optimization_suggestions, contract_address}, _from, state) do
+  def handle_call({:get_optimization_suggestions, contract_address}, _from, _state) do
     suggestions = generate_optimization_suggestions(contract_address, state)
     {:reply, suggestions, state}
   end
 
   @impl GenServer
-  def handle_call({:analyze_gas_patterns, tx_hashes}, _from, state) do
+  def handle_call({:analyze_gas_patterns, tx_hashes}, _from, _state) do
     pattern_analysis = analyze_transaction_patterns(tx_hashes, state)
     {:reply, pattern_analysis, state}
   end
 
   @impl GenServer
-  def handle_call(:get_network_gas_stats, _from, state) do
+  def handle_call(:get_network_gas_stats, _from, _state) do
     stats = compile_network_gas_statistics(state)
     {:reply, stats, state}
   end
 
   @impl GenServer
-  def handle_call({:compare_datacenter_gas_costs, tx_hash, datacenters}, _from, state) do
+  def handle_call({:compare_datacenter_gas_costs, tx_hash, datacenters}, _from, _state) do
     comparison = compare_gas_costs_across_datacenters(tx_hash, datacenters, state)
     {:reply, comparison, state}
   end
 
   @impl GenServer
-  def handle_call({:audit_contract_gas_efficiency, contract_address}, _from, state) do
+  def handle_call({:audit_contract_gas_efficiency, contract_address}, _from, _state) do
     audit_results = perform_comprehensive_gas_audit(contract_address, state)
     {:reply, audit_results, state}
   end
 
   @impl GenServer
-  def handle_info(:analyze_network, state) do
+  def handle_info(:analyze_network, _state) do
     # Perform network-wide gas analysis
     Task.start(fn -> analyze_network_gas_trends(state) end)
 
@@ -309,7 +309,7 @@ defmodule ExWire.Profiler.GasProfiler do
   end
 
   @impl GenServer
-  def handle_info(:update_optimizations, state) do
+  def handle_info(:update_optimizations, _state) do
     # Update optimization suggestions based on new data
     Task.start(fn -> update_optimization_database(state) end)
 
@@ -319,7 +319,7 @@ defmodule ExWire.Profiler.GasProfiler do
 
   # Private functions
 
-  defp perform_transaction_gas_analysis(tx_hash, state) do
+  defp perform_transaction_gas_analysis(tx_hash, _state) do
     try do
       # Get transaction execution trace
       case TransactionDebugger.start_debug_session(tx_hash) do
@@ -338,8 +338,8 @@ defmodule ExWire.Profiler.GasProfiler do
 
           {:ok, profile}
 
-        {:error, reason} ->
-          {:error, reason}
+        {:error, _reason} ->
+          {:error, _reason}
       end
     rescue
       e ->
@@ -391,7 +391,7 @@ defmodule ExWire.Profiler.GasProfiler do
     end
   end
 
-  defp build_gas_profile(tx_hash, gas_trace, crdt_analysis, state) do
+  defp build_gas_profile(tx_hash, gas_trace, crdt_analysis, _state) do
     # Calculate basic gas metrics
     total_gas_used = Enum.reduce(gas_trace, 0, &(&1.gas_cost + &2))
     base_gas_cost = total_gas_used - crdt_analysis.total_crdt_gas
@@ -663,7 +663,7 @@ defmodule ExWire.Profiler.GasProfiler do
   end
 
   defp estimate_state_changes(call_data) do
-    # Simplified heuristic for estimating state changes
+    # Simplified heuristic for estimating _state changes
     case byte_size(call_data) do
       size when size < 100 -> 1
       size when size < 1000 -> 3

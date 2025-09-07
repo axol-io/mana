@@ -1,7 +1,7 @@
 defmodule ExWire.Crypto.KZGTest do
   use ExUnit.Case, async: false
 
-  alias ExWire.Crypto.KZG
+  alias ExthCrypto.KZG
 
   @moduletag :kzg
 

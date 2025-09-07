@@ -240,11 +240,11 @@ defmodule ExWire.Consensus.DistributedConsensusCoordinator do
       "[DistributedConsensus] Started coordinator node_id=#{node_id}, primary=#{primary_datacenter}"
     )
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl GenServer
-  def handle_call({:add_replica, datacenter, antidote_nodes, opts}, _from, state) do
+  def handle_call({:add_replica, datacenter, antidote_nodes, opts}, _from, _state) do
     Logger.info(
       "[DistributedConsensus] Adding replica datacenter=#{datacenter}, nodes=#{inspect(antidote_nodes)}"
     )
@@ -278,17 +278,17 @@ defmodule ExWire.Consensus.DistributedConsensusCoordinator do
 
         {:reply, :ok, new_state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error(
           "[DistributedConsensus] Failed to add replica #{datacenter}: #{inspect(reason)}"
         )
 
-        {:reply, {:error, reason}, state}
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl GenServer
-  def handle_call({:remove_replica, datacenter}, _from, state) do
+  def handle_call({:remove_replica, datacenter}, _from, _state) do
     case Map.get(state.replicas, datacenter) do
       nil ->
         {:reply, {:error, :not_found}, state}
@@ -309,7 +309,7 @@ defmodule ExWire.Consensus.DistributedConsensusCoordinator do
   end
 
   @impl GenServer
-  def handle_call({:route_transaction, transaction, strategy}, _from, state) do
+  def handle_call({:route_transaction, transaction, strategy}, _from, _state) do
     case select_replica_for_write(strategy, state) do
       {:ok, datacenter, replica} ->
         # Execute transaction using CRDT operations
@@ -322,21 +322,21 @@ defmodule ExWire.Consensus.DistributedConsensusCoordinator do
             Logger.debug("[DistributedConsensus] Routed transaction to #{datacenter}")
             {:reply, {:ok, result}, updated_state}
 
-          {:error, reason} ->
+          {:error, _reason} ->
             Logger.error(
               "[DistributedConsensus] Transaction failed on #{datacenter}: #{inspect(reason)}"
             )
 
-            {:reply, {:error, reason}, state}
+            {:reply, {:error, _reason}, state}
         end
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl GenServer
-  def handle_call({:route_read_operation, operation, opts}, _from, state) do
+  def handle_call({:route_read_operation, operation, opts}, _from, _state) do
     consistency = Keyword.get(opts, :consistency, :eventual)
 
     case select_replica_for_read(consistency, state) do
@@ -346,32 +346,32 @@ defmodule ExWire.Consensus.DistributedConsensusCoordinator do
             Logger.debug("[DistributedConsensus] Routed read to #{datacenter}")
             {:reply, {:ok, result}, state}
 
-          {:error, reason} ->
+          {:error, _reason} ->
             Logger.error(
               "[DistributedConsensus] Read failed on #{datacenter}: #{inspect(reason)}"
             )
 
-            {:reply, {:error, reason}, state}
+            {:reply, {:error, _reason}, state}
         end
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl GenServer
-  def handle_call(:get_stats, _from, state) do
+  def handle_call(:get_stats, _from, _state) do
     current_stats = calculate_current_stats(state)
     {:reply, current_stats, %{state | stats: current_stats}}
   end
 
   @impl GenServer
-  def handle_call(:get_replica_info, _from, state) do
+  def handle_call(:get_replica_info, _from, _state) do
     {:reply, state.replicas, state}
   end
 
   @impl GenServer
-  def handle_cast({:set_routing_strategy, strategy}, state) do
+  def handle_cast({:set_routing_strategy, strategy}, _state) do
     Logger.info(
       "[DistributedConsensus] Routing strategy changed: #{state.routing_strategy} -> #{strategy}"
     )
@@ -380,7 +380,7 @@ defmodule ExWire.Consensus.DistributedConsensusCoordinator do
   end
 
   @impl GenServer
-  def handle_cast(:force_sync, state) do
+  def handle_cast(:force_sync, _state) do
     Logger.info("[DistributedConsensus] Forcing synchronization across all replicas")
 
     # Trigger sync with all replicas
@@ -392,7 +392,7 @@ defmodule ExWire.Consensus.DistributedConsensusCoordinator do
   end
 
   @impl GenServer
-  def handle_cast({:sync_with_replica, datacenter}, state) do
+  def handle_cast({:sync_with_replica, datacenter}, _state) do
     case Map.get(state.replicas, datacenter) do
       nil ->
         Logger.warning(
@@ -408,10 +408,10 @@ defmodule ExWire.Consensus.DistributedConsensusCoordinator do
   end
 
   @impl GenServer
-  def handle_cast({:handle_partition, datacenter, event}, state) do
+  def handle_cast({:handle_partition, datacenter, event}, _state) do
     case Map.get(state.replicas, datacenter) do
       nil ->
-        {:noreply, state}
+        {:noreply, _state}
 
       replica ->
         Logger.warning("[DistributedConsensus] Partition #{event} for datacenter #{datacenter}")
@@ -428,7 +428,7 @@ defmodule ExWire.Consensus.DistributedConsensusCoordinator do
         # Update partition statistics
         new_stats =
           case event do
-            :detected -> %{state.stats | partition_events: state.stats.partition_events + 1}
+            :detected -> %{state.stats | partition_events: _state.stats.partition_events + 1}
             :recovered -> state.stats
           end
 
@@ -437,7 +437,7 @@ defmodule ExWire.Consensus.DistributedConsensusCoordinator do
   end
 
   @impl GenServer
-  def handle_info(:health_check, state) do
+  def handle_info(:health_check, _state) do
     # Check health of all replicas
     Task.start(fn -> check_replica_health(state) end)
 
@@ -446,7 +446,7 @@ defmodule ExWire.Consensus.DistributedConsensusCoordinator do
   end
 
   @impl GenServer
-  def handle_info(:sync_operations, state) do
+  def handle_info(:sync_operations, _state) do
     # Perform background sync operations
     Task.start(fn -> perform_background_sync(state) end)
 
@@ -455,7 +455,7 @@ defmodule ExWire.Consensus.DistributedConsensusCoordinator do
   end
 
   @impl GenServer
-  def handle_info(:update_stats, state) do
+  def handle_info(:update_stats, _state) do
     updated_stats = calculate_current_stats(state)
 
     schedule_stats_update()
@@ -544,7 +544,7 @@ defmodule ExWire.Consensus.DistributedConsensusCoordinator do
     partition_handler_loop()
   end
 
-  defp select_replica_for_write(strategy, state) do
+  defp select_replica_for_write(strategy, _state) do
     healthy_replicas = get_healthy_replicas(state.replicas)
 
     case healthy_replicas do
@@ -561,14 +561,14 @@ defmodule ExWire.Consensus.DistributedConsensusCoordinator do
     end
   end
 
-  defp select_replica_for_read(:eventual, state) do
+  defp select_replica_for_read(:eventual, _state) do
     # For eventual consistency, use nearest replica
     select_replica_for_write(:nearest, state)
   end
 
-  defp select_replica_for_read(:strong, state) do
+  defp select_replica_for_read(:strong, _state) do
     # For strong consistency, use primary replica
-    select_replica_for_write(:primary_only, state)
+    select_replica_for_write(:primary_only, _state)
   end
 
   defp get_healthy_replicas(replicas) do
@@ -634,7 +634,7 @@ defmodule ExWire.Consensus.DistributedConsensusCoordinator do
     :ok
   end
 
-  defp check_replica_health(state) do
+  defp check_replica_health(_state) do
     for {datacenter, replica} <- state.replicas do
       Task.start(fn ->
         # Perform health check (placeholder)
@@ -671,7 +671,7 @@ defmodule ExWire.Consensus.DistributedConsensusCoordinator do
     }
   end
 
-  defp calculate_current_stats(state) do
+  defp calculate_current_stats(_state) do
     total_replicas = map_size(state.replicas)
 
     healthy_replicas =

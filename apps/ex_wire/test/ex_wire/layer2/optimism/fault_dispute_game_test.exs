@@ -26,7 +26,7 @@ defmodule ExWire.Layer2.Optimism.FaultDisputeGameTest do
       assert String.starts_with?(game_id, "dispute_")
 
       # Verify game state
-      assert {:ok, state} = FaultDisputeGame.get_state(game_id)
+      assert {:ok, _state} = FaultDisputeGame.get_state(game_id)
       assert state.status == :in_progress
       assert state.l2_block_number == 5000
       # Root claim
@@ -56,7 +56,7 @@ defmodule ExWire.Layer2.Optimism.FaultDisputeGameTest do
       assert claim_index == 1
 
       # Verify claim was added
-      {:ok, state} = FaultDisputeGame.get_state(game_id)
+      {:ok, _state} = FaultDisputeGame.get_state(game_id)
       assert length(state.claims) == 2
     end
 
@@ -69,7 +69,7 @@ defmodule ExWire.Layer2.Optimism.FaultDisputeGameTest do
       assert {:ok, defend_index} = FaultDisputeGame.defend(game_id, attack_index, defend_data)
       assert defend_index == 2
 
-      {:ok, state} = FaultDisputeGame.get_state(game_id)
+      {:ok, _state} = FaultDisputeGame.get_state(game_id)
       assert length(state.claims) == 3
     end
 
@@ -96,7 +96,7 @@ defmodule ExWire.Layer2.Optimism.FaultDisputeGameTest do
         end
       end
 
-      {:ok, state} = FaultDisputeGame.get_state(game_id)
+      {:ok, _state} = FaultDisputeGame.get_state(game_id)
       # Root + 10 moves
       assert length(state.claims) == 11
     end
@@ -169,7 +169,7 @@ defmodule ExWire.Layer2.Optimism.FaultDisputeGameTest do
       assert status in [:challenger_wins, :defender_wins]
 
       # Verify resolution is recorded
-      {:ok, state} = FaultDisputeGame.get_state(game_id)
+      {:ok, _state} = FaultDisputeGame.get_state(game_id)
       assert state.status == status
       assert state.resolved_at != nil
     end
@@ -198,7 +198,7 @@ defmodule ExWire.Layer2.Optimism.FaultDisputeGameTest do
       # Attack moves left in tree (position * 2)
       {:ok, _} = FaultDisputeGame.attack(game_id, 0, :crypto.strong_rand_bytes(32))
 
-      {:ok, state} = FaultDisputeGame.get_state(game_id)
+      {:ok, _state} = FaultDisputeGame.get_state(game_id)
       second_claim = Enum.at(state.claims, 1)
 
       # Root has position 1, attack should have position 2
@@ -212,7 +212,7 @@ defmodule ExWire.Layer2.Optimism.FaultDisputeGameTest do
       # Defend moves right in tree (position * 2 + 1)
       {:ok, _} = FaultDisputeGame.defend(game_id, attack_index, :crypto.strong_rand_bytes(32))
 
-      {:ok, state} = FaultDisputeGame.get_state(game_id)
+      {:ok, _state} = FaultDisputeGame.get_state(game_id)
       defend_claim = Enum.at(state.claims, 2)
 
       # Attack at position 2, defend should be at position 5 (2*2+1)
@@ -220,7 +220,7 @@ defmodule ExWire.Layer2.Optimism.FaultDisputeGameTest do
     end
 
     test "tracks claim bonds correctly", %{game_id: game_id} do
-      {:ok, state} = FaultDisputeGame.get_state(game_id)
+      {:ok, _state} = FaultDisputeGame.get_state(game_id)
       root_claim = hd(state.claims)
 
       # Bond should be set
@@ -243,7 +243,7 @@ defmodule ExWire.Layer2.Optimism.FaultDisputeGameTest do
       }
 
       {:ok, game_id} = FaultDisputeGame.create_game(params)
-      {:ok, state} = FaultDisputeGame.get_state(game_id)
+      {:ok, _state} = FaultDisputeGame.get_state(game_id)
 
       root_claim = hd(state.claims)
       # 3.5 days in seconds
@@ -263,7 +263,7 @@ defmodule ExWire.Layer2.Optimism.FaultDisputeGameTest do
       # Make a move
       {:ok, _} = FaultDisputeGame.attack(game_id, 0, :crypto.strong_rand_bytes(32))
 
-      {:ok, state} = FaultDisputeGame.get_state(game_id)
+      {:ok, _state} = FaultDisputeGame.get_state(game_id)
       root_claim = Enum.at(state.claims, 0)
       attack_claim = Enum.at(state.claims, 1)
 

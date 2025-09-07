@@ -428,64 +428,73 @@ defmodule MerklePatriciaTree.Performance.ProductionTuner do
     recommendations = []
 
     # CPU optimization recommendations
-    if analysis.cpu_bottleneck do
-      _recommendations = [
-        %{
-          id: generate_recommendation_id(),
-          type: :cpu_optimization,
-          priority: :high,
-          description:
-            "High CPU usage detected. Consider increasing worker pool size or optimizing algorithms.",
-          expected_impact: %{cpu_usage: -20, throughput: 15},
-          implementation_steps: [
-            "Increase worker pool size",
-            "Optimize CPU-intensive algorithms",
-            "Consider horizontal scaling"
-          ]
-        }
-        | recommendations
-      ]
-    end
+    recommendations = 
+      if analysis.cpu_bottleneck do
+        [
+          %{
+            id: generate_recommendation_id(),
+            type: :cpu_optimization,
+            priority: :high,
+            description:
+              "High CPU usage detected. Consider increasing worker pool size or optimizing algorithms.",
+            expected_impact: %{cpu_usage: -20, throughput: 15},
+            implementation_steps: [
+              "Increase worker pool size",
+              "Optimize CPU-intensive algorithms",
+              "Consider horizontal scaling"
+            ]
+          }
+          | recommendations
+        ]
+      else
+        recommendations
+      end
 
     # Memory optimization recommendations
-    if analysis.memory_bottleneck do
-      _recommendations = [
-        %{
-          id: generate_recommendation_id(),
-          type: :memory_optimization,
-          priority: :critical,
-          description:
-            "High memory usage detected. Consider increasing memory or optimizing memory usage.",
-          expected_impact: %{memory_usage: -30, stability: 25},
-          implementation_steps: [
-            "Increase system memory",
-            "Optimize memory allocation",
-            "Implement memory pooling"
-          ]
-        }
-        | recommendations
-      ]
-    end
+    recommendations = 
+      if analysis.memory_bottleneck do
+        [
+          %{
+            id: generate_recommendation_id(),
+            type: :memory_optimization,
+            priority: :critical,
+            description:
+              "High memory usage detected. Consider increasing memory or optimizing memory usage.",
+            expected_impact: %{memory_usage: -30, stability: 25},
+            implementation_steps: [
+              "Increase system memory",
+              "Optimize memory allocation",
+              "Implement memory pooling"
+            ]
+          }
+          | recommendations
+        ]
+      else
+        recommendations
+      end
 
     # Latency optimization recommendations
-    if analysis.latency_bottleneck do
-      _recommendations = [
-        %{
-          id: generate_recommendation_id(),
-          type: :latency_optimization,
-          priority: :high,
-          description:
-            "High latency detected. Consider optimizing database queries and network configuration.",
-          expected_impact: %{latency: -40, user_experience: 30},
-          implementation_steps: [
-            "Optimize database queries",
-            "Implement connection pooling",
-            "Add caching layers"
-          ]
-        }
-        | recommendations
-      ]
-    end
+    recommendations = 
+      if analysis.latency_bottleneck do
+        [
+          %{
+            id: generate_recommendation_id(),
+            type: :latency_optimization,
+            priority: :high,
+            description:
+              "High latency detected. Consider optimizing database queries and network configuration.",
+            expected_impact: %{latency: -40, user_experience: 30},
+            implementation_steps: [
+              "Optimize database queries",
+              "Implement connection pooling",
+              "Add caching layers"
+            ]
+          }
+          | recommendations
+        ]
+      else
+        recommendations
+      end
 
     recommendations
   end

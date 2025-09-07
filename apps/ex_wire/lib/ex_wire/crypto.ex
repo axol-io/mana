@@ -39,7 +39,7 @@ defmodule ExWire.Crypto do
       {:ok, <<public_key::binary>>} ->
         {:ok, node_id_from_public_key(public_key)}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         {:error, to_string(reason)}
     end
   end

@@ -111,11 +111,11 @@ defmodule ExWire.Eth2.ValidatorClient do
     schedule_slot_duties()
     schedule_epoch_duties()
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:add_validator, pubkey, privkey, withdrawal_credentials}, _from, state) do
+  def handle_call({:add_validator, pubkey, privkey, withdrawal_credentials}, _from, _state) do
     validator = %{
       pubkey: pubkey,
       privkey: privkey,
@@ -139,7 +139,7 @@ defmodule ExWire.Eth2.ValidatorClient do
   end
 
   @impl true
-  def handle_call({:remove_validator, pubkey}, _from, state) do
+  def handle_call({:remove_validator, pubkey}, _from, _state) do
     state = update_in(state.validators, &Map.delete(&1, pubkey))
 
     # Remove from key manager
@@ -151,7 +151,7 @@ defmodule ExWire.Eth2.ValidatorClient do
   end
 
   @impl true
-  def handle_call(:get_validators, _from, state) do
+  def handle_call(:get_validators, _from, _state) do
     validators =
       Enum.map(state.validators, fn {pubkey, validator} ->
         %{
@@ -166,18 +166,18 @@ defmodule ExWire.Eth2.ValidatorClient do
   end
 
   @impl true
-  def handle_call(:get_metrics, _from, state) do
+  def handle_call(:get_metrics, _from, _state) do
     {:reply, {:ok, state.metrics}, state}
   end
 
   @impl true
-  def handle_cast(:check_duties, state) do
+  def handle_cast(:check_duties, _state) do
     state = update_validator_duties(state)
     {:noreply, state}
   end
 
   @impl true
-  def handle_info(:slot_tick, state) do
+  def handle_info(:slot_tick, _state) do
     # Get current slot
     {:ok, beacon_state} = BeaconChain.get_state()
     current_slot = beacon_state.slot
@@ -192,7 +192,7 @@ defmodule ExWire.Eth2.ValidatorClient do
   end
 
   @impl true
-  def handle_info(:epoch_tick, state) do
+  def handle_info(:epoch_tick, _state) do
     # Update duties for next epoch
     state = update_validator_duties(state)
 
@@ -203,14 +203,14 @@ defmodule ExWire.Eth2.ValidatorClient do
   end
 
   @impl true
-  def handle_info({:attestation_time, slot}, state) do
+  def handle_info({:attestation_time, slot}, _state) do
     # Time to attest (1/3 into slot)
     state = perform_attestations(state, slot)
     {:noreply, state}
   end
 
   @impl true
-  def handle_info({:aggregation_time, slot}, state) do
+  def handle_info({:aggregation_time, slot}, _state) do
     # Time to aggregate (2/3 into slot)
     state = perform_aggregations(state, slot)
     {:noreply, state}
@@ -218,7 +218,7 @@ defmodule ExWire.Eth2.ValidatorClient do
 
   # Private Functions - Duty Management
 
-  defp update_validator_duties(state) do
+  defp update_validator_duties(_state) do
     {:ok, beacon_state} = BeaconChain.get_state()
     current_epoch = div(beacon_state.slot, @slots_per_epoch)
     next_epoch = current_epoch + 1
@@ -231,7 +231,7 @@ defmodule ExWire.Eth2.ValidatorClient do
     update_duties_for_epoch(state, next_epoch, validator_indices)
   end
 
-  defp update_duties_for_epoch(state, epoch, validator_indices) do
+  defp update_duties_for_epoch(_state, epoch, validator_indices) do
     # Get duties from beacon chain
     {:ok, duties} = BeaconChain.get_validator_duties(epoch, validator_indices)
 
@@ -267,7 +267,7 @@ defmodule ExWire.Eth2.ValidatorClient do
     }
   end
 
-  defp get_validator_indices(state, beacon_state) do
+  defp get_validator_indices(_state, beacon_state) do
     # Map pubkeys to validator indices
     Enum.map(state.validators, fn {pubkey, _validator} ->
       find_validator_index(beacon_state.validators, pubkey)
@@ -283,7 +283,7 @@ defmodule ExWire.Eth2.ValidatorClient do
 
   # Private Functions - Slot Duties
 
-  defp perform_slot_duties(state, slot) do
+  defp perform_slot_duties(_state, slot) do
     # Check if we should propose a block
     state =
       if Map.has_key?(state.proposer_duties, slot) do
@@ -302,7 +302,7 @@ defmodule ExWire.Eth2.ValidatorClient do
     perform_sync_committee_duties(state, slot)
   end
 
-  defp propose_block(state, slot) do
+  defp propose_block(_state, slot) do
     proposer_index = Map.get(state.proposer_duties, slot)
 
     # Find validator key
@@ -347,7 +347,7 @@ defmodule ExWire.Eth2.ValidatorClient do
     end
   end
 
-  defp perform_attestations(state, slot) do
+  defp perform_attestations(_state, slot) do
     # Get attestation duties for this slot
     duties = Map.get(state.attestation_duties, slot, [])
 
@@ -356,7 +356,7 @@ defmodule ExWire.Eth2.ValidatorClient do
     end)
   end
 
-  defp perform_attestation(state, slot, duty) do
+  defp perform_attestation(_state, slot, duty) do
     validator = find_validator_by_index(state, duty.validator_index)
 
     if validator do
@@ -395,7 +395,7 @@ defmodule ExWire.Eth2.ValidatorClient do
     end
   end
 
-  defp perform_aggregations(state, slot) do
+  defp perform_aggregations(_state, slot) do
     # Check if we're an aggregator for this slot
     duties = Map.get(state.attestation_duties, slot, [])
 
@@ -408,7 +408,7 @@ defmodule ExWire.Eth2.ValidatorClient do
     end)
   end
 
-  defp perform_aggregation(state, slot, duty) do
+  defp perform_aggregation(_state, slot, duty) do
     Logger.debug("Performing aggregation for slot #{slot}")
 
     # Aggregate attestations
@@ -418,7 +418,7 @@ defmodule ExWire.Eth2.ValidatorClient do
     update_in(state.metrics.aggregations_performed, &(&1 + 1))
   end
 
-  defp perform_sync_committee_duties(state, slot) do
+  defp perform_sync_committee_duties(_state, slot) do
     # Check if any validators are in sync committee
     Enum.reduce(state.validators, state, fn {pubkey, validator}, acc_state ->
       if Map.get(acc_state.sync_committee_duties, validator.index) do
@@ -429,7 +429,7 @@ defmodule ExWire.Eth2.ValidatorClient do
     end)
   end
 
-  defp perform_sync_committee_duty(state, slot, validator) do
+  defp perform_sync_committee_duty(_state, slot, validator) do
     Logger.debug("Performing sync committee duty for slot #{slot}")
 
     # Create sync committee message
@@ -441,7 +441,7 @@ defmodule ExWire.Eth2.ValidatorClient do
 
   # Private Functions - Signing
 
-  defp sign_block(state, validator, block) do
+  defp sign_block(_state, validator, block) do
     {:ok, beacon_state} = BeaconChain.get_state()
 
     # Get domain
@@ -459,7 +459,7 @@ defmodule ExWire.Eth2.ValidatorClient do
     }
   end
 
-  defp sign_attestation(state, validator, attestation_data, _duty) do
+  defp sign_attestation(_state, validator, attestation_data, _duty) do
     {:ok, beacon_state} = BeaconChain.get_state()
 
     # Get domain
@@ -479,7 +479,7 @@ defmodule ExWire.Eth2.ValidatorClient do
     }
   end
 
-  defp generate_randao_reveal(state, validator, slot) do
+  defp generate_randao_reveal(_state, validator, slot) do
     {:ok, beacon_state} = BeaconChain.get_state()
 
     epoch = div(slot, @slots_per_epoch)
@@ -519,7 +519,7 @@ defmodule ExWire.Eth2.ValidatorClient do
 
   # Private Functions - Helpers
 
-  defp find_validator_by_index(state, index) do
+  defp find_validator_by_index(_state, index) do
     Enum.find_value(state.validators, fn {_pubkey, validator} ->
       if validator.index == index do
         validator
@@ -536,7 +536,7 @@ defmodule ExWire.Eth2.ValidatorClient do
     :rand.uniform() < 0.1
   end
 
-  defp load_validators(state, opts) do
+  defp load_validators(_state, opts) do
     # Load validators from configuration or keystore
     validators = Keyword.get(opts, :validators, [])
 

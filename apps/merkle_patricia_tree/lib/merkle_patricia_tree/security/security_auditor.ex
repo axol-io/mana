@@ -420,38 +420,44 @@ defmodule MerklePatriciaTree.Security.SecurityAuditor do
     vulnerabilities = []
 
     # Check for potential SQL injection vulnerabilities
-    if has_sql_injection_risk() do
-      _vulnerabilities = [
-        %{
-          id: generate_vulnerability_id(),
-          type: :sql_injection,
-          severity: :high,
-          description: "Potential SQL injection vulnerability detected",
-          cve_id: "CVE-2023-XXXX",
-          affected_component: "Database queries",
-          remediation: "Use parameterized queries and input validation",
-          discovered_at: System.system_time(:second)
-        }
-        | vulnerabilities
-      ]
-    end
+    vulnerabilities = 
+      if has_sql_injection_risk() do
+        [
+          %{
+            id: generate_vulnerability_id(),
+            type: :sql_injection,
+            severity: :high,
+            description: "Potential SQL injection vulnerability detected",
+            cve_id: "CVE-2023-XXXX",
+            affected_component: "Database queries",
+            remediation: "Use parameterized queries and input validation",
+            discovered_at: System.system_time(:second)
+          }
+          | vulnerabilities
+        ]
+      else
+        vulnerabilities
+      end
 
     # Check for XSS vulnerabilities
-    if has_xss_risk() do
-      _vulnerabilities = [
-        %{
-          id: generate_vulnerability_id(),
-          type: :xss,
-          severity: :medium,
-          description: "Potential XSS vulnerability detected",
-          cve_id: nil,
-          affected_component: "Web interface",
-          remediation: "Sanitize user input and use CSP headers",
-          discovered_at: System.system_time(:second)
-        }
-        | vulnerabilities
-      ]
-    end
+    vulnerabilities = 
+      if has_xss_risk() do
+        [
+          %{
+            id: generate_vulnerability_id(),
+            type: :xss,
+            severity: :medium,
+            description: "Potential XSS vulnerability detected",
+            cve_id: nil,
+            affected_component: "Web interface",
+            remediation: "Sanitize user input and use CSP headers",
+            discovered_at: System.system_time(:second)
+          }
+          | vulnerabilities
+        ]
+      else
+        vulnerabilities
+      end
 
     vulnerabilities
   end
@@ -461,21 +467,24 @@ defmodule MerklePatriciaTree.Security.SecurityAuditor do
     vulnerabilities = []
 
     # Check for weak password policies
-    if has_weak_password_policy() do
-      _vulnerabilities = [
-        %{
-          id: generate_vulnerability_id(),
-          type: :weak_authentication,
-          severity: :medium,
-          description: "Weak password policy detected",
-          cve_id: nil,
-          affected_component: "Authentication system",
-          remediation: "Implement strong password requirements",
-          discovered_at: System.system_time(:second)
-        }
-        | vulnerabilities
-      ]
-    end
+    vulnerabilities = 
+      if has_weak_password_policy() do
+        [
+          %{
+            id: generate_vulnerability_id(),
+            type: :weak_authentication,
+            severity: :medium,
+            description: "Weak password policy detected",
+            cve_id: nil,
+            affected_component: "Authentication system",
+            remediation: "Implement strong password requirements",
+            discovered_at: System.system_time(:second)
+          }
+          | vulnerabilities
+        ]
+      else
+        vulnerabilities
+      end
 
     vulnerabilities
   end

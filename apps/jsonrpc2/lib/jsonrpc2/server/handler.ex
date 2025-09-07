@@ -80,7 +80,7 @@ defmodule JSONRPC2.Server.Handler do
       end
 
       # Default implementation for 3-arity handle_request that calls 2-arity
-      def handle_request(method, params, _context) do
+      def handle_request(method, _params, _context) do
         handle_request(method, params)
       end
 
@@ -181,7 +181,7 @@ defmodule JSONRPC2.Server.Handler do
     :not_supported
   ]
 
-  defp dispatch(module, {method, params, id}, context) do
+  defp dispatch(module, {method, _params, id}, context) do
     # Try 3-arity first if context is not empty, fallback to 2-arity
     result =
       if map_size(context) > 0 and function_exported?(module, :handle_request, 3) do
@@ -213,7 +213,7 @@ defmodule JSONRPC2.Server.Handler do
     standard_error_response(:invalid_request, nil)
   end
 
-  defp log_error(module, method, params, kind, payload, stacktrace) do
+  defp log_error(module, method, _params, kind, payload, stacktrace) do
     Logger.error([
       "Error in handler ",
       inspect(module),
@@ -336,7 +336,7 @@ defmodule JSONRPC2.Server.Handler do
       {:ok, encoded_reply} ->
         {:reply, encoded_reply}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         _ =
           Logger.info([
             "Handler ",

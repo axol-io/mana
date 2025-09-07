@@ -1036,12 +1036,12 @@ defmodule Blockchain.PropertyTests.FuzzingTest do
     %{chain | blocks: blocks}
   end
 
-  defp apply_state_operation({:set_balance, address, balance}, state) do
+  defp apply_state_operation({:set_balance, address, balance}, _state) do
     # Simplified state operation
     State.put_account(state, address, %{balance: balance, nonce: 0})
   end
 
-  defp apply_state_operation(_, state), do: state
+  defp apply_state_operation(_, _state), do: state
 
   defp apply_storage_corruption(_state, _address, _corruption) do
     # Simulate storage corruption handling

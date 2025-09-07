@@ -15,7 +15,14 @@ defmodule ExthCrypto.Mixfile do
       ],
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      # Configure Rustler NIF compilation
+      rustler_crates: [
+        kzg_nif: [
+          path: "native/kzg_nif",
+          mode: if(Mix.env() == :prod, do: :release, else: :debug)
+        ]
+      ]
     ]
   end
 
@@ -37,6 +44,8 @@ defmodule ExthCrypto.Mixfile do
       {:binary, "~> 0.0.4"},
       # For HSM configuration JSON handling
       {:jason, "~> 1.4"},
+      # KZG NIF dependencies
+      {:rustler, "~> 0.29.1"},
       # Property-based testing
       {:stream_data, "~> 0.6", only: :test}
     ]

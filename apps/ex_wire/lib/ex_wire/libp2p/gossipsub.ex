@@ -126,9 +126,9 @@ defmodule ExWire.LibP2P.GossipSub do
         serialized = SSZ.encode(blob_sidecar) |> compress_snappy()
         GenServer.cast(server, {:publish, topic, serialized})
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.warning("Invalid blob sidecar for gossip: #{inspect(reason)}")
-        {:error, reason}
+        {:error, _reason}
     end
   end
 
@@ -208,11 +208,11 @@ defmodule ExWire.LibP2P.GossipSub do
     # Schedule cache cleanup
     schedule_cleanup()
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:subscribe, topic}, _from, state) do
+  def handle_call({:subscribe, topic}, _from, _state) do
     Logger.debug("Subscribing to topic: #{topic}")
 
     # Add topic to our interests
@@ -227,7 +227,7 @@ defmodule ExWire.LibP2P.GossipSub do
     {:reply, :ok, %{new_state | topics: new_topics}}
   end
 
-  def handle_call({:unsubscribe, topic}, _from, state) do
+  def handle_call({:unsubscribe, topic}, _from, _state) do
     Logger.debug("Unsubscribing from topic: #{topic}")
 
     # Leave mesh for this topic
@@ -242,18 +242,18 @@ defmodule ExWire.LibP2P.GossipSub do
     {:reply, :ok, %{new_state | topics: new_topics}}
   end
 
-  def handle_call({:register_handler, topic, handler}, _from, state) do
+  def handle_call({:register_handler, topic, handler}, _from, _state) do
     new_handlers = Map.put(state.handlers, topic, handler)
     {:reply, :ok, %{state | handlers: new_handlers}}
   end
 
-  def handle_call({:get_mesh_peers, topic}, _from, state) do
+  def handle_call({:get_mesh_peers, topic}, _from, _state) do
     peers = Map.get(state.mesh, topic, MapSet.new())
     {:reply, MapSet.to_list(peers), state}
   end
 
   @impl true
-  def handle_cast({:publish, topic, message}, state) do
+  def handle_cast({:publish, topic, message}, _state) do
     message_id = compute_message_id(message)
 
     # Check if we've seen this message
@@ -285,7 +285,7 @@ defmodule ExWire.LibP2P.GossipSub do
     end
   end
 
-  def handle_cast({:add_peer, peer_id, peer_info}, state) do
+  def handle_cast({:add_peer, peer_id, peer_info}, _state) do
     Logger.debug("Adding peer: #{inspect(peer_id)}")
 
     new_peers =
@@ -309,7 +309,7 @@ defmodule ExWire.LibP2P.GossipSub do
     {:noreply, %{state | peers: new_peers, scores: new_scores}}
   end
 
-  def handle_cast({:remove_peer, peer_id}, state) do
+  def handle_cast({:remove_peer, peer_id}, _state) do
     Logger.debug("Removing peer: #{inspect(peer_id)}")
 
     # Remove from all meshes
@@ -345,12 +345,12 @@ defmodule ExWire.LibP2P.GossipSub do
      }}
   end
 
-  def handle_cast({:handle_message, peer_id, %{type: :rpc} = message}, state) do
+  def handle_cast({:handle_message, peer_id, %{type: :rpc} = message}, _state) do
     new_state = handle_rpc(peer_id, message, state)
     {:noreply, new_state}
   end
 
-  def handle_cast({:propagate, topic, message, source_peer}, state) do
+  def handle_cast({:propagate, topic, message, source_peer}, _state) do
     message_id = compute_message_id(message)
 
     # Get mesh peers excluding source
@@ -376,7 +376,7 @@ defmodule ExWire.LibP2P.GossipSub do
   end
 
   @impl true
-  def handle_info(:heartbeat, state) do
+  def handle_info(:heartbeat, _state) do
     new_state =
       state
       |> maintain_mesh()
@@ -388,7 +388,7 @@ defmodule ExWire.LibP2P.GossipSub do
     {:noreply, new_state}
   end
 
-  def handle_info(:cleanup, state) do
+  def handle_info(:cleanup, _state) do
     # Clean up old seen messages
     now = System.system_time(:millisecond)
 
@@ -409,7 +409,7 @@ defmodule ExWire.LibP2P.GossipSub do
 
   # Private Functions - Mesh Management
 
-  defp join_mesh(topic, state) do
+  defp join_mesh(topic, _state) do
     current_peers = Map.get(state.mesh, topic, MapSet.new())
 
     # Get peers interested in this topic
@@ -439,7 +439,7 @@ defmodule ExWire.LibP2P.GossipSub do
     end
   end
 
-  defp leave_mesh(topic, state) do
+  defp leave_mesh(topic, _state) do
     case Map.get(state.mesh, topic) do
       nil ->
         state
@@ -452,11 +452,11 @@ defmodule ExWire.LibP2P.GossipSub do
 
         # Remove mesh
         new_mesh = Map.delete(state.mesh, topic)
-        %{state | mesh: new_mesh}
+        %{_state | mesh: new_mesh}
     end
   end
 
-  defp maintain_mesh(state) do
+  defp maintain_mesh(_state) do
     Enum.reduce(state.mesh, state, fn {topic, peers}, acc_state ->
       peer_count = MapSet.size(peers)
 
@@ -476,7 +476,7 @@ defmodule ExWire.LibP2P.GossipSub do
     end)
   end
 
-  defp graft_peers(topic, count, state) do
+  defp graft_peers(topic, count, _state) do
     current_peers = Map.get(state.mesh, topic, MapSet.new())
     interested_peers = get_topic_peers(topic, state)
 
@@ -497,7 +497,7 @@ defmodule ExWire.LibP2P.GossipSub do
     %{state | mesh: new_mesh}
   end
 
-  defp prune_peers(topic, count, state) do
+  defp prune_peers(topic, count, _state) do
     current_peers = Map.get(state.mesh, topic, MapSet.new())
 
     # Select lowest scored peers to prune
@@ -517,7 +517,7 @@ defmodule ExWire.LibP2P.GossipSub do
     %{state | mesh: new_mesh}
   end
 
-  defp opportunistic_graft(topic, state) do
+  defp opportunistic_graft(topic, _state) do
     # Randomly select peer with good score to graft
     current_peers = Map.get(state.mesh, topic, MapSet.new())
 
@@ -540,7 +540,7 @@ defmodule ExWire.LibP2P.GossipSub do
 
           new_mesh_peers = MapSet.put(current_peers, selected)
           new_mesh = Map.put(state.mesh, topic, new_mesh_peers)
-          %{state | mesh: new_mesh}
+          %{_state | mesh: new_mesh}
       end
     else
       state
@@ -549,7 +549,7 @@ defmodule ExWire.LibP2P.GossipSub do
 
   # Private Functions - Gossip
 
-  defp emit_gossip(state) do
+  defp emit_gossip(_state) do
     # Get recent messages from cache
     gossip_messages = get_gossip_messages(state.mcache)
 
@@ -576,7 +576,7 @@ defmodule ExWire.LibP2P.GossipSub do
     |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
   end
 
-  defp get_gossip_peers(topic, exclude_peers, state) do
+  defp get_gossip_peers(topic, exclude_peers, _state) do
     interested_peers = get_topic_peers(topic, state)
 
     interested_peers
@@ -588,7 +588,7 @@ defmodule ExWire.LibP2P.GossipSub do
 
   # Private Functions - RPC Handling
 
-  defp handle_rpc(peer_id, %{type: :rpc, messages: messages, control: control}, state) do
+  defp handle_rpc(peer_id, %{type: :rpc, messages: messages, control: control}, _state) do
     # Handle messages
     new_state =
       Enum.reduce(messages, state, fn msg, acc ->
@@ -599,7 +599,7 @@ defmodule ExWire.LibP2P.GossipSub do
     handle_control(peer_id, control, new_state)
   end
 
-  defp handle_publish(peer_id, topic, data, state) do
+  defp handle_publish(peer_id, topic, data, _state) do
     message_id = compute_message_id(data)
 
     # Check if seen
@@ -613,7 +613,7 @@ defmodule ExWire.LibP2P.GossipSub do
           new_seen = Map.put(state.seen, message_id, System.system_time(:millisecond))
 
           # Add to cache
-          new_mcache = add_to_cache(state.mcache, {topic, message_id, data})
+          new_mcache = add_to_cache(_state.mcache, {topic, message_id, data})
 
           # Update peer score (first message delivery)
           new_state = update_peer_score(peer_id, topic, :first_delivery, state)
@@ -632,7 +632,7 @@ defmodule ExWire.LibP2P.GossipSub do
 
           %{new_state | seen: new_seen, mcache: new_mcache}
 
-        {:error, reason} ->
+        {:error, _reason} ->
           # Invalid message - penalize peer
           Logger.warning(
             "Invalid message from peer #{inspect(peer_id)} on topic #{topic}: #{inspect(reason)}"
@@ -643,7 +643,7 @@ defmodule ExWire.LibP2P.GossipSub do
     end
   end
 
-  defp handle_control(peer_id, control, state) do
+  defp handle_control(peer_id, control, _state) do
     state
     |> handle_ihave(peer_id, control.ihave)
     |> handle_iwant(peer_id, control.iwant)
@@ -651,9 +651,9 @@ defmodule ExWire.LibP2P.GossipSub do
     |> handle_prune(peer_id, control.prune)
   end
 
-  defp handle_ihave(state, _peer_id, []), do: state
+  defp handle_ihave(_state, _peer_id, []), do: state
 
-  defp handle_ihave(state, peer_id, ihave_messages) do
+  defp handle_ihave(_state, peer_id, ihave_messages) do
     # Collect message IDs we want
     wanted =
       Enum.flat_map(ihave_messages, fn %{topic: topic, message_ids: ids} ->
@@ -672,7 +672,7 @@ defmodule ExWire.LibP2P.GossipSub do
     state
   end
 
-  defp handle_iwant(state, peer_id, message_ids) do
+  defp handle_iwant(_state, peer_id, message_ids) do
     # Send requested messages from cache
     Enum.each(message_ids, fn msg_id ->
       case find_in_cache(state.mcache, msg_id) do
@@ -684,7 +684,7 @@ defmodule ExWire.LibP2P.GossipSub do
     state
   end
 
-  defp handle_graft(state, peer_id, topics) do
+  defp handle_graft(_state, peer_id, topics) do
     Enum.reduce(topics, state, fn topic, acc ->
       if Map.has_key?(acc.topics, topic) do
         # Add peer to mesh
@@ -706,7 +706,7 @@ defmodule ExWire.LibP2P.GossipSub do
     end)
   end
 
-  defp handle_prune(state, peer_id, topics) do
+  defp handle_prune(_state, peer_id, topics) do
     Enum.reduce(topics, state, fn topic, acc ->
       case Map.get(acc.mesh, topic) do
         nil ->
@@ -721,7 +721,7 @@ defmodule ExWire.LibP2P.GossipSub do
 
   # Private Functions - Scoring
 
-  defp update_scores(state) do
+  defp update_scores(_state) do
     now = System.system_time(:millisecond)
 
     new_scores =
@@ -765,10 +765,10 @@ defmodule ExWire.LibP2P.GossipSub do
     p1_score + p2_score + p3_score + p4_score - behaviour_penalty
   end
 
-  defp update_peer_score(peer_id, topic, :first_delivery, state) do
+  defp update_peer_score(peer_id, topic, :first_delivery, _state) do
     case Map.get(state.peers, peer_id) do
       nil ->
-        state
+        _state
 
       peer_info ->
         deliveries = Map.get(peer_info.first_message_deliveries, topic, 0)
@@ -779,7 +779,7 @@ defmodule ExWire.LibP2P.GossipSub do
     end
   end
 
-  defp prune_low_scored_peers(state) do
+  defp prune_low_scored_peers(_state) do
     # Remove peers with very low scores
     threshold = -100.0
 
@@ -795,11 +795,11 @@ defmodule ExWire.LibP2P.GossipSub do
 
   # Private Functions - Utilities
 
-  defp get_topic_peers(topic, state) do
+  defp get_topic_peers(topic, _state) do
     Map.get(state.topics, topic, MapSet.new())
   end
 
-  defp get_publish_peers(topic, state) do
+  defp get_publish_peers(topic, _state) do
     case Map.get(state.mesh, topic) do
       nil ->
         # Not in mesh, use fanout
@@ -812,7 +812,7 @@ defmodule ExWire.LibP2P.GossipSub do
               interested_peers
               |> MapSet.to_list()
               |> Enum.shuffle()
-              |> Enum.take(state.d)
+              |> Enum.take(_state.d)
               |> MapSet.new()
 
             fanout_peers
@@ -844,7 +844,7 @@ defmodule ExWire.LibP2P.GossipSub do
     :crypto.hash(:sha256, message) |> Base.encode16()
   end
 
-  defp deliver_message(topic, message, state) do
+  defp deliver_message(topic, message, _state) do
     case Map.get(state.handlers, topic) do
       nil ->
         Logger.debug("No handler for topic: #{topic}")
@@ -942,7 +942,7 @@ defmodule ExWire.LibP2P.GossipSub do
            ExWire.Eth2.BlobVerification.validate_blob_sidecar_for_gossip(blob_sidecar) do
       :ok
     else
-      {:error, reason} -> {:error, {:blob_sidecar_validation, reason}}
+      {:error, _reason} -> {:error, {:blob_sidecar_validation, reason}}
     end
   end
 
@@ -952,7 +952,7 @@ defmodule ExWire.LibP2P.GossipSub do
       # Basic structural validation - full validation done by consensus layer
       :ok
     else
-      {:error, reason} -> {:error, {:beacon_block_validation, reason}}
+      {:error, _reason} -> {:error, {:beacon_block_validation, reason}}
     end
   end
 
@@ -962,7 +962,7 @@ defmodule ExWire.LibP2P.GossipSub do
       # Basic structural validation - full validation done by consensus layer
       :ok
     else
-      {:error, reason} -> {:error, {:attestation_validation, reason}}
+      {:error, _reason} -> {:error, {:attestation_validation, reason}}
     end
   end
 
@@ -990,14 +990,14 @@ defmodule ExWire.LibP2P.GossipSub do
     end
   end
 
-  defp penalize_peer(peer_id, reason, state) do
+  defp penalize_peer(peer_id, _reason, _state) do
     case Map.get(state.peers, peer_id) do
       nil ->
-        state
+        _state
 
       peer_info ->
         penalty =
-          case reason do
+          case _reason do
             :invalid_message -> 10.0
             :malformed_data -> 5.0
             _ -> 1.0

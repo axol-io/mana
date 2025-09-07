@@ -8,7 +8,7 @@ defmodule Blockchain.Transaction.Blob do
   """
 
   alias Blockchain.Transaction
-  alias ExWire.Crypto.KZG
+  alias ExthCrypto.KZG
 
   # Transaction type identifier for blob transactions
   @blob_tx_type 0x03

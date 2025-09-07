@@ -29,7 +29,7 @@ defmodule ExWire.Layer2.NetworkInterface do
   @doc """
   Starts a connection to a Layer 2 network.
   """
-  def start_link(network_name, config \\ %{}) do
+  def start_link(network_name, _config \\ %{}) do
     GenServer.start_link(__MODULE__, {network_name, config}, name: via_tuple(network_name))
   end
 
@@ -90,8 +90,8 @@ defmodule ExWire.Layer2.NetworkInterface do
   ## Server Callbacks
 
   @impl true
-  def init({network_name, config}) do
-    unless network_name in @supported_networks do
+  def init({network_name, _config}) do
+    if network_name not in @supported_networks do
       {:stop, {:unsupported_network, network_name}}
     else
       network_config = load_network_config(network_name, config)
@@ -106,12 +106,12 @@ defmodule ExWire.Layer2.NetworkInterface do
       }
 
       Logger.info("Initialized L2 network interface for #{network_name}")
-      {:ok, state}
+      {:ok, _state}
     end
   end
 
   @impl true
-  def handle_call(:connect, _from, state) do
+  def handle_call(:connect, _from, _state) do
     case establish_connections(state) do
       {:ok, updated_state} ->
         {:ok, rollup_state} = start_rollup_handler(updated_state)
@@ -122,21 +122,21 @@ defmodule ExWire.Layer2.NetworkInterface do
 
         {:reply, {:ok, :connected}, final_state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Failed to connect to #{state.network_name}: #{inspect(reason)}")
-        {:reply, {:error, reason}, state}
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call(:disconnect, _from, state) do
+  def handle_call(:disconnect, _from, _state) do
     updated_state = cleanup_connections(state)
     Logger.info("Disconnected from #{state.network_name}")
     {:reply, :ok, %{updated_state | status: :disconnected}}
   end
 
   @impl true
-  def handle_call(:status, _from, state) do
+  def handle_call(:status, _from, _state) do
     status_info = %{
       network: state.network_name,
       type: state.network_type,
@@ -152,12 +152,12 @@ defmodule ExWire.Layer2.NetworkInterface do
   end
 
   @impl true
-  def handle_call({:submit_transaction, transaction}, _from, state) do
+  def handle_call({:submit_transaction, transaction}, _from, _state) do
     case state.status do
       :connected ->
         result = submit_to_l2(state, transaction)
         update_metrics(state, :transaction_submitted)
-        {:reply, result, state}
+        {:reply, result, _state}
 
       _ ->
         {:reply, {:error, :not_connected}, state}
@@ -165,12 +165,12 @@ defmodule ExWire.Layer2.NetworkInterface do
   end
 
   @impl true
-  def handle_call({:query_state, address, slot}, _from, state) do
+  def handle_call({:query_state, address, slot}, _from, _state) do
     case state.status do
       :connected ->
         result = query_l2_state(state, address, slot)
         update_metrics(state, :state_query)
-        {:reply, result, state}
+        {:reply, result, _state}
 
       _ ->
         {:reply, {:error, :not_connected}, state}
@@ -178,12 +178,12 @@ defmodule ExWire.Layer2.NetworkInterface do
   end
 
   @impl true
-  def handle_call({:initiate_withdrawal, params}, _from, state) do
+  def handle_call({:initiate_withdrawal, _params}, _from, _state) do
     case state.status do
       :connected ->
-        result = initiate_l2_withdrawal(state, params)
+        result = initiate_l2_withdrawal(state, _params)
         update_metrics(state, :withdrawal_initiated)
-        {:reply, result, state}
+        {:reply, result, _state}
 
       _ ->
         {:reply, {:error, :not_connected}, state}
@@ -191,25 +191,25 @@ defmodule ExWire.Layer2.NetworkInterface do
   end
 
   @impl true
-  def handle_call(:get_metrics, _from, state) do
+  def handle_call(:get_metrics, _from, _state) do
     {:reply, state.metrics, state}
   end
 
   @impl true
-  def handle_info({:sync_update, block_number}, state) do
+  def handle_info({:sync_update, block_number}, _state) do
     updated_state = %{state | last_sync_block: block_number}
     {:noreply, updated_state}
   end
 
   @impl true
-  def handle_info({:rollup_event, event}, state) do
+  def handle_info({:rollup_event, event}, _state) do
     Logger.debug("Received rollup event: #{inspect(event)}")
     update_metrics(state, :rollup_event_received)
     {:noreply, state}
   end
 
   @impl true
-  def handle_info({:bridge_event, event}, state) do
+  def handle_info({:bridge_event, event}, _state) do
     Logger.debug("Received bridge event: #{inspect(event)}")
     update_metrics(state, :bridge_event_received)
     {:noreply, state}
@@ -268,17 +268,17 @@ defmodule ExWire.Layer2.NetworkInterface do
     }
   end
 
-  defp establish_connections(state) do
+  defp establish_connections(_state) do
     with {:ok, l1_conn} <- connect_to_l1(state.config),
          {:ok, l2_conn} <- connect_to_l2(state.config) do
       updated_state = %{state | l1_connection: l1_conn, l2_connection: l2_conn}
       {:ok, updated_state}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
-  defp connect_to_l1(config) do
+  defp connect_to_l1(_config) do
     endpoint = get_in(config, ["l1_network", "endpoint"])
 
     if endpoint do
@@ -290,7 +290,7 @@ defmodule ExWire.Layer2.NetworkInterface do
     end
   end
 
-  defp connect_to_l2(config) do
+  defp connect_to_l2(_config) do
     endpoint = get_in(config, ["l2_network", "endpoint"])
 
     if endpoint do
@@ -302,7 +302,7 @@ defmodule ExWire.Layer2.NetworkInterface do
     end
   end
 
-  defp start_rollup_handler(state) do
+  defp start_rollup_handler(_state) do
     rollup_name = :"#{state.network_name}_rollup"
 
     rollup_pid =
@@ -319,14 +319,14 @@ defmodule ExWire.Layer2.NetworkInterface do
     {:ok, %{state | rollup_pid: rollup_pid}}
   end
 
-  defp start_bridge_handler(state) do
+  defp start_bridge_handler(_state) do
     bridge_name = :"#{state.network_name}_bridge"
     {:ok, bridge_pid} = CrossLayerBridge.start_link(bridge_name, state.config)
 
     {:ok, %{state | bridge_pid: bridge_pid}}
   end
 
-  defp cleanup_connections(state) do
+  defp cleanup_connections(_state) do
     # Cleanup rollup handler
     if state.rollup_pid do
       GenServer.stop(state.rollup_pid, :normal)
@@ -340,7 +340,7 @@ defmodule ExWire.Layer2.NetworkInterface do
     %{state | l1_connection: nil, l2_connection: nil, rollup_pid: nil, bridge_pid: nil}
   end
 
-  defp submit_to_l2(state, transaction) do
+  defp submit_to_l2(_state, transaction) do
     # Simulate transaction submission
     tx_hash =
       :crypto.hash(:sha256, :erlang.term_to_binary(transaction))
@@ -350,7 +350,7 @@ defmodule ExWire.Layer2.NetworkInterface do
     {:ok, "0x#{tx_hash}"}
   end
 
-  defp query_l2_state(state, address, slot) do
+  defp query_l2_state(_state, address, slot) do
     # Simulate state query
     state_value =
       :crypto.hash(:sha256, "#{address}#{slot}")
@@ -360,7 +360,7 @@ defmodule ExWire.Layer2.NetworkInterface do
     {:ok, "0x#{state_value}"}
   end
 
-  defp initiate_l2_withdrawal(state, params) do
+  defp initiate_l2_withdrawal(_state, _params) do
     # Simulate withdrawal initiation
     withdrawal_id = :crypto.strong_rand_bytes(16) |> Base.encode16(case: :lower)
 
@@ -380,7 +380,7 @@ defmodule ExWire.Layer2.NetworkInterface do
     }
   end
 
-  defp update_metrics(state, metric_type) do
+  defp update_metrics(_state, metric_type) do
     updated_metrics =
       state.metrics
       |> Map.update(metric_type, 1, &(&1 + 1))

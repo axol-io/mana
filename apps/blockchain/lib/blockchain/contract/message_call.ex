@@ -71,10 +71,10 @@ defmodule Blockchain.Contract.MessageCall do
   """
   @spec execute(t() | MessageCall.t()) ::
           {:ok | :error, {Repo.t(), EVM.Gas.t(), EVM.SubState.t(), EVM.VM.output()}}
-  def execute(params = %MessageCall{}), do: do_execute(params)
-  def execute(params = %__MODULE__{}), do: do_execute(params)
+  def execute(_params = %MessageCall{}), do: do_execute(params)
+  def execute(_params = %__MODULE__{}), do: do_execute(params)
 
-  defp do_execute(params) do
+  defp do_execute(_params) do
     run = MessageCall.get_run_function(params.recipient, params.config)
 
     # Note, this could fail if machine code is not in state
@@ -119,7 +119,7 @@ defmodule Blockchain.Contract.MessageCall do
     # point immediately prior to balance transfer.
     case output do
       :failed ->
-        {:error, {params.account_repo, 0, SubState.empty(), :failed}}
+        {:error, {_params.account_repo, 0, SubState.empty(), :failed}}
 
       {:revert, _output} ->
         {:error, {params.account_repo, gas, SubState.empty(), :failed}}

@@ -60,7 +60,7 @@ defmodule Mana.ModuleRouter do
 
   ## Returns
   - {:ok, result} on success
-  - {:error, reason} on failure
+  - {:error, _reason} on failure
   """
   @spec route_request(atom(), atom(), list(), keyword()) :: {:ok, term()} | {:error, term()}
   def route_request(module_type, operation, args, opts \\ []) do
@@ -79,7 +79,7 @@ defmodule Mana.ModuleRouter do
           record_routing_metric(module_type, :v1, operation, start_time, result)
           result
 
-        {:error, reason} ->
+        {:error, _reason} ->
           Logger.error("Module routing failed", %{
             module_type: module_type,
             operation: operation,
@@ -87,7 +87,7 @@ defmodule Mana.ModuleRouter do
             caller: caller_info
           })
 
-          {:error, reason}
+          {:error, _reason}
       end
     rescue
       error ->
@@ -183,7 +183,7 @@ defmodule Mana.ModuleRouter do
   Manually triggers fallback to V1 for a specific module type.
   """
   @spec trigger_fallback(atom(), term()) :: :ok
-  def trigger_fallback(module_type, reason) do
+  def trigger_fallback(module_type, _reason) do
     Logger.warning("Manual fallback triggered", %{
       module_type: module_type,
       reason: reason
@@ -246,7 +246,7 @@ defmodule Mana.ModuleRouter do
 
   defp select_version_based_on_config(module_type, caller_info) do
     # Check circuit breaker state first
-    case CircuitBreaker.state(circuit_breaker_name(module_type)) do
+    case CircuitBreaker._state(circuit_breaker_name(module_type)) do
       :open ->
         Logger.debug("Circuit breaker open, routing to V1", %{module_type: module_type})
         :v1
@@ -341,7 +341,7 @@ defmodule Mana.ModuleRouter do
           CircuitBreaker.record_success(circuit_breaker_name_from_module(target_module))
           success
 
-        {:error, reason} = error ->
+        {:error, _reason} = error ->
           Logger.warning("V2 operation failed, attempting fallback", %{
             module: target_module,
             operation: operation,
@@ -408,7 +408,7 @@ defmodule Mana.ModuleRouter do
         {:ok, result} = success ->
           success
 
-        {:error, reason} = error ->
+        {:error, _reason} = error ->
           Logger.error("V1 operation failed", %{
             module: target_module,
             operation: operation,
@@ -526,7 +526,7 @@ defmodule Mana.ModuleRouter do
   end
 
   defp get_circuit_breaker_state(module_type) do
-    CircuitBreaker.state(circuit_breaker_name(module_type))
+    CircuitBreaker._state(circuit_breaker_name(module_type))
   end
 
   # Metrics and monitoring functions
@@ -567,7 +567,7 @@ defmodule Mana.ModuleRouter do
     })
   end
 
-  defp record_fallback_event(module_type, fallback_type, reason) do
+  defp record_fallback_event(module_type, fallback_type, _reason) do
     fallback_table = ensure_fallback_table()
     current_time = System.system_time(:second)
 

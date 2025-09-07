@@ -160,11 +160,11 @@ defmodule ExWire.Eth2.PruningManager do
     # Schedule periodic pruning
     schedule_pruning_cycle(state)
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call(:prune_all, _from, state) do
+  def handle_call(:prune_all, _from, _state) do
     Logger.info("Starting comprehensive pruning of all data types")
 
     start_time = System.monotonic_time(:millisecond)
@@ -214,7 +214,7 @@ defmodule ExWire.Eth2.PruningManager do
   end
 
   @impl true
-  def handle_call({:prune, data_type, opts}, _from, state) do
+  def handle_call({:prune, data_type, opts}, _from, _state) do
     Logger.info("Executing targeted pruning for #{data_type}")
 
     finalized_slot = get_finalized_slot()
@@ -249,13 +249,13 @@ defmodule ExWire.Eth2.PruningManager do
       {{:ok, prune_result}, new_state} ->
         {:reply, {:ok, prune_result}, new_state}
 
-      {{:error, reason}, _state} ->
-        {:reply, {:error, reason}, state}
+      {{:error, _reason}, _state} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call(:get_status, _from, state) do
+  def handle_call(:get_status, _from, _state) do
     status = %{
       pruning_state: state.pruning_state,
       last_finalized_slot: state.last_finalized_slot,
@@ -270,7 +270,7 @@ defmodule ExWire.Eth2.PruningManager do
   end
 
   @impl true
-  def handle_call(:estimate_savings, _from, state) do
+  def handle_call(:estimate_savings, _from, _state) do
     finalized_slot = get_finalized_slot()
 
     estimates = %{
@@ -292,7 +292,7 @@ defmodule ExWire.Eth2.PruningManager do
   end
 
   @impl true
-  def handle_call({:update_config, config_updates}, _from, state) do
+  def handle_call({:update_config, config_updates}, _from, _state) do
     new_config = Map.merge(state.config, config_updates)
 
     Logger.info("Updated pruning configuration: #{inspect(config_updates)}")
@@ -306,7 +306,7 @@ defmodule ExWire.Eth2.PruningManager do
   end
 
   @impl true
-  def handle_info(:pruning_cycle, state) do
+  def handle_info(:pruning_cycle, _state) do
     # Check if pruning is needed
     if pruning_needed?(state) do
       Logger.info("Automatic pruning cycle triggered")
@@ -317,7 +317,7 @@ defmodule ExWire.Eth2.PruningManager do
           schedule_pruning_cycle(new_state)
           {:noreply, new_state}
 
-        {:reply, {:error, reason}, _} ->
+        {:reply, {:error, _reason}, _} ->
           Logger.error("Automatic pruning failed: #{inspect(reason)}")
           schedule_pruning_cycle(state)
           {:noreply, state}
@@ -330,7 +330,7 @@ defmodule ExWire.Eth2.PruningManager do
   end
 
   @impl true
-  def handle_info(:incremental_pruning, state) do
+  def handle_info(:incremental_pruning, _state) do
     # Light pruning of rapidly growing data
     finalized_slot = get_finalized_slot()
 
@@ -353,7 +353,7 @@ defmodule ExWire.Eth2.PruningManager do
 
   # Private Functions - Pruning Strategies
 
-  defp execute_fork_choice_pruning(state, finalized_slot) do
+  defp execute_fork_choice_pruning(_state, finalized_slot) do
     Logger.debug("Executing fork choice pruning for finalized slot #{finalized_slot}")
 
     start_time = System.monotonic_time(:microsecond)
@@ -413,7 +413,7 @@ defmodule ExWire.Eth2.PruningManager do
     end
   end
 
-  defp execute_state_pruning(state, finalized_slot, opts \\ []) do
+  defp execute_state_pruning(_state, finalized_slot, opts \\ []) do
     Logger.debug("Executing state pruning for finalized slot #{finalized_slot}")
 
     incremental = Keyword.get(opts, :incremental, false)
@@ -465,7 +465,7 @@ defmodule ExWire.Eth2.PruningManager do
     end
   end
 
-  defp execute_attestation_pruning(state, finalized_slot, opts \\ []) do
+  defp execute_attestation_pruning(_state, finalized_slot, opts \\ []) do
     Logger.debug("Executing attestation pool pruning for finalized slot #{finalized_slot}")
 
     incremental = Keyword.get(opts, :incremental, false)
@@ -536,7 +536,7 @@ defmodule ExWire.Eth2.PruningManager do
     end
   end
 
-  defp execute_block_pruning(state, finalized_slot, opts \\ []) do
+  defp execute_block_pruning(_state, finalized_slot, opts \\ []) do
     Logger.debug("Executing block pruning for finalized slot #{finalized_slot}")
 
     # Keep block headers but prune block bodies for very old blocks
@@ -576,7 +576,7 @@ defmodule ExWire.Eth2.PruningManager do
     end
   end
 
-  defp execute_trie_pruning(state) do
+  defp execute_trie_pruning(_state) do
     Logger.debug("Executing state trie pruning (reference counting)")
 
     start_time = System.monotonic_time(:microsecond)
@@ -598,7 +598,7 @@ defmodule ExWire.Eth2.PruningManager do
     {result, state}
   end
 
-  defp execute_log_pruning(state, finalized_slot, opts \\ []) do
+  defp execute_log_pruning(_state, finalized_slot, opts \\ []) do
     Logger.debug("Executing execution layer log pruning")
 
     log_retention = state.config.execution_log_retention
@@ -664,7 +664,7 @@ defmodule ExWire.Eth2.PruningManager do
   defp get_fork_choice_store do
     # Get current fork choice store from beacon chain
     case BeaconChain.get_state() do
-      {:ok, state} -> state.fork_choice_store
+      {:ok, _state} -> state.fork_choice_store
       _ -> nil
     end
   end
@@ -734,7 +734,7 @@ defmodule ExWire.Eth2.PruningManager do
     }
   end
 
-  defp estimate_state_savings(finalized_slot, config) do
+  defp estimate_state_savings(finalized_slot, _config) do
     retention = config.state_retention
     old_states = max(0, finalized_slot - retention)
 
@@ -761,7 +761,7 @@ defmodule ExWire.Eth2.PruningManager do
     }
   end
 
-  defp estimate_block_savings(finalized_slot, config) do
+  defp estimate_block_savings(finalized_slot, _config) do
     retention = config.finalized_block_retention
     old_blocks = max(0, finalized_slot - retention)
 
@@ -796,7 +796,7 @@ defmodule ExWire.Eth2.PruningManager do
     }
   end
 
-  defp update_pruning_metrics(state, results, elapsed_ms) do
+  defp update_pruning_metrics(_state, results, elapsed_ms) do
     total_freed =
       Enum.reduce(results, 0, fn {_, result}, acc ->
         acc + Map.get(result, :estimated_freed_mb, 0)
@@ -819,7 +819,7 @@ defmodule ExWire.Eth2.PruningManager do
     %{state | metrics: new_metrics}
   end
 
-  defp schedule_pruning_cycle(state) do
+  defp schedule_pruning_cycle(_state) do
     # Cancel existing timer
     if state.scheduler do
       Process.cancel_timer(state.scheduler)

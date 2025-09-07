@@ -15,10 +15,10 @@ defmodule ExWire.Eth2.StateTransition do
   """
   @spec state_transition(BeaconState.t(), BeaconBlock.t()) ::
           {:ok, BeaconState.t()} | {:error, term()}
-  def state_transition(state, block) do
-    with {:ok, state} <- process_slots_until_block(state, block.slot),
-         {:ok, state} <- process_block(state, block) do
-      {:ok, state}
+  def state_transition(_state, block) do
+    with {:ok, _state} <- process_slots_until_block(state, block.slot),
+         {:ok, _state} <- process_block(state, block) do
+      {:ok, _state}
     end
   end
 
@@ -27,13 +27,13 @@ defmodule ExWire.Eth2.StateTransition do
   """
   @spec process_slots_until_block(BeaconState.t(), non_neg_integer()) ::
           {:ok, BeaconState.t()} | {:error, term()}
-  def process_slots_until_block(state, target_slot) when target_slot > state.slot do
+  def process_slots_until_block(_state, target_slot) when target_slot > state.slot do
     # Process each slot individually
     process_slots_range(state, state.slot + 1, target_slot)
   end
 
-  def process_slots_until_block(state, target_slot) when target_slot == state.slot do
-    {:ok, state}
+  def process_slots_until_block(_state, target_slot) when target_slot == state.slot do
+    {:ok, _state}
   end
 
   def process_slots_until_block(_state, target_slot) do
@@ -45,7 +45,7 @@ defmodule ExWire.Eth2.StateTransition do
   """
   @spec process_block(BeaconState.t(), BeaconBlock.t()) ::
           {:ok, BeaconState.t()} | {:error, term()}
-  def process_block(state, block) do
+  def process_block(_state, block) do
     # Use the BeaconBlock module's process_block function
     ExWire.Eth2.BeaconBlock.Operations.process_block(state, block)
   end
@@ -54,7 +54,7 @@ defmodule ExWire.Eth2.StateTransition do
   Process epoch transition at epoch boundaries.
   """
   @spec process_epoch_transition(BeaconState.t()) :: BeaconState.t()
-  def process_epoch_transition(state) do
+  def process_epoch_transition(_state) do
     # Use the BeaconState module's process_epoch function
     ExWire.Eth2.BeaconState.Operations.process_epoch(state)
   end
@@ -102,7 +102,7 @@ defmodule ExWire.Eth2.StateTransition do
   Advance state to the next epoch.
   """
   @spec advance_to_next_epoch(BeaconState.t()) :: BeaconState.t()
-  def advance_to_next_epoch(state) do
+  def advance_to_next_epoch(_state) do
     current_epoch = ExWire.Eth2.BeaconState.Operations.get_current_epoch(state)
     next_epoch_start_slot = get_epoch_start_slot(current_epoch + 1)
 
@@ -116,11 +116,11 @@ defmodule ExWire.Eth2.StateTransition do
 
   # Private functions
 
-  defp process_slots_range(state, current_slot, target_slot) when current_slot > target_slot do
-    {:ok, state}
+  defp process_slots_range(_state, current_slot, target_slot) when current_slot > target_slot do
+    {:ok, _state}
   end
 
-  defp process_slots_range(state, current_slot, target_slot) do
+  defp process_slots_range(_state, current_slot, target_slot) do
     # Process single slot
     new_state = process_single_slot(state, current_slot)
 
@@ -136,7 +136,7 @@ defmodule ExWire.Eth2.StateTransition do
     process_slots_range(final_state, current_slot + 1, target_slot)
   end
 
-  defp process_single_slot(state, slot) do
+  defp process_single_slot(_state, slot) do
     # Use BeaconState's process_slot function
     state
     |> Map.put(:slot, slot)

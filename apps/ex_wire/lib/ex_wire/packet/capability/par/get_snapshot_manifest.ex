@@ -93,7 +93,7 @@ defmodule ExWire.Packet.Capability.Par.GetSnapshotManifest do
         Logger.debug("[GetSnapshotManifest] Max peers exceeded for peer #{peer_id}")
         {:error, :max_peers_exceeded}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.warning(
           "[GetSnapshotManifest] Failed to serve manifest to peer #{peer_id}: #{inspect(reason)}"
         )

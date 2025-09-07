@@ -50,42 +50,42 @@ defmodule ExWire.BridgeSyncMock do
     end
   end
 
-  def start_link(state) do
+  def start_link(_state) do
     GenServer.start_link(__MODULE__, state, name: get_process_name())
   end
 
   @impl true
-  def init(state) do
-    {:ok, state}
+  def init(_state) do
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:set_best_block, block}, _, state) do
+  def handle_call({:set_best_block, block}, _, _state) do
     {:reply, :ok, Map.put(state, :best_block, block)}
   end
 
   @impl true
-  def handle_call(:get_best_block, _, state) do
+  def handle_call(:get_best_block, _, _state) do
     {:reply, {:ok, state.best_block}, state}
   end
 
   @impl true
-  def handle_call({:set_chain, chain}, _, state) do
+  def handle_call({:set_chain, chain}, _, _state) do
     {:reply, :ok, Map.put(state, :chain, chain)}
   end
 
   @impl true
-  def handle_call(:get_chain, _, state) do
+  def handle_call(:get_chain, _, _state) do
     {:reply, {:ok, state.chain}, state}
   end
 
   @impl true
-  def handle_call({:set_current_trie, trie}, _, state) do
+  def handle_call({:set_current_trie, trie}, _, _state) do
     {:reply, :ok, Map.put(state, :current_trie, trie)}
   end
 
   @impl true
-  def handle_call(:get_current_trie, _, state) do
+  def handle_call(:get_current_trie, _, _state) do
     {:reply, {:ok, state.current_trie}, state}
   end
 

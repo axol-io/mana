@@ -20,7 +20,7 @@ defmodule JSONRPC2.SpecHandler.Verkle do
 
   import JSONRPC2.Response.Helpers
 
-  @sync Application.compile_env(:jsonrpc2, :bridge_mock, Sync)
+  # @sync Application.compile_env(:jsonrpc2, :bridge_mock, Sync) # TODO: Unused attribute
 
   @doc """
   Generates a verkle witness for the given addresses at a specific block.
@@ -49,7 +49,7 @@ defmodule JSONRPC2.SpecHandler.Verkle do
   def get_witness([hex_addresses, hex_block_number_or_tag]) when is_list(hex_addresses) do
     with {:ok, addresses} <- decode_addresses(hex_addresses),
          {:ok, block_number} <- decode_block_number(hex_block_number_or_tag),
-         {:ok, state} <- get_state_at_block(block_number),
+         {:ok, _state} <- get_state_at_block(block_number),
          {:ok, witness} <- generate_witness(state, addresses) do
       encode_witness(witness)
     end
@@ -121,7 +121,7 @@ defmodule JSONRPC2.SpecHandler.Verkle do
       }
   """
   def get_migration_status([]) do
-    with {:ok, state} <- get_current_state() do
+    with {:ok, _state} <- get_current_state() do
       status = build_migration_status(state)
       {:ok, status}
     end
@@ -151,7 +151,7 @@ defmodule JSONRPC2.SpecHandler.Verkle do
       }
   """
   def get_state_mode([]) do
-    with {:ok, state} <- get_current_state() do
+    with {:ok, _state} <- get_current_state() do
       mode =
         case state.mode do
           :verkle -> "verkle"
@@ -191,7 +191,7 @@ defmodule JSONRPC2.SpecHandler.Verkle do
   """
   def get_tree_stats([hex_block_number_or_tag]) do
     with {:ok, block_number} <- decode_block_number(hex_block_number_or_tag),
-         {:ok, state} <- get_state_at_block(block_number),
+         {:ok, _state} <- get_state_at_block(block_number),
          {:ok, stats} <- calculate_tree_stats(state) do
       {:ok, stats}
     end
@@ -240,7 +240,7 @@ defmodule JSONRPC2.SpecHandler.Verkle do
       {:ok, block} ->
         db = DB.LevelDB.init(db_name())
         state = VerkleAdapter.new_state(db, root: block.header.state_root)
-        {:ok, state}
+        {:ok, _state}
 
       {:error, _} = error ->
         error
@@ -251,10 +251,10 @@ defmodule JSONRPC2.SpecHandler.Verkle do
     # Get the current state
     db = DB.LevelDB.init(db_name())
     state = VerkleAdapter.new_state(db)
-    {:ok, state}
+    {:ok, _state}
   end
 
-  defp generate_witness(state, addresses) do
+  defp generate_witness(_state, addresses) do
     witness = VerkleAdapter.generate_witness(state, addresses)
     {:ok, witness}
   rescue
@@ -272,7 +272,7 @@ defmodule JSONRPC2.SpecHandler.Verkle do
     encode_unformatted_data(data)
   end
 
-  defp build_migration_status(state) do
+  defp build_migration_status(_state) do
     progress = VerkleAdapter.migration_progress(state) || 0.0
 
     %{
@@ -285,7 +285,7 @@ defmodule JSONRPC2.SpecHandler.Verkle do
     }
   end
 
-  defp calculate_tree_stats(state) do
+  defp calculate_tree_stats(_state) do
     stats = %{
       "root" => encode_unformatted_data(VerkleAdapter.state_root(state)),
       "nodeCount" => estimate_node_count(state),

@@ -103,14 +103,14 @@ defmodule ExWire.Eth2.MEVBoost do
     # Schedule periodic health checks
     schedule_health_check()
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
   def handle_call(
         {:register_validator, pubkey, fee_recipient, gas_limit, timestamp},
         _from,
-        state
+        _state
       ) do
     registration = %{
       message: %{
@@ -149,7 +149,7 @@ defmodule ExWire.Eth2.MEVBoost do
   end
 
   @impl true
-  def handle_call({:get_header, slot, parent_hash, pubkey}, _from, state) do
+  def handle_call({:get_header, slot, parent_hash, pubkey}, _from, _state) do
     Logger.debug("Requesting header for slot #{slot}")
 
     # Request headers from all relays in parallel
@@ -203,7 +203,7 @@ defmodule ExWire.Eth2.MEVBoost do
   end
 
   @impl true
-  def handle_call({:get_payload, signed_blinded_beacon_block}, _from, state) do
+  def handle_call({:get_payload, signed_blinded_beacon_block}, _from, _state) do
     # Extract header from blinded block
     header = signed_blinded_beacon_block.message.body.execution_payload_header
 
@@ -223,10 +223,10 @@ defmodule ExWire.Eth2.MEVBoost do
             {:reply, {:error, :invalid_payload}, state}
           end
 
-        {:error, reason} ->
+        {:error, _reason} ->
           Logger.error("Failed to get payload: #{inspect(reason)}")
           state = update_in(state.metrics.payload_errors, &(&1 + 1))
-          {:reply, {:error, reason}, state}
+          {:reply, {:error, _reason}, state}
       end
     else
       {:reply, {:error, :relay_not_found}, state}
@@ -234,7 +234,7 @@ defmodule ExWire.Eth2.MEVBoost do
   end
 
   @impl true
-  def handle_call(:get_status, _from, state) do
+  def handle_call(:get_status, _from, _state) do
     status = %{
       relay_count: length(state.relay_urls),
       healthy_relays: count_healthy_relays(state),
@@ -246,7 +246,7 @@ defmodule ExWire.Eth2.MEVBoost do
   end
 
   @impl true
-  def handle_call({:update_relays, relay_urls}, _from, state) do
+  def handle_call({:update_relays, relay_urls}, _from, _state) do
     state = %{state | relay_urls: parse_relay_urls(relay_urls)}
     state = check_relay_health(state)
 
@@ -254,7 +254,7 @@ defmodule ExWire.Eth2.MEVBoost do
   end
 
   @impl true
-  def handle_info(:health_check, state) do
+  def handle_info(:health_check, _state) do
     state = check_relay_health(state)
     schedule_health_check()
     {:noreply, state}
@@ -274,8 +274,8 @@ defmodule ExWire.Eth2.MEVBoost do
       {:ok, response} ->
         {:error, {:http_error, response.status_code}}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   catch
     _ -> {:error, :request_failed}
@@ -300,8 +300,8 @@ defmodule ExWire.Eth2.MEVBoost do
       {:ok, response} ->
         {:error, {:http_error, response.status_code}}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   catch
     _ -> {:error, :request_failed}
@@ -325,8 +325,8 @@ defmodule ExWire.Eth2.MEVBoost do
       {:ok, response} ->
         {:error, {:http_error, response.status_code}}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   catch
     _ -> {:error, :request_failed}
@@ -334,7 +334,7 @@ defmodule ExWire.Eth2.MEVBoost do
 
   # Private Functions - Bid Selection
 
-  defp select_best_bid(bids, state) do
+  defp select_best_bid(bids, _state) do
     # Filter by minimum bid
     valid_bids =
       Enum.filter(bids, fn {_relay, bid} ->
@@ -410,7 +410,7 @@ defmodule ExWire.Eth2.MEVBoost do
 
   # Private Functions - Health Monitoring
 
-  defp check_relay_health(state) do
+  defp check_relay_health(_state) do
     # Check each relay's health
     Enum.each(state.relay_urls, fn relay ->
       Task.async(fn ->
@@ -437,7 +437,7 @@ defmodule ExWire.Eth2.MEVBoost do
     _ -> :unhealthy
   end
 
-  defp count_healthy_relays(state) do
+  defp count_healthy_relays(_state) do
     # Count relays that responded recently
     # In production, would track health status
     length(state.relay_urls)

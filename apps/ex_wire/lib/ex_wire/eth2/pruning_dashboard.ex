@@ -89,27 +89,27 @@ defmodule ExWire.Eth2.PruningDashboard do
     # Schedule periodic updates
     schedule_dashboard_update()
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call(:get_dashboard_data, _from, state) do
+  def handle_call(:get_dashboard_data, _from, _state) do
     {:reply, {:ok, state.dashboard_data}, state}
   end
 
   @impl true
-  def handle_call(:get_alerts, _from, state) do
+  def handle_call(:get_alerts, _from, _state) do
     {:reply, {:ok, state.active_alerts}, state}
   end
 
   @impl true
-  def handle_call({:export_data, format}, _from, state) do
+  def handle_call({:export_data, format}, _from, _state) do
     exported = export_dashboard_data(state.dashboard_data, format)
     {:reply, {:ok, exported}, state}
   end
 
   @impl true
-  def handle_cast({:update_thresholds, new_thresholds}, state) do
+  def handle_cast({:update_thresholds, new_thresholds}, _state) do
     updated_thresholds = Map.merge(state.alert_thresholds, new_thresholds)
     Logger.info("Updated alert thresholds: #{inspect(new_thresholds)}")
 
@@ -122,7 +122,7 @@ defmodule ExWire.Eth2.PruningDashboard do
   end
 
   @impl true
-  def handle_info(:update_dashboard, state) do
+  def handle_info(:update_dashboard, _state) do
     # Collect fresh dashboard data
     state = collect_dashboard_data(state)
 
@@ -137,7 +137,7 @@ defmodule ExWire.Eth2.PruningDashboard do
 
   # Private Functions - Data Collection
 
-  defp collect_dashboard_data(state) do
+  defp collect_dashboard_data(_state) do
     Logger.debug("Collecting dashboard data")
 
     # Collect data from various sources
@@ -279,7 +279,7 @@ defmodule ExWire.Eth2.PruningDashboard do
 
   # Private Functions - Alert System
 
-  defp evaluate_alerts(state) do
+  defp evaluate_alerts(_state) do
     current_data = state.dashboard_data
     thresholds = state.alert_thresholds
 

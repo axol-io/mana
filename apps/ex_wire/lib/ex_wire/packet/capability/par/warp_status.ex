@@ -49,7 +49,7 @@ defmodule ExWire.Packet.Capability.Par.WarpStatus do
   NOTE: Warp status response should be tailored to avoid echoing sender's data.
   """
   @spec new(t()) :: t()
-  def new(packet) do
+  def new(_packet) do
     %__MODULE__{
       protocol_version: 1,
       network_id: ExWire.Config.chain().params.network_id,
@@ -89,7 +89,7 @@ defmodule ExWire.Packet.Capability.Par.WarpStatus do
       [0x63, 3, 10, <<5>>, <<6::256>>, <<7::256>>, 8]
   """
   @impl true
-  def serialize(packet = %__MODULE__{}) do
+  def serialize(_packet = %__MODULE__{}) do
     [
       packet.protocol_version,
       packet.network_id,
@@ -169,7 +169,7 @@ defmodule ExWire.Packet.Capability.Par.WarpStatus do
              }}
   """
   @impl true
-  def handle(packet = %__MODULE__{}) do
+  def handle(_packet = %__MODULE__{}) do
     Exth.trace(fn -> "[Packet] Got WarpStatus: #{inspect(packet)}" end)
 
     {:send, new(packet)}

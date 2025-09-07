@@ -188,24 +188,24 @@ defmodule ExWire.LibP2P do
     # Schedule peer management
     schedule_peer_management()
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:subscribe, topic}, _from, state) do
+  def handle_call({:subscribe, topic}, _from, _state) do
     full_topic = build_topic_name(topic, state.fork_digest)
 
     case GossipSub.subscribe(state.gossipsub, full_topic) do
       :ok ->
         new_topics = Map.put(state.topics, topic, full_topic)
-        {:reply, :ok, %{state | topics: new_topics}}
+        {:reply, :ok, %{_state | topics: new_topics}}
 
       error ->
         {:reply, error, state}
     end
   end
 
-  def handle_call({:unsubscribe, topic}, _from, state) do
+  def handle_call({:unsubscribe, topic}, _from, _state) do
     case Map.get(state.topics, topic) do
       nil ->
         {:reply, {:error, :not_subscribed}, state}
@@ -217,7 +217,7 @@ defmodule ExWire.LibP2P do
     end
   end
 
-  def handle_call({:request_blocks_by_range, peer_id, start_slot, count, step}, _from, state) do
+  def handle_call({:request_blocks_by_range, peer_id, start_slot, count, step}, _from, _state) do
     request = %{
       start_slot: start_slot,
       count: count,
@@ -233,7 +233,7 @@ defmodule ExWire.LibP2P do
     end
   end
 
-  def handle_call({:request_blocks_by_root, peer_id, block_roots}, _from, state) do
+  def handle_call({:request_blocks_by_root, peer_id, block_roots}, _from, _state) do
     request = %{block_roots: block_roots}
 
     case send_rpc_request(peer_id, @beacon_blocks_by_root, request, state) do
@@ -245,17 +245,17 @@ defmodule ExWire.LibP2P do
     end
   end
 
-  def handle_call(:get_peers, _from, state) do
+  def handle_call(:get_peers, _from, _state) do
     peers = PeerManager.get_peers(state.peer_manager)
     {:reply, peers, state}
   end
 
-  def handle_call(:get_enr, _from, state) do
+  def handle_call(:get_enr, _from, _state) do
     {:reply, state.enr, state}
   end
 
   @impl true
-  def handle_cast({:publish, topic, message}, state) do
+  def handle_cast({:publish, topic, message}, _state) do
     case Map.get(state.topics, topic) do
       nil ->
         Logger.warning("Attempted to publish to unsubscribed topic: #{topic}")
@@ -268,7 +268,7 @@ defmodule ExWire.LibP2P do
   end
 
   @impl true
-  def handle_info({:discovered_peer, peer_info}, state) do
+  def handle_info({:discovered_peer, peer_info}, _state) do
     # New peer discovered via discv5
     if should_dial_peer?(peer_info, state) do
       dial_peer(peer_info, state)
@@ -277,7 +277,7 @@ defmodule ExWire.LibP2P do
     {:noreply, state}
   end
 
-  def handle_info({:peer_connected, peer_id, connection}, state) do
+  def handle_info({:peer_connected, peer_id, connection}, _state) do
     # New peer connected
     Logger.info("Peer connected: #{inspect(peer_id)}")
 
@@ -297,7 +297,7 @@ defmodule ExWire.LibP2P do
     {:noreply, %{state | peers: new_peers}}
   end
 
-  def handle_info({:peer_disconnected, peer_id, reason}, state) do
+  def handle_info({:peer_disconnected, peer_id, _reason}, _state) do
     Logger.info("Peer disconnected: #{inspect(peer_id)}, reason: #{inspect(reason)}")
 
     # Remove from peer manager
@@ -314,20 +314,20 @@ defmodule ExWire.LibP2P do
     {:noreply, %{state | peers: new_peers, streams: new_streams}}
   end
 
-  def handle_info({:gossip_message, topic, message, from_peer}, state) do
+  def handle_info({:gossip_message, topic, message, from_peer}, _state) do
     # Received gossip message
     handle_gossip_message(topic, message, from_peer, state)
     {:noreply, state}
   end
 
-  def handle_info({:rpc_request, peer_id, protocol, request_id, request}, state) do
+  def handle_info({:rpc_request, peer_id, protocol, request_id, request}, _state) do
     # Handle incoming RPC request
     response = handle_rpc_request(protocol, request, state)
     send_rpc_response(peer_id, request_id, response, state)
     {:noreply, state}
   end
 
-  def handle_info({:rpc_response, stream_id, response}, state) do
+  def handle_info({:rpc_response, stream_id, response}, _state) do
     # Handle RPC response
     case Map.get(state.streams, stream_id) do
       nil ->
@@ -340,7 +340,7 @@ defmodule ExWire.LibP2P do
     {:noreply, state}
   end
 
-  def handle_info(:manage_peers, state) do
+  def handle_info(:manage_peers, _state) do
     # Periodic peer management
     manage_peers(state)
     schedule_peer_management()
@@ -363,7 +363,7 @@ defmodule ExWire.LibP2P do
     }
   end
 
-  defp generate_or_load_identity(config) do
+  defp generate_or_load_identity(_config) do
     identity_file = "#{config.data_dir}/identity.key"
 
     if File.exists?(identity_file) do
@@ -387,7 +387,7 @@ defmodule ExWire.LibP2P do
     ExthCrypto.Hash.kec(public_key)
   end
 
-  defp build_enr(node_id, config) do
+  defp build_enr(node_id, _config) do
     %{
       id: node_id,
       ip: get_public_ip(),
@@ -405,7 +405,7 @@ defmodule ExWire.LibP2P do
     }
   end
 
-  defp build_metadata(config) do
+  defp build_metadata(_config) do
     %{
       seq_number: 0,
       # Subscribed to all attestation subnets
@@ -415,7 +415,7 @@ defmodule ExWire.LibP2P do
     }
   end
 
-  defp compute_fork_digest(config) do
+  defp compute_fork_digest(_config) do
     # Compute fork digest from fork version and genesis validators root
     fork_data = config.fork_version <> config.genesis_validators_root
     hash = ExthCrypto.Hash.kec(fork_data)
@@ -459,19 +459,19 @@ defmodule ExWire.LibP2P do
       not is_blacklisted?(peer_info.id)
   end
 
-  defp dial_peer(peer_info, state) do
+  defp dial_peer(peer_info, _state) do
     Task.start(fn ->
       case Transport.dial(state.transport, peer_info) do
         {:ok, connection} ->
           send(self(), {:peer_connected, peer_info.id, connection})
 
-        {:error, reason} ->
+        {:error, _reason} ->
           Logger.debug("Failed to dial peer #{inspect(peer_info.id)}: #{inspect(reason)}")
       end
     end)
   end
 
-  defp send_status(peer_id, state) do
+  defp send_status(peer_id, _state) do
     status = %{
       fork_digest: state.fork_digest,
       finalized_root: get_finalized_root(),
@@ -483,7 +483,7 @@ defmodule ExWire.LibP2P do
     send_rpc_request(peer_id, @status_protocol, status, state)
   end
 
-  defp send_rpc_request(peer_id, protocol, request, state) do
+  defp send_rpc_request(peer_id, protocol, request, _state) do
     case Map.get(state.peers, peer_id) do
       nil ->
         {:error, :peer_not_found}
@@ -514,7 +514,7 @@ defmodule ExWire.LibP2P do
     end
   end
 
-  defp send_rpc_response(peer_id, request_id, response, state) do
+  defp send_rpc_response(peer_id, request_id, response, _state) do
     case Map.get(state.peers, peer_id) do
       nil ->
         Logger.warning("Cannot send response to disconnected peer: #{inspect(peer_id)}")
@@ -529,7 +529,7 @@ defmodule ExWire.LibP2P do
     end
   end
 
-  defp handle_rpc_request(@status_protocol, _request, state) do
+  defp handle_rpc_request(@status_protocol, _request, _state) do
     # Handle status request
     %{
       fork_digest: state.fork_digest,
@@ -540,7 +540,7 @@ defmodule ExWire.LibP2P do
     }
   end
 
-  defp handle_rpc_request(@metadata_protocol, _request, state) do
+  defp handle_rpc_request(@metadata_protocol, _request, _state) do
     # Return our metadata
     state.metadata
   end
@@ -568,7 +568,7 @@ defmodule ExWire.LibP2P do
     %{blocks: blocks}
   end
 
-  defp handle_rpc_response(stream, response, state) do
+  defp handle_rpc_response(stream, response, _state) do
     # Process response based on protocol
     case stream.protocol do
       @beacon_blocks_by_range ->
@@ -585,22 +585,22 @@ defmodule ExWire.LibP2P do
     end
   end
 
-  defp handle_gossip_message(topic, message, from_peer, state) do
+  defp handle_gossip_message(topic, message, from_peer, _state) do
     # Validate and process gossip message
     case validate_gossip_message(topic, message) do
       :ok ->
         process_gossip_message(topic, message, state)
         # Propagate to other peers
-        GossipSub.propagate(state.gossipsub, topic, message, from_peer)
+        GossipSub.propagate(_state.gossipsub, topic, message, from_peer)
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.debug("Invalid gossip message: #{inspect(reason)}")
         # Penalize peer
         PeerManager.penalize_peer(state.peer_manager, from_peer, reason)
     end
   end
 
-  defp manage_peers(state) do
+  defp manage_peers(_state) do
     peer_count = map_size(state.peers)
 
     cond do
@@ -617,12 +617,12 @@ defmodule ExWire.LibP2P do
     end
   end
 
-  defp request_more_peers(state) do
+  defp request_more_peers(_state) do
     # Ask discovery for more peers
     Discovery.find_peers(state.discovery, state.config.target_peers - map_size(state.peers))
   end
 
-  defp prune_peers(state) do
+  defp prune_peers(_state) do
     # Remove lowest scoring peers
     peers_to_remove =
       state.peers
@@ -638,14 +638,14 @@ defmodule ExWire.LibP2P do
     end)
   end
 
-  defp disconnect_peer(peer_id, reason, state) do
+  defp disconnect_peer(peer_id, _reason, _state) do
     # Send goodbye message
     send_rpc_request(peer_id, @goodbye_protocol, %{reason: reason}, state)
 
     # Disconnect transport
     case Map.get(state.peers, peer_id) do
       nil -> :ok
-      peer -> Transport.disconnect(state.transport, peer.connection)
+      peer -> Transport.disconnect(_state.transport, peer.connection)
     end
   end
 
@@ -686,7 +686,7 @@ defmodule ExWire.LibP2P do
   defp validate_beacon_block(_message), do: :ok
   defp validate_attestation(_message), do: :ok
 
-  defp process_gossip_message(topic, message, state) do
+  defp process_gossip_message(topic, message, _state) do
     # Process based on topic type
     Logger.debug("Processing gossip message on topic: #{topic}")
 
@@ -699,7 +699,7 @@ defmodule ExWire.LibP2P do
         ExWire.Eth2.BeaconChain.handle_attestation(message, state)
 
       ["eth2", "voluntary_exit" | _] ->
-        ExWire.Eth2.BeaconChain.handle_voluntary_exit(message, state)
+        ExWire.Eth2.BeaconChain.handle_voluntary_exit(message, _state)
 
       _ ->
         Logger.debug("Unhandled topic: #{topic}")

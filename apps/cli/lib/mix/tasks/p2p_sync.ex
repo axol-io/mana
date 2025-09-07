@@ -131,7 +131,7 @@ defmodule Mix.Tasks.P2pSync do
         monitor_sync_progress()
         :timer.sleep(:infinity)
 
-      {:error, reason} ->
+      {:error, _reason} ->
         _ = Logger.error("Failed to start P2P sync: #{inspect(reason)}")
         System.halt(1)
     end

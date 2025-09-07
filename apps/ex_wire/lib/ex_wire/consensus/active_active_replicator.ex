@@ -106,7 +106,7 @@ defmodule ExWire.Consensus.ActiveActiveReplicator do
   @default_sync_replicas 2
   @default_async_delay_ms 100
   @operation_timeout_ms 30_000
-  @sync_batch_size 100
+  # @sync_batch_size 100 # TODO: Unused attribute
   @conflict_resolution_timeout_ms 10_000
 
   @name __MODULE__
@@ -272,11 +272,11 @@ defmodule ExWire.Consensus.ActiveActiveReplicator do
       "[ActiveActiveReplicator] Started node #{node_id} with #{replication_config.replication_mode} replication"
     )
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl GenServer
-  def handle_call({:add_replica_group, group_name, datacenters}, _from, state) do
+  def handle_call({:add_replica_group, group_name, datacenters}, _from, _state) do
     new_replica_groups = Map.put(state.replica_groups, group_name, datacenters)
     new_state = %{state | replica_groups: new_replica_groups}
 
@@ -288,7 +288,7 @@ defmodule ExWire.Consensus.ActiveActiveReplicator do
   end
 
   @impl GenServer
-  def handle_call({:remove_replica_group, group_name}, _from, state) do
+  def handle_call({:remove_replica_group, group_name}, _from, _state) do
     new_replica_groups = Map.delete(state.replica_groups, group_name)
     new_state = %{state | replica_groups: new_replica_groups}
 
@@ -298,7 +298,7 @@ defmodule ExWire.Consensus.ActiveActiveReplicator do
   end
 
   @impl GenServer
-  def handle_call({:replicate_write, write_request, target_replicas}, from, state) do
+  def handle_call({:replicate_write, write_request, target_replicas}, from, _state) do
     Logger.debug("[ActiveActiveReplicator] Replicating write #{write_request.operation_id}")
 
     # Determine target replica list
@@ -325,7 +325,7 @@ defmodule ExWire.Consensus.ActiveActiveReplicator do
   end
 
   @impl GenServer
-  def handle_call(:get_replication_metrics, _from, state) do
+  def handle_call(:get_replication_metrics, _from, _state) do
     metrics = %{
       active_operations: map_size(state.active_operations),
       replica_groups: map_size(state.replica_groups),
@@ -339,7 +339,7 @@ defmodule ExWire.Consensus.ActiveActiveReplicator do
   end
 
   @impl GenServer
-  def handle_cast({:replication_completed, operation_id}, state) do
+  def handle_cast({:replication_completed, operation_id}, _state) do
     # Remove from active operations
     new_active_operations = Map.delete(state.active_operations, operation_id)
     new_state = %{state | active_operations: new_active_operations}
@@ -350,7 +350,7 @@ defmodule ExWire.Consensus.ActiveActiveReplicator do
   end
 
   @impl GenServer
-  def handle_cast(:force_global_sync, state) do
+  def handle_cast(:force_global_sync, _state) do
     Logger.info("[ActiveActiveReplicator] Forcing global synchronization")
 
     # Trigger sync across all replica groups
@@ -365,7 +365,7 @@ defmodule ExWire.Consensus.ActiveActiveReplicator do
   end
 
   @impl GenServer
-  def handle_cast({:update_config, updates}, state) do
+  def handle_cast({:update_config, updates}, _state) do
     updated_config =
       state.replication_config
       |> maybe_update(:replication_mode, Keyword.get(updates, :replication_mode))
@@ -380,7 +380,7 @@ defmodule ExWire.Consensus.ActiveActiveReplicator do
   end
 
   @impl GenServer
-  def handle_info(:sync_operations, state) do
+  def handle_info(:sync_operations, _state) do
     # Perform background synchronization
     Task.start(fn -> perform_background_sync(state) end)
 
@@ -389,7 +389,7 @@ defmodule ExWire.Consensus.ActiveActiveReplicator do
   end
 
   @impl GenServer
-  def handle_info(:collect_metrics, state) do
+  def handle_info(:collect_metrics, _state) do
     # Collect replication metrics
     Task.start(fn -> collect_replication_metrics(state) end)
 
@@ -398,7 +398,7 @@ defmodule ExWire.Consensus.ActiveActiveReplicator do
   end
 
   @impl GenServer
-  def handle_info(:resolve_conflicts, state) do
+  def handle_info(:resolve_conflicts, _state) do
     # Resolve any pending CRDT conflicts
     Task.start(fn -> resolve_pending_conflicts(state) end)
 
@@ -408,13 +408,13 @@ defmodule ExWire.Consensus.ActiveActiveReplicator do
 
   # Private functions
 
-  defp resolve_target_replicas(:all, state) do
+  defp resolve_target_replicas(:all, _state) do
     state.replica_groups
     |> Enum.flat_map(fn {_group, datacenters} -> datacenters end)
     |> Enum.uniq()
   end
 
-  defp resolve_target_replicas(:local_group, state) do
+  defp resolve_target_replicas(:local_group, _state) do
     # Find the group containing the local datacenter
     local_dc = get_local_datacenter()
 
@@ -428,7 +428,7 @@ defmodule ExWire.Consensus.ActiveActiveReplicator do
     replica_list
   end
 
-  defp execute_replication(write_request, replica_list, state) do
+  defp execute_replication(write_request, replica_list, _state) do
     start_time = System.monotonic_time(:millisecond)
 
     # Execute operation on each replica
@@ -456,7 +456,7 @@ defmodule ExWire.Consensus.ActiveActiveReplicator do
         # Always achieved with CRDTs
         :eventual -> true
         :strong -> length(successful) == length(replica_list)
-        :bounded_staleness -> length(successful) >= state.replication_config.sync_replicas_count
+        :bounded_staleness -> length(successful) >= _state.replication_config.sync_replicas_count
       end
 
     replication_result = %{
@@ -478,7 +478,7 @@ defmodule ExWire.Consensus.ActiveActiveReplicator do
     {:ok, replication_result}
   end
 
-  defp execute_operation_on_replica(write_request, datacenter, state) do
+  defp execute_operation_on_replica(write_request, datacenter, _state) do
     case write_request.operation_type do
       :account_update ->
         execute_account_update(write_request.operation_data, datacenter, state.node_id)
@@ -487,7 +487,7 @@ defmodule ExWire.Consensus.ActiveActiveReplicator do
         execute_transaction_pool_update(write_request.operation_data, datacenter, state.node_id)
 
       :state_tree_update ->
-        execute_state_tree_update(write_request.operation_data, datacenter, state.node_id)
+        execute_state_tree_update(write_request.operation_data, datacenter, _state.node_id)
 
       _ ->
         Logger.error(
@@ -524,13 +524,13 @@ defmodule ExWire.Consensus.ActiveActiveReplicator do
           # Write back to AntidoteDB
           case AntidoteConnectionPool.write(pool, {:set, address}, updated_account) do
             :ok -> {:ok, datacenter}
-            {:error, reason} -> {:error, {datacenter, reason}}
+            {:error, _reason} -> {:error, {datacenter, reason}}
           end
         rescue
           e -> {:error, {datacenter, e}}
         end
 
-      {:error, reason} ->
+      {:error, _reason} ->
         {:error, {datacenter, reason}}
     end
   end
@@ -561,13 +561,13 @@ defmodule ExWire.Consensus.ActiveActiveReplicator do
           # Write back to AntidoteDB
           case AntidoteConnectionPool.write(pool, {:set, "transaction_pool"}, updated_pool) do
             :ok -> {:ok, datacenter}
-            {:error, reason} -> {:error, {datacenter, reason}}
+            {:error, _reason} -> {:error, {datacenter, reason}}
           end
         rescue
           e -> {:error, {datacenter, e}}
         end
 
-      {:error, reason} ->
+      {:error, _reason} ->
         {:error, {datacenter, reason}}
     end
   end
@@ -594,13 +594,13 @@ defmodule ExWire.Consensus.ActiveActiveReplicator do
           # Write back to AntidoteDB
           case AntidoteConnectionPool.write(pool, {:set, "state_tree"}, updated_tree) do
             :ok -> {:ok, datacenter}
-            {:error, reason} -> {:error, {datacenter, reason}}
+            {:error, _reason} -> {:error, {datacenter, reason}}
           end
         rescue
           e -> {:error, {datacenter, e}}
         end
 
-      {:error, reason} ->
+      {:error, _reason} ->
         {:error, {datacenter, reason}}
     end
   end
@@ -635,7 +635,7 @@ defmodule ExWire.Consensus.ActiveActiveReplicator do
     :ok
   end
 
-  defp resolve_pending_conflicts(state) do
+  defp resolve_pending_conflicts(_state) do
     Logger.debug("[ActiveActiveReplicator] Resolving pending conflicts")
 
     # Resolve CRDT conflicts
@@ -707,8 +707,8 @@ defmodule ExWire.Consensus.ActiveActiveReplicator do
     Map.update(vector_clock, node_id, 1, &(&1 + 1))
   end
 
-  defp maybe_update(config, _field, nil), do: config
-  defp maybe_update(config, field, value), do: Map.put(config, field, value)
+  defp maybe_update(_config, _field, nil), do: config
+  defp maybe_update(_config, field, value), do: Map.put(config, field, value)
 
   defp schedule_sync_operations() do
     # Every 10 seconds

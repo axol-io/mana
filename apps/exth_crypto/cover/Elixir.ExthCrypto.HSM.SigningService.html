@@ -394,7 +394,7 @@ td.source {
 <tr class="miss">
 <td class="line" id="L58"><a href="#L58">58</a></td>
 <td class="hits"><pre style="display: inline;">:-(</pre></td>
-<td class="source"><code>  def start_link(config \\ %{}) do</code></td>
+<td class="source"><code>  def start_link(_config \\ %{}) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L59"><a href="#L59">59</a></td>
@@ -414,7 +414,7 @@ td.source {
 <tr>
 <td class="line" id="L62"><a href="#L62">62</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def init(config) do</code></td>
+<td class="source"><code>  def init(_config) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L63"><a href="#L63">63</a></td>
@@ -494,7 +494,7 @@ td.source {
 <tr>
 <td class="line" id="L78"><a href="#L78">78</a></td>
 <td class="hits"></td>
-<td class="source"><code>    {:ok, state}</code></td>
+<td class="source"><code>    {:ok, _state}</code></td>
 </tr>
 <tr>
 <td class="line" id="L79"><a href="#L79">79</a></td>
@@ -509,7 +509,7 @@ td.source {
 <tr>
 <td class="line" id="L81"><a href="#L81">81</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_call({:sign_hash, hash, context}, from, state) do</code></td>
+<td class="source"><code>  def handle_call({:sign_hash, hash, context}, from, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L82"><a href="#L82">82</a></td>
@@ -644,7 +644,7 @@ td.source {
 <tr>
 <td class="line" id="L108"><a href="#L108">108</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_call({:sign_transaction, tx, private_key, chain_id}, _from, state) do</code></td>
+<td class="source"><code>  def handle_call({:sign_transaction, tx, private_key, chain_id}, _from, _state) do</code></td>
 </tr>
 <tr>
 <td class="line" id="L109"><a href="#L109">109</a></td>
@@ -839,7 +839,7 @@ td.source {
 <tr>
 <td class="line" id="L147"><a href="#L147">147</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_call({:sign_transaction_with_key, tx, key_id, chain_id}, _from, state) do</code></td>
+<td class="source"><code>  def handle_call({:sign_transaction_with_key, tx, key_id, chain_id}, _from, _state) do</code></td>
 </tr>
 <tr>
 <td class="line" id="L148"><a href="#L148">148</a></td>
@@ -1014,7 +1014,7 @@ td.source {
 <tr class="miss">
 <td class="line" id="L182"><a href="#L182">182</a></td>
 <td class="hits"><pre style="display: inline;">:-(</pre></td>
-<td class="source"><code>        new_state = %{state | stats: new_stats}</code></td>
+<td class="source"><code>        new_state = %{_state | stats: new_stats}</code></td>
 </tr>
 <tr>
 <td class="line" id="L183"><a href="#L183">183</a></td>
@@ -1114,7 +1114,7 @@ td.source {
 <tr>
 <td class="line" id="L202"><a href="#L202">202</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_call(:get_stats, _from, state) do</code></td>
+<td class="source"><code>  def handle_call(:get_stats, _from, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L203"><a href="#L203">203</a></td>
@@ -1169,7 +1169,7 @@ td.source {
 <tr>
 <td class="line" id="L213"><a href="#L213">213</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_cast({:signing_complete, operation_id, result}, state) do</code></td>
+<td class="source"><code>  def handle_cast({:signing_complete, operation_id, result}, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L214"><a href="#L214">214</a></td>
@@ -2829,7 +2829,7 @@ td.source {
 <tr>
 <td class="line" id="L545"><a href="#L545">545</a></td>
 <td class="hits"></td>
-<td class="source"><code>  defp audit_signing_failure(hash, context, reason) do</code></td>
+<td class="source"><code>  defp audit_signing_failure(hash, context, _reason) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L546"><a href="#L546">546</a></td>

@@ -1,6 +1,6 @@
 defmodule ExWire.Layer2.L1ContractIntegrationTest do
   use ExUnit.Case, async: true
-  
+
   alias ExWire.Layer2.L1ContractInterface
 
   @moduletag :layer2
@@ -8,10 +8,10 @@ defmodule ExWire.Layer2.L1ContractIntegrationTest do
   setup do
     contracts = %{
       optimism_portal: "0x1234567890123456789012345678901234567890",
-      l2_output_oracle: "0x2345678901234567890123456789012345678901", 
+      l2_output_oracle: "0x2345678901234567890123456789012345678901",
       arbitrum_bridge: "0x3456789012345678901234567890123456789012"
     }
-    
+
     {:ok, contracts: contracts}
   end
 
@@ -25,17 +25,18 @@ defmodule ExWire.Layer2.L1ContractIntegrationTest do
         "0x"
       ]
 
-      {:ok, encoded} = L1ContractInterface.encode_function_call(
-        "depositTransaction(address,uint256,uint64,bool,bytes)",
-        params
-      )
+      {:ok, encoded} =
+        L1ContractInterface.encode_function_call(
+          "depositTransaction(address,uint256,uint64,bool,bytes)",
+          params
+        )
 
       assert is_binary(encoded)
       assert byte_size(encoded) >= 4
-      
+
       # Verify function selector
       function_selector = binary_part(encoded, 0, 4)
-      assert function_selector == <<0xe9, 0xe0, 0x5c, 0x42>>
+      assert function_selector == <<0xE9, 0xE0, 0x5C, 0x42>>
     end
 
     test "encodes L2 output submission parameters" do
@@ -46,13 +47,15 @@ defmodule ExWire.Layer2.L1ContractIntegrationTest do
         18_000_000
       ]
 
-      {:ok, encoded} = L1ContractInterface.encode_function_call(
-        "proposeL2Output(bytes32,uint256,bytes32,uint256)",
-        params
-      )
+      {:ok, encoded} =
+        L1ContractInterface.encode_function_call(
+          "proposeL2Output(bytes32,uint256,bytes32,uint256)",
+          params
+        )
 
       assert is_binary(encoded)
-      assert byte_size(encoded) >= 4 + (4 * 32)  # Selector + 4 params
+      # Selector + 4 params
+      assert byte_size(encoded) >= 4 + 4 * 32
     end
 
     test "encodes withdrawal proof parameters" do
@@ -66,20 +69,22 @@ defmodule ExWire.Layer2.L1ContractIntegrationTest do
       ]
 
       {:ok, encoded} = L1ContractInterface.encode_tuple(withdrawal_tuple)
-      
+
       assert is_binary(encoded)
-      assert byte_size(encoded) >= 192  # 6 parameters * 32 bytes each
+      # 6 parameters * 32 bytes each
+      assert byte_size(encoded) >= 192
     end
   end
 
   describe "ABI Decoding Validation" do
     test "decodes uint256 oracle response" do
       encoded_response = "0x" <> String.pad_leading(Integer.to_string(42, 16), 64, "0")
-      
-      {:ok, decoded} = L1ContractInterface.decode_result(
-        encoded_response,
-        "latestOutputIndex() returns (uint256)"
-      )
+
+      {:ok, decoded} =
+        L1ContractInterface.decode_result(
+          encoded_response,
+          "latestOutputIndex() returns (uint256)"
+        )
 
       assert decoded == 42
     end
@@ -87,11 +92,12 @@ defmodule ExWire.Layer2.L1ContractIntegrationTest do
     test "decodes boolean response" do
       # Encoded 'true' as uint256
       encoded_true = "0x" <> String.pad_leading("1", 64, "0")
-      
-      {:ok, decoded} = L1ContractInterface.decode_result(
-        encoded_true,
-        "isFinalized() returns (bool)"
-      )
+
+      {:ok, decoded} =
+        L1ContractInterface.decode_result(
+          encoded_true,
+          "isFinalized() returns (bool)"
+        )
 
       assert decoded == true
     end
@@ -100,11 +106,12 @@ defmodule ExWire.Layer2.L1ContractIntegrationTest do
       address = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"
       # Address encoded as 32-byte value (padded)
       encoded_address = "0x" <> String.pad_leading(String.slice(address, 2..-1), 64, "0")
-      
-      {:ok, decoded} = L1ContractInterface.decode_result(
-        encoded_address,
-        "getContract() returns (address)"
-      )
+
+      {:ok, decoded} =
+        L1ContractInterface.decode_result(
+          encoded_address,
+          "getContract() returns (address)"
+        )
 
       assert String.downcase(decoded) == String.downcase(address)
     end
@@ -112,57 +119,61 @@ defmodule ExWire.Layer2.L1ContractIntegrationTest do
 
   describe "Contract Interface Construction" do
     test "builds optimism portal deposit transaction data" do
-      deposit_params = build_deposit_params(%{
-        to: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
-        value: 1_000_000_000_000_000_000,
-        gas_limit: 100_000,
-        is_creation: false,
-        data: "0x",
-        mint: 0
-      })
+      deposit_params =
+        build_deposit_params(%{
+          to: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+          value: 1_000_000_000_000_000_000,
+          gas_limit: 100_000,
+          is_creation: false,
+          data: "0x",
+          mint: 0
+        })
 
       result = construct_deposit_transaction_data(deposit_params)
-      
+
       assert {:ok, transaction_data} = result
       assert is_binary(transaction_data)
       assert byte_size(transaction_data) > 4
     end
 
     test "builds L2 output submission data" do
-      output_data = build_output_data(%{
-        output_root: generate_hash(),
-        l2_block_number: 1_000_000,
-        l1_blockhash: generate_hash(),
-        l1_block_number: 18_000_000
-      })
+      output_data =
+        build_output_data(%{
+          output_root: generate_hash(),
+          l2_block_number: 1_000_000,
+          l1_blockhash: generate_hash(),
+          l1_block_number: 18_000_000
+        })
 
       result = construct_output_submission_data(output_data)
-      
+
       assert {:ok, submission_data} = result
       assert is_binary(submission_data)
     end
 
     test "builds withdrawal proof data" do
-      withdrawal = build_withdrawal(%{
-        nonce: 1,
-        sender: "0x1111111111111111111111111111111111111111",
-        target: "0x2222222222222222222222222222222222222222",
-        value: 500_000_000_000_000_000,
-        gas_limit: 50_000,
-        data: "0x"
-      })
+      withdrawal =
+        build_withdrawal(%{
+          nonce: 1,
+          sender: "0x1111111111111111111111111111111111111111",
+          target: "0x2222222222222222222222222222222222222222",
+          value: 500_000_000_000_000_000,
+          gas_limit: 50_000,
+          data: "0x"
+        })
 
-      proof = build_proof(%{
-        version: 0,
-        state_root: generate_hash(),
-        message_passer_storage_root: generate_hash(),
-        latest_block_hash: generate_hash(),
-        l2_output_index: 100,
-        withdrawal_proof: [generate_hash(), generate_hash()]
-      })
+      proof =
+        build_proof(%{
+          version: 0,
+          state_root: generate_hash(),
+          message_passer_storage_root: generate_hash(),
+          latest_block_hash: generate_hash(),
+          l2_output_index: 100,
+          withdrawal_proof: [generate_hash(), generate_hash()]
+        })
 
       result = construct_withdrawal_proof_data(withdrawal, proof)
-      
+
       assert {:ok, proof_data} = result
       assert is_binary(proof_data)
     end
@@ -214,31 +225,33 @@ defmodule ExWire.Layer2.L1ContractIntegrationTest do
 
   describe "Gas Estimation" do
     test "estimates gas for deposit transaction" do
-      params = build_deposit_params(%{
-        to: "0xabcd",
-        value: 1_000_000_000_000_000_000,
-        gas_limit: 100_000,
-        is_creation: false,
-        data: "0x"
-      })
+      params =
+        build_deposit_params(%{
+          to: "0xabcd",
+          value: 1_000_000_000_000_000_000,
+          gas_limit: 100_000,
+          is_creation: false,
+          data: "0x"
+        })
 
       estimated_gas = estimate_deposit_gas(params)
-      
+
       assert is_integer(estimated_gas)
       assert estimated_gas > 21_000
       assert estimated_gas < 200_000
     end
 
     test "estimates gas for output submission" do
-      output_data = build_output_data(%{
-        output_root: generate_hash(),
-        l2_block_number: 1_000_000,
-        l1_blockhash: generate_hash(),
-        l1_block_number: 18_000_000
-      })
+      output_data =
+        build_output_data(%{
+          output_root: generate_hash(),
+          l2_block_number: 1_000_000,
+          l1_blockhash: generate_hash(),
+          l1_block_number: 18_000_000
+        })
 
       estimated_gas = estimate_output_submission_gas(output_data)
-      
+
       assert is_integer(estimated_gas)
       assert estimated_gas > 50_000
       assert estimated_gas < 500_000
@@ -254,12 +267,13 @@ defmodule ExWire.Layer2.L1ContractIntegrationTest do
       ]
 
       results = construct_operation_batch(operations)
-      
+
       assert length(results) == 3
+
       assert Enum.all?(results, fn
-        {:ok, _data} -> true
-        _ -> false
-      end)
+               {:ok, _data} -> true
+               _ -> false
+             end)
     end
 
     test "validates cross-protocol consistency" do
@@ -330,7 +344,7 @@ defmodule ExWire.Layer2.L1ContractIntegrationTest do
     Map.merge(defaults, overrides)
   end
 
-  defp construct_deposit_transaction_data(params) do
+  defp construct_deposit_transaction_data(_params) do
     L1ContractInterface.encode_function_call(
       "depositTransaction(address,uint256,uint64,bool,bytes)",
       [
@@ -383,7 +397,7 @@ defmodule ExWire.Layer2.L1ContractIntegrationTest do
     )
   end
 
-  defp validate_deposit_params(params) do
+  defp validate_deposit_params(_params) do
     with :ok <- validate_address(params[:to]),
          :ok <- validate_positive_integer(params[:value]),
          :ok <- validate_positive_integer(params[:gas_limit]),
@@ -395,7 +409,7 @@ defmodule ExWire.Layer2.L1ContractIntegrationTest do
     end
   end
 
-  defp validate_output_params(params) do
+  defp validate_output_params(_params) do
     with :ok <- validate_hash(params[:output_root]),
          :ok <- validate_positive_integer(params[:l2_block_number]),
          :ok <- validate_hash(params[:l1_blockhash]),
@@ -413,6 +427,7 @@ defmodule ExWire.Layer2.L1ContractIntegrationTest do
       {:error, :invalid_address}
     end
   end
+
   defp validate_address(_), do: {:error, :invalid_address}
 
   defp validate_positive_integer(value) when is_integer(value) and value >= 0, do: :ok
@@ -428,6 +443,7 @@ defmodule ExWire.Layer2.L1ContractIntegrationTest do
       {:error, :invalid_hex_data}
     end
   end
+
   defp validate_hex_data(_), do: {:error, :invalid_hex_data}
 
   defp validate_hash("0x" <> hash) do
@@ -437,23 +453,24 @@ defmodule ExWire.Layer2.L1ContractIntegrationTest do
       {:error, :invalid_hash}
     end
   end
+
   defp validate_hash(_), do: {:error, :invalid_hash}
 
-  defp estimate_deposit_gas(params) do
+  defp estimate_deposit_gas(_params) do
     base_gas = 21_000
     data_gas = calculate_data_gas(params.data)
     creation_gas = if params.is_creation, do: 32_000, else: 0
-    
+
     base_gas + data_gas + creation_gas
   end
 
   defp estimate_output_submission_gas(output_data) do
     # Base cost for L2 output submission
     base_gas = 100_000
-    
+
     # Additional cost based on data size
     data_size_gas = byte_size(output_data.output_root) * 68
-    
+
     base_gas + data_size_gas
   end
 
@@ -463,8 +480,10 @@ defmodule ExWire.Layer2.L1ContractIntegrationTest do
     |> String.graphemes()
     |> Enum.chunk_every(2)
     |> Enum.reduce(0, fn
-      ["0", "0"] -> &(&1 + 4)   # Zero byte costs 4 gas
-      _ -> &(&1 + 16)           # Non-zero byte costs 16 gas
+      # Zero byte costs 4 gas
+      ["0", "0"] -> &(&1 + 4)
+      # Non-zero byte costs 16 gas
+      _ -> &(&1 + 16)
     end)
   end
 
@@ -472,18 +491,18 @@ defmodule ExWire.Layer2.L1ContractIntegrationTest do
     Enum.map(operations, &construct_operation/1)
   end
 
-  defp construct_operation({:optimism_deposit, params}) do
+  defp construct_operation({:optimism_deposit, _params}) do
     construct_deposit_transaction_data(params)
   end
 
-  defp construct_operation({:arbitrum_deposit, params}) do
+  defp construct_operation({:arbitrum_deposit, _params}) do
     L1ContractInterface.encode_function_call(
       "depositEth()",
       []
     )
   end
 
-  defp construct_operation({:output_submission, params}) do
+  defp construct_operation({:output_submission, _params}) do
     construct_output_submission_data(params)
   end
 

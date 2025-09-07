@@ -55,13 +55,13 @@ defmodule JSONRPC2.Clients.TCP do
   @spec call(pid, JSONRPC2.method(), JSONRPC2.params(), boolean | call_options) ::
           {:ok, {atom(), reference()}}
           | {:error, :backlog_full | :pool_not_started | :shackle_not_started}
-  def call(pid, method, params, options \\ [])
+  def call(pid, method, _params, options \\ [])
 
-  def call(pid, method, params, string_id) when is_boolean(string_id) do
+  def call(pid, method, _params, string_id) when is_boolean(string_id) do
     call(pid, method, params, string_id: string_id)
   end
 
-  def call(pid, method, params, options) do
+  def call(pid, method, _params, options) do
     string_id = Keyword.get(options, :string_id, false)
     timeout = Keyword.get(options, :timeout, @default_timeout)
 

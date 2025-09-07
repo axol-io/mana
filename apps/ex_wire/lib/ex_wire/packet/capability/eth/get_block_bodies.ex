@@ -18,7 +18,7 @@ defmodule ExWire.Packet.Capability.Eth.GetBlockBodies do
   alias ExWire.Struct.Block
   require Logger
 
-  @sync Application.compile_env(:ex_wire, :sync_mock, Sync)
+  # @sync Application.compile_env(:ex_wire, :sync_mock, Sync) # TODO: Unused attribute
 
   @type t :: %__MODULE__{
           hashes: [binary()]
@@ -47,7 +47,7 @@ defmodule ExWire.Packet.Capability.Eth.GetBlockBodies do
   """
   @impl true
   @spec serialize(t) :: ExRLP.t()
-  def serialize(packet = %__MODULE__{}) do
+  def serialize(_packet = %__MODULE__{}) do
     packet.hashes
   end
 
@@ -77,7 +77,7 @@ defmodule ExWire.Packet.Capability.Eth.GetBlockBodies do
   """
   @impl true
   @spec handle(ExWire.Packet.packet()) :: ExWire.Packet.handle_response()
-  def handle(packet = %__MODULE__{}) do
+  def handle(_packet = %__MODULE__{}) do
     bodies =
       case @sync.get_current_trie() do
         {:ok, trie} ->

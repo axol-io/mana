@@ -124,49 +124,49 @@ defmodule JSONRPC2.BridgeSyncMock do
     GenServer.call(__MODULE__, {:put_block, block})
   end
 
-  def start_link(state) do
+  def start_link(_state) do
     GenServer.start_link(__MODULE__, state, name: __MODULE__)
   end
 
   @impl true
-  def init(state) do
-    {:ok, state}
+  def init(_state) do
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call(:connected_peer_count, _, state) do
+  def handle_call(:connected_peer_count, _, _state) do
     {:reply, state.connected_peer_count, state}
   end
 
-  def handle_call(:get_highest_block_number, _, state) do
+  def handle_call(:get_highest_block_number, _, _state) do
     {:reply, Map.get(state, :highest_block_number, 0), state}
   end
 
-  def handle_call(:get_starting_block_number, _, state) do
+  def handle_call(:get_starting_block_number, _, _state) do
     {:reply, Map.get(state, :starting_block_number, 0), state}
   end
 
-  def handle_call({:set_trie, trie}, _, state) do
+  def handle_call({:set_trie, trie}, _, _state) do
     {:reply, :ok, Map.put(state, :trie, trie)}
   end
 
-  def handle_call(:get_trie, _, state) do
+  def handle_call(:get_trie, _, _state) do
     {:reply, state.trie, state}
   end
 
-  def handle_call({:set_connected_peer_count, connected_peer_count}, _, state) do
+  def handle_call({:set_connected_peer_count, connected_peer_count}, _, _state) do
     {:reply, :ok, Map.put(state, :connected_peer_count, connected_peer_count)}
   end
 
-  def handle_call({:set_highest_block_number, block_number}, _, state) do
+  def handle_call({:set_highest_block_number, block_number}, _, _state) do
     {:reply, :ok, Map.put(state, :highest_block_number, block_number)}
   end
 
-  def handle_call({:set_starting_block_number, block_number}, _, state) do
+  def handle_call({:set_starting_block_number, block_number}, _, _state) do
     {:reply, :ok, Map.put(state, :set_starting_block_number, block_number)}
   end
 
-  def handle_call({:put_block, block}, _, state = %{trie: trie}) do
+  def handle_call({:put_block, block}, _, _state = %{trie: trie}) do
     {:ok, {_, updated_trie}} = Block.put_block(block, trie, block.block_hash)
     updated_state = %{state | trie: updated_trie}
 
@@ -176,7 +176,7 @@ defmodule JSONRPC2.BridgeSyncMock do
   def handle_call(
         {:get_block, hash_or_number, include_full_transactions},
         _,
-        state = %{trie: trie}
+        _state = %{trie: trie}
       ) do
     block =
       case Block.get_block(hash_or_number, trie) do
@@ -190,7 +190,7 @@ defmodule JSONRPC2.BridgeSyncMock do
   def handle_call(
         {:get_transaction_by_block_and_index, block_hash_or_number, trx_index},
         _,
-        state = %{trie: trie}
+        _state = %{trie: trie}
       ) do
     result =
       with {:ok, block} <- Block.get_block(block_hash_or_number, trie) do
@@ -202,13 +202,13 @@ defmodule JSONRPC2.BridgeSyncMock do
         _ -> nil
       end
 
-    {:reply, result, state}
+    {:reply, result, _state}
   end
 
   def handle_call(
         {:get_block_transaction_count, block_hash_or_number},
         _,
-        state = %{trie: trie}
+        _state = %{trie: trie}
       ) do
     result =
       case Block.get_block(block_hash_or_number, trie) do
@@ -227,7 +227,7 @@ defmodule JSONRPC2.BridgeSyncMock do
   def handle_call(
         {:get_uncle_count, block_number_or_hash},
         _,
-        state = %{trie: trie}
+        _state = %{trie: trie}
       ) do
     result =
       case Block.get_block(block_number_or_hash, trie) do
@@ -246,7 +246,7 @@ defmodule JSONRPC2.BridgeSyncMock do
   def handle_call(
         {:get_uncle, {block_hash_or_number, index}},
         _,
-        state = %{trie: trie}
+        _state = %{trie: trie}
       ) do
     result =
       case Block.get_block(block_hash_or_number, trie) do
@@ -270,7 +270,7 @@ defmodule JSONRPC2.BridgeSyncMock do
     {:reply, result, state}
   end
 
-  def handle_call({:get_code, address, block_number}, _, state = %{trie: trie}) do
+  def handle_call({:get_code, address, block_number}, _, _state = %{trie: trie}) do
     result =
       case Block.get_block(block_number, trie) do
         {:ok, block} ->
@@ -288,7 +288,7 @@ defmodule JSONRPC2.BridgeSyncMock do
     {:reply, result, state}
   end
 
-  def handle_call({:get_balance, address, block_number}, _, state = %{trie: trie}) do
+  def handle_call({:get_balance, address, block_number}, _, _state = %{trie: trie}) do
     result =
       case Block.get_block(block_number, trie) do
         {:ok, block} ->
@@ -306,10 +306,10 @@ defmodule JSONRPC2.BridgeSyncMock do
           nil
       end
 
-    {:reply, result, state}
+    {:reply, result, _state}
   end
 
-  def handle_call({:get_transaction_by_hash, transaction_hash}, _, state = %{trie: trie}) do
+  def handle_call({:get_transaction_by_hash, transaction_hash}, _, _state = %{trie: trie}) do
     result =
       case Block.get_transaction_by_hash(transaction_hash, trie, true) do
         {transaction, block} -> ResponseTransaction.new(transaction, block)
@@ -319,7 +319,7 @@ defmodule JSONRPC2.BridgeSyncMock do
     {:reply, result, state}
   end
 
-  def handle_call({:get_transaction_receipt, transaction_hash}, _, state = %{trie: trie}) do
+  def handle_call({:get_transaction_receipt, transaction_hash}, _, _state = %{trie: trie}) do
     result =
       case Block.get_receipt_by_transaction_hash(transaction_hash, trie) do
         {receipt, transaction, block} -> ResponseReceipt.new(receipt, transaction, block)
@@ -332,7 +332,7 @@ defmodule JSONRPC2.BridgeSyncMock do
   def handle_call(
         {:get_storage, storage_address, storage_key, block_number},
         _,
-        state = %{trie: trie}
+        _state = %{trie: trie}
       ) do
     result =
       case Block.get_block(block_number, trie) do
@@ -353,7 +353,7 @@ defmodule JSONRPC2.BridgeSyncMock do
     {:reply, result, state}
   end
 
-  def handle_call({:get_transaction_count, address, block_number}, _, state = %{trie: trie}) do
+  def handle_call({:get_transaction_count, address, block_number}, _, _state = %{trie: trie}) do
     result =
       case Block.get_block(block_number, trie) do
         {:ok, block} ->
@@ -371,16 +371,16 @@ defmodule JSONRPC2.BridgeSyncMock do
           nil
       end
 
-    {:reply, result, state}
+    {:reply, result, _state}
   end
 
-  def handle_call(:last_sync_state, _, state) do
+  def handle_call(:last_sync_state, _, _state) do
     {:reply, state, state}
   end
 
   @spec handle_call(:get_last_sync_block_stats, {pid, any}, map()) ::
           {:reply, EthSyncing.output(), map()}
-  def handle_call(:get_last_sync_block_stats, _, state) do
+  def handle_call(:get_last_sync_block_stats, _, _state) do
     {:reply, state.block_stats, state}
   end
 
@@ -389,7 +389,7 @@ defmodule JSONRPC2.BridgeSyncMock do
           {pid, any},
           map()
         ) :: {:reply, :ok, map()}
-  def handle_call({:set_last_sync_block_stats, block_stats}, _, state) do
+  def handle_call({:set_last_sync_block_stats, block_stats}, _, _state) do
     new_state = Map.put(state, :block_stats, block_stats)
     {:reply, :ok, new_state}
   end

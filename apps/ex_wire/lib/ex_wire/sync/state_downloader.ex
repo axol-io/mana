@@ -148,13 +148,13 @@ defmodule ExWire.Sync.StateDownloader do
   end
 
   @impl true
-  def handle_call(:get_progress, _from, state) do
+  def handle_call(:get_progress, _from, _state) do
     progress = calculate_progress(state)
     {:reply, progress, state}
   end
 
   @impl true
-  def handle_call(:get_stats, _from, state) do
+  def handle_call(:get_stats, _from, _state) do
     stats = %{
       state_root: encode_hex(state.state_root),
       nodes_discovered: state.total_nodes_discovered,
@@ -172,17 +172,17 @@ defmodule ExWire.Sync.StateDownloader do
   end
 
   @impl true
-  def handle_call(:force_heal, _from, state) do
+  def handle_call(:force_heal, _from, _state) do
     new_state = perform_heal_check(state)
     {:reply, :ok, new_state}
   end
 
   @impl true
-  def handle_info(:process_queue, state) do
+  def handle_info(:process_queue, _state) do
     new_state = process_download_queue(state)
 
     # Continue processing if not complete
-    unless state.sync_complete do
+    if !state.sync_complete do
       Process.send_after(self(), :process_queue, 100)
     end
 
@@ -190,7 +190,7 @@ defmodule ExWire.Sync.StateDownloader do
   end
 
   @impl true
-  def handle_info(:heal_check, state) do
+  def handle_info(:heal_check, _state) do
     new_state = perform_heal_check(state)
 
     # Schedule next heal check
@@ -200,20 +200,20 @@ defmodule ExWire.Sync.StateDownloader do
   end
 
   @impl true
-  def handle_info({:packet, %NodeData{hashes_to_nodes: hashes_to_nodes}, peer}, state) do
+  def handle_info({:_packet, %NodeData{hashes_to_nodes: hashes_to_nodes}, peer}, _state) do
     new_state = handle_node_data(hashes_to_nodes, peer, state)
     {:noreply, new_state}
   end
 
   @impl true
-  def handle_info({:request_timeout, request_ref}, state) do
+  def handle_info({:request_timeout, request_ref}, _state) do
     new_state = handle_request_timeout(request_ref, state)
     {:noreply, new_state}
   end
 
   # Private Functions
 
-  defp process_download_queue(state) do
+  defp process_download_queue(_state) do
     # Calculate how many requests we can make
     available_slots = @max_concurrent_requests - map_size(state.active_requests)
 
@@ -258,7 +258,7 @@ defmodule ExWire.Sync.StateDownloader do
     end
   end
 
-  defp send_node_request(state, nodes) do
+  defp send_node_request(_state, nodes) do
     # Get available peer
     peers = PeerSupervisor.connected_peers()
 
@@ -290,7 +290,7 @@ defmodule ExWire.Sync.StateDownloader do
     end
   end
 
-  defp handle_node_data(hashes_to_nodes, _peer, state) do
+  defp handle_node_data(hashes_to_nodes, _peer, _state) do
     Logger.debug("Received node data for #{map_size(hashes_to_nodes)} nodes")
 
     # Process each node
@@ -312,7 +312,7 @@ defmodule ExWire.Sync.StateDownloader do
     final_state
   end
 
-  defp process_state_node(node_data, state) do
+  defp process_state_node(node_data, _state) do
     node_hash = hash_node_data(node_data)
 
     # Store the node
@@ -323,7 +323,7 @@ defmodule ExWire.Sync.StateDownloader do
 
         # Update state
         new_state =
-          state
+          _state
           |> update_in([:downloaded_nodes], &MapSet.put(&1, node_hash))
           |> update_in([:nodes_downloaded], &(&1 + 1))
           |> update_in([:bytes_downloaded], &(&1 + byte_size(node_data)))
@@ -331,7 +331,7 @@ defmodule ExWire.Sync.StateDownloader do
 
         {:ok, new_state, child_nodes}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.warning("Failed to store state node #{encode_hex(node_hash)}: #{inspect(reason)}")
 
         _new_state =
@@ -340,7 +340,7 @@ defmodule ExWire.Sync.StateDownloader do
           |> update_in([:nodes_failed], &(&1 + 1))
           |> put_in([:node_status, node_hash], :failed)
 
-        {:error, reason}
+        {:error, _reason}
     end
   end
 
@@ -379,11 +379,11 @@ defmodule ExWire.Sync.StateDownloader do
 
   defp extract_child_hashes(_), do: []
 
-  defp queue_new_nodes(state, new_nodes) do
+  defp queue_new_nodes(_state, new_nodes) do
     # Filter out nodes we already know about
     unknown_nodes =
       Enum.filter(new_nodes, fn node ->
-        not Map.has_key?(state.node_status, node)
+        not Map.has_key?(_state.node_status, node)
       end)
 
     if length(unknown_nodes) > 0 do
@@ -411,10 +411,10 @@ defmodule ExWire.Sync.StateDownloader do
     end
   end
 
-  defp handle_request_timeout(request_ref, state) do
+  defp handle_request_timeout(request_ref, _state) do
     case Map.get(state.active_requests, request_ref) do
       nil ->
-        state
+        _state
 
       {nodes, _peer} ->
         Logger.debug("Request timeout for #{length(nodes)} nodes")
@@ -458,7 +458,7 @@ defmodule ExWire.Sync.StateDownloader do
     end
   end
 
-  defp perform_heal_check(state) do
+  defp perform_heal_check(_state) do
     Logger.debug("Performing state heal check...")
 
     # Find missing nodes by traversing the trie
@@ -502,7 +502,7 @@ defmodule ExWire.Sync.StateDownloader do
     []
   end
 
-  defp check_sync_complete(state) do
+  defp check_sync_complete(_state) do
     queue_empty = :queue.is_empty(state.node_queue)
     no_active_requests = map_size(state.active_requests) == 0
 
@@ -522,7 +522,7 @@ defmodule ExWire.Sync.StateDownloader do
     end
   end
 
-  defp calculate_progress(state) do
+  defp calculate_progress(_state) do
     if state.total_nodes_discovered > 0 do
       completion = state.nodes_downloaded / state.total_nodes_discovered * 100
 

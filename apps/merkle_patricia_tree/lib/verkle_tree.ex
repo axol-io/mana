@@ -566,8 +566,8 @@ defmodule VerkleTree do
         # Store code chunks with PUSHDATA tracking
         store_code_chunks_with_pushdata(tree, address32, code)
 
-      {:error, reason} ->
-        Logger.warning("Failed to handle PUSHDATA encoding: #{inspect(reason)}")
+      {:error, _reason} ->
+        Logger.warning("Failed to handle PUSHDATA encoding")
         tree
     end
   end

@@ -57,7 +57,7 @@ defmodule ExWire.Layer2.L1ContractInterface do
   """
   @spec call_contract(String.t(), String.t(), String.t(), list()) ::
           {:ok, any()} | {:error, term()}
-  def call_contract(contract_address, method_name, abi_signature, params) do
+  def call_contract(contract_address, method_name, abi_signature, _params) do
     with {:ok, encoded_data} <- encode_function_call(abi_signature, params),
          {:ok, result} <- Web3Client.call_contract(contract_address, encoded_data) do
       decode_result(result, abi_signature)
@@ -69,7 +69,7 @@ defmodule ExWire.Layer2.L1ContractInterface do
   """
   @spec send_transaction(String.t(), String.t(), String.t(), list(), map()) ::
           {:ok, String.t()} | {:error, term()}
-  def send_transaction(contract_address, method_name, abi_signature, params, tx_options \\ %{}) do
+  def send_transaction(contract_address, method_name, abi_signature, _params, tx_options \\ %{}) do
     with {:ok, encoded_data} <- encode_function_call(abi_signature, params) do
       tx_params =
         Map.merge(tx_options, %{
@@ -203,7 +203,7 @@ defmodule ExWire.Layer2.L1ContractInterface do
   Encodes a function call with ABI encoding.
   """
   @spec encode_function_call(String.t(), list()) :: {:ok, binary()} | {:error, term()}
-  def encode_function_call(signature, params) do
+  def encode_function_call(signature, _params) do
     # Extract function selector (first 4 bytes of keccak256 hash)
     selector = get_function_selector(signature)
 
@@ -223,7 +223,7 @@ defmodule ExWire.Layer2.L1ContractInterface do
     |> Binary.take(4)
   end
 
-  defp encode_parameters(signature, params) do
+  defp encode_parameters(signature, _params) do
     # Parse parameter types from signature
     types = parse_parameter_types(signature)
 
@@ -305,12 +305,12 @@ defmodule ExWire.Layer2.L1ContractInterface do
       encoded_length = encode_parameter({length, "uint256"})
 
       # Encode array elements
-    encoded_elements =
-      values
-      |> Enum.map(fn v -> encode_parameter({v, base_type}) end)
-      |> Enum.join()
+      encoded_elements =
+        values
+        |> Enum.map(fn v -> encode_parameter({v, base_type}) end)
+        |> Enum.join()
 
-    encoded_length <> encoded_elements
+      encoded_length <> encoded_elements
     else
       if String.starts_with?(type, "(") do
         # Encode tuple
@@ -360,13 +360,13 @@ defmodule ExWire.Layer2.L1ContractInterface do
     # For dynamic bytes, encode length + data
     data = if String.starts_with?(value, "0x"), do: String.slice(value, 2..-1), else: value
     byte_length = div(String.length(data), 2)
-    
+
     # Encode length
     encoded_length = encode_parameter_value(byte_length, "uint256")
-    
+
     # Pad data to 32-byte boundary
     padded_data = String.pad_trailing(data, ceil(String.length(data) / 64) * 64, "0")
-    
+
     encoded_length <> padded_data
   end
 
@@ -398,12 +398,12 @@ defmodule ExWire.Layer2.L1ContractInterface do
   def encode_tuple(values) do
     try do
       # Encode each tuple element as uint256, address, etc.
-      encoded = 
+      encoded =
         values
         |> Enum.map(&encode_tuple_element/1)
         |> Enum.join()
         |> Base.decode16!(case: :mixed)
-      
+
       {:ok, encoded}
     rescue
       error ->

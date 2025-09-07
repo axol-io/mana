@@ -29,7 +29,7 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
   @doc """
   Run a full mainnet simulation for specified duration.
   """
-  def run(config, duration_seconds \\ 300) do
+  def run(_config, duration_seconds \\ 300) do
     Logger.info("Starting mainnet simulation for #{duration_seconds} seconds")
 
     end_time = System.monotonic_time(:second) + duration_seconds
@@ -41,7 +41,7 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
   @doc """
   Simulate a typical day on mainnet with varying patterns.
   """
-  def simulate_daily_pattern(config) do
+  def simulate_daily_pattern(_config) do
     Logger.info("Starting 24-hour mainnet pattern simulation")
 
     # Define hourly patterns (simplified 24-hour cycle)
@@ -68,7 +68,7 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
   @doc """
   Simulate specific mainnet events.
   """
-  def simulate_event(config, event_type) do
+  def simulate_event(_config, event_type) do
     case event_type do
       :nft_drop ->
         simulate_nft_drop(config)
@@ -83,7 +83,7 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
         simulate_mev_activity(config)
 
       :network_congestion ->
-        simulate_congestion(config)
+        simulate_congestion(_config)
 
       _ ->
         {:error, :unknown_event}
@@ -92,7 +92,7 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
 
   # Private functions
 
-  defp init_simulation_state(config) do
+  defp init_simulation_state(_config) do
     %{
       config: config,
       current_period: :normal,
@@ -106,7 +106,7 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
     }
   end
 
-  defp run_simulation_loop(state, end_time) do
+  defp run_simulation_loop(_state, end_time) do
     if System.monotonic_time(:second) >= end_time do
       finalize_simulation(state)
     else
@@ -137,7 +137,7 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
     end
   end
 
-  defp determine_period(state) do
+  defp determine_period(_state) do
     # Randomly switch between periods with some probability
     rand = :rand.uniform()
 
@@ -153,7 +153,7 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
     end
   end
 
-  defp generate_period_transactions(state) do
+  defp generate_period_transactions(_state) do
     {min_tps, max_tps} = @mainnet_patterns[state.current_period] || @mainnet_patterns[:normal]
     target_tps = min_tps + :rand.uniform(max_tps - min_tps)
 
@@ -169,7 +169,7 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
           generate_defi_transactions(state.config, tx_count)
 
         _ ->
-          generate_mixed_transactions(state.config, tx_count)
+          generate_mixed_transactions(state._config, tx_count)
       end
 
     # Send transactions
@@ -181,11 +181,11 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
       state
       | pending_pool: state.pending_pool ++ transactions,
         transactions_sent: state.transactions_sent + length(transactions),
-        mempool_size: state.mempool_size + length(transactions)
+        mempool_size: _state.mempool_size + length(transactions)
     }
   end
 
-  defp generate_mixed_transactions(config, count) do
+  defp generate_mixed_transactions(_config, count) do
     # Realistic mainnet mix
     simple_count = round(count * 0.6)
     contract_count = round(count * 0.3)
@@ -212,7 +212,7 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
     Enum.shuffle(simple ++ contracts ++ complex)
   end
 
-  defp generate_nft_drop_transactions(config, count) do
+  defp generate_nft_drop_transactions(_config, count) do
     # All transactions target same NFT contract
     TransactionGenerator.generate_burst_transactions(
       burst_size: count,
@@ -222,7 +222,7 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
     )
   end
 
-  defp generate_defi_transactions(config, count) do
+  defp generate_defi_transactions(_config, count) do
     # High-priority DeFi transactions
     TransactionGenerator.generate_complex_operations(
       count: count,
@@ -230,7 +230,7 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
     )
   end
 
-  defp maybe_produce_block(state) do
+  defp maybe_produce_block(_state) do
     current_time = System.monotonic_time(:millisecond)
     time_since_last = current_time - state.last_block_time
 
@@ -244,7 +244,7 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
     end
   end
 
-  defp produce_block(state, current_time) do
+  defp produce_block(_state, current_time) do
     # Select transactions for block (simplified)
     block_gas_limit = 30_000_000
     {block_txs, remaining} = select_transactions_for_block(state.pending_pool, block_gas_limit)
@@ -304,7 +304,7 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
     {Enum.reverse(selected), remaining}
   end
 
-  defp update_gas_dynamics(state) do
+  defp update_gas_dynamics(_state) do
     # EIP-1559 style gas price adjustment
     # 50% of block limit
     target_gas = 15_000_000
@@ -319,13 +319,13 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
         # Decrease base fee if mempool is empty
         new_base_fee = max(1_000_000_000, state.gas_base_fee * 0.875)
         %{state | gas_base_fee: round(new_base_fee)}
-        
+
       true ->
         state
     end
   end
 
-  defp simulate_period(config, pattern, duration_minutes) do
+  defp simulate_period(_config, pattern, duration_minutes) do
     duration_seconds = duration_minutes * 60
 
     state = %{
@@ -342,7 +342,7 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
     run_simulation_loop(state, System.monotonic_time(:second) + duration_seconds)
   end
 
-  defp simulate_nft_drop(config) do
+  defp simulate_nft_drop(_config) do
     Logger.info("Simulating NFT drop event")
 
     # Burst of transactions all targeting same contract
@@ -367,7 +367,7 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
     %{event: :nft_drop, transactions: length(transactions), duration_ms: 5000}
   end
 
-  defp simulate_defi_liquidation(config) do
+  defp simulate_defi_liquidation(_config) do
     Logger.info("Simulating DeFi liquidation cascade")
 
     # High-priority liquidation transactions
@@ -386,7 +386,7 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
     %{event: :defi_liquidation, transactions: length(transactions)}
   end
 
-  defp simulate_gas_war(config) do
+  defp simulate_gas_war(_config) do
     Logger.info("Simulating gas war")
 
     # Transactions with escalating gas prices
@@ -414,7 +414,7 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
     %{event: :gas_war, max_gas_price: List.last(transactions).gas_price}
   end
 
-  defp simulate_mev_activity(config) do
+  defp simulate_mev_activity(_config) do
     Logger.info("Simulating MEV activity")
 
     # Sandwich attacks, arbitrage, liquidations
@@ -430,7 +430,7 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
     %{event: :mev_activity, bundles: div(length(mev_transactions), 3)}
   end
 
-  defp simulate_congestion(config) do
+  defp simulate_congestion(_config) do
     Logger.info("Simulating network congestion")
 
     # Flood with transactions
@@ -482,7 +482,7 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
     %{event: :congestion, waves: length(waves), total_transactions: Enum.sum(waves)}
   end
 
-  defp generate_mev_bundle(config) do
+  defp generate_mev_bundle(_config) do
     # Simulate MEV bundle (frontrun, target, backrun)
     frontrun =
       TransactionGenerator.generate_simple_transfers(count: 1, accounts: config.test_accounts)
@@ -496,7 +496,7 @@ defmodule ExWire.LoadTest.Scenarios.MainnetSimulation do
     frontrun ++ target ++ backrun
   end
 
-  defp finalize_simulation(state) do
+  defp finalize_simulation(_state) do
     Logger.info("""
     Mainnet simulation completed:
     - Transactions sent: #{state.transactions_sent}

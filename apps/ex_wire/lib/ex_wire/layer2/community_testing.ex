@@ -99,11 +99,11 @@ defmodule ExWire.Layer2.CommunityTesting do
     :timer.send_interval(60_000, self(), :monitor_safety)
 
     Logger.info("Community testing coordinator started")
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:register_participant, participant_info}, _from, state) do
+  def handle_call({:register_participant, participant_info}, _from, _state) do
     participant_id = generate_participant_id()
 
     # Validate participant info
@@ -125,13 +125,13 @@ defmodule ExWire.Layer2.CommunityTesting do
         Logger.info("Registered new community testing participant: #{participant_id}")
         {:reply, {:ok, participant_id}, updated_state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:start_session, participant_id, network, test_suite}, _from, state) do
+  def handle_call({:start_session, participant_id, network, test_suite}, _from, _state) do
     case validate_session_start(state, participant_id, network, test_suite) do
       {:ok, session_config} ->
         session_id = generate_session_id()
@@ -161,13 +161,13 @@ defmodule ExWire.Layer2.CommunityTesting do
         Logger.info("Started testing session #{session_id} for participant #{participant_id}")
         {:reply, {:ok, session_id, test_results}, updated_state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:submit_results, session_id, results, feedback}, _from, state) do
+  def handle_call({:submit_results, session_id, results, feedback}, _from, _state) do
     case Map.get(state.active_sessions, session_id) do
       nil ->
         {:reply, {:error, :session_not_found}, state}
@@ -207,13 +207,13 @@ defmodule ExWire.Layer2.CommunityTesting do
   end
 
   @impl true
-  def handle_call(:get_community_stats, _from, state) do
+  def handle_call(:get_community_stats, _from, _state) do
     stats = generate_community_report(state)
     {:reply, stats, state}
   end
 
   @impl true
-  def handle_info(:monitor_safety, state) do
+  def handle_info(:monitor_safety, _state) do
     # Check safety limits and participant behavior
     updated_state = monitor_safety_limits(state)
     {:noreply, updated_state}
@@ -260,7 +260,7 @@ defmodule ExWire.Layer2.CommunityTesting do
 
   defp validate_contact_info(_, _), do: false
 
-  defp validate_session_start(state, participant_id, network, test_suite) do
+  defp validate_session_start(_state, participant_id, network, test_suite) do
     with {:ok, participant} <- get_participant(state, participant_id),
          :ok <- check_participant_limits(participant),
          :ok <- check_network_availability(network),
@@ -279,7 +279,7 @@ defmodule ExWire.Layer2.CommunityTesting do
     end
   end
 
-  defp get_participant(state, participant_id) do
+  defp get_participant(_state, participant_id) do
     case Map.get(state.participants, participant_id) do
       nil -> {:error, :participant_not_found}
       participant -> {:ok, participant}
@@ -323,7 +323,7 @@ defmodule ExWire.Layer2.CommunityTesting do
     end
   end
 
-  defp check_concurrent_limit(state) do
+  defp check_concurrent_limit(_state) do
     active_count = map_size(state.active_sessions)
 
     if active_count < @safety_limits.max_concurrent_participants do
@@ -333,7 +333,7 @@ defmodule ExWire.Layer2.CommunityTesting do
     end
   end
 
-  defp run_community_test_suite(test_suite, network, config) do
+  defp run_community_test_suite(test_suite, network, _config) do
     Logger.info("Running community test suite: #{test_suite} on #{network}")
 
     case test_suite do
@@ -353,7 +353,7 @@ defmodule ExWire.Layer2.CommunityTesting do
         run_user_experience_tests(network, config)
 
       :developer_integration ->
-        run_developer_integration_tests(network, config)
+        run_developer_integration_tests(network, _config)
     end
   end
 
@@ -384,7 +384,7 @@ defmodule ExWire.Layer2.CommunityTesting do
     }
   end
 
-  defp run_transaction_flow_tests(network, config) do
+  defp run_transaction_flow_tests(network, _config) do
     max_amount = config.safety_limits.max_test_amount
 
     start_time = :os.system_time(:millisecond)
@@ -408,7 +408,7 @@ defmodule ExWire.Layer2.CommunityTesting do
     }
   end
 
-  defp run_bridge_operations_tests(network, config) do
+  defp run_bridge_operations_tests(network, _config) do
     max_amount = config.safety_limits.max_test_amount
 
     start_time = :os.system_time(:millisecond)
@@ -498,7 +498,7 @@ defmodule ExWire.Layer2.CommunityTesting do
           NetworkInterface.disconnect(network)
           %{result: :success, message: "Connection successful"}
 
-        {:error, reason} ->
+        {:error, _reason} ->
           %{result: :failed, error: reason}
       end
     catch
@@ -656,7 +656,7 @@ defmodule ExWire.Layer2.CommunityTesting do
   defp get_network_config(_network), do: %{}
   defp get_test_parameters(_suite, _level), do: %{}
   defp update_community_stats(stats, _session), do: stats
-  defp update_participant_stats(state, _participant_id, _session), do: state
-  defp generate_community_report(state), do: state.community_stats
-  defp monitor_safety_limits(state), do: state
+  defp update_participant_stats(_state, _participant_id, _session), do: state
+  defp generate_community_report(_state), do: state.community_stats
+  defp monitor_safety_limits(_state), do: state
 end

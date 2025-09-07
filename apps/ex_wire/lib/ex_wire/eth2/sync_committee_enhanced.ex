@@ -17,8 +17,8 @@ defmodule ExWire.Eth2.SyncCommitteeEnhanced do
   alias ExWire.Crypto.BLS
 
   # Constants from Ethereum 2.0 spec
-  @sync_committee_size 512
-  @sync_committee_subnet_count 4
+  # @sync_committee_size 512 # TODO: Unused attribute
+  # @sync_committee_subnet_count 4 # TODO: Unused attribute
   @epochs_per_sync_committee_period 256
 
   @type sync_committee :: %{
@@ -172,14 +172,14 @@ defmodule ExWire.Eth2.SyncCommitteeEnhanced do
     # Schedule periodic tasks
     schedule_participation_tracking()
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
   def handle_call(
         {:create_message, slot, beacon_block_root, validator_index, private_key},
         _from,
-        state
+        _state
       ) do
     message = %{
       slot: slot,
@@ -198,7 +198,7 @@ defmodule ExWire.Eth2.SyncCommitteeEnhanced do
   end
 
   @impl true
-  def handle_call({:aggregate_messages, slot, subcommittee_index}, _from, state) do
+  def handle_call({:aggregate_messages, slot, subcommittee_index}, _from, _state) do
     case Map.get(state.messages, slot) do
       nil ->
         {:reply, {:error, :no_messages}, state}
@@ -239,7 +239,7 @@ defmodule ExWire.Eth2.SyncCommitteeEnhanced do
   end
 
   @impl true
-  def handle_call({:create_sync_aggregate, slot}, _from, state) do
+  def handle_call({:create_sync_aggregate, slot}, _from, _state) do
     case Map.get(state.contributions, slot) do
       nil ->
         {:reply, {:error, :no_contributions}, state}
@@ -265,11 +265,11 @@ defmodule ExWire.Eth2.SyncCommitteeEnhanced do
   end
 
   @impl true
-  def handle_call({:process_light_client_update, update}, _from, state) do
+  def handle_call({:process_light_client_update, update}, _from, _state) do
     case validate_light_client_update(update, state.light_client_store) do
       :ok ->
         updated_store = apply_light_client_update(update, state.light_client_store)
-        new_state = %{state | light_client_store: updated_store}
+        new_state = %{_state | light_client_store: updated_store}
 
         # Update sync committee if needed
         final_state = maybe_update_sync_committee(update, new_state)
@@ -278,19 +278,19 @@ defmodule ExWire.Eth2.SyncCommitteeEnhanced do
 
         {:reply, :ok, final_state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Invalid light client update: #{inspect(reason)}")
         {:reply, error, state}
     end
   end
 
   @impl true
-  def handle_call(:get_current_sync_committee, _from, state) do
+  def handle_call(:get_current_sync_committee, _from, _state) do
     {:reply, {:ok, state.current_sync_committee}, state}
   end
 
   @impl true
-  def handle_call({:is_member, validator_index}, _from, state) do
+  def handle_call({:is_member, validator_index}, _from, _state) do
     # Check if validator's pubkey is in the committee
     # This is simplified - in production would look up validator's pubkey
     is_member = rem(validator_index, @sync_committee_size) < @sync_committee_size
@@ -298,7 +298,7 @@ defmodule ExWire.Eth2.SyncCommitteeEnhanced do
   end
 
   @impl true
-  def handle_call({:get_duties, validator_index}, _from, state) do
+  def handle_call({:get_duties, validator_index}, _from, _state) do
     if rem(validator_index, @sync_committee_size) < @sync_committee_size do
       # Calculate which subnets this validator should participate in
       subnets = calculate_validator_subnets(validator_index)
@@ -309,7 +309,7 @@ defmodule ExWire.Eth2.SyncCommitteeEnhanced do
   end
 
   @impl true
-  def handle_info(:track_participation, state) do
+  def handle_info(:track_participation, _state) do
     # Log participation metrics
     if map_size(state.participation_tracker) > 0 do
       avg_participation = calculate_average_participation(state.participation_tracker)
@@ -570,7 +570,7 @@ defmodule ExWire.Eth2.SyncCommitteeEnhanced do
     }
   end
 
-  defp maybe_update_sync_committee(update, state) do
+  defp maybe_update_sync_committee(update, _state) do
     if update.next_sync_committee != nil do
       %{
         state
@@ -599,7 +599,7 @@ defmodule ExWire.Eth2.SyncCommitteeEnhanced do
     end
   end
 
-  defp cleanup_old_data(state) do
+  defp cleanup_old_data(_state) do
     # Keep only recent slots (last 32 slots)
     current_slot = get_current_slot()
     cutoff = current_slot - 32

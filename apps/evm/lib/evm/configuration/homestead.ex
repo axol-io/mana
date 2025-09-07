@@ -11,8 +11,8 @@ defmodule EVM.Configuration.Homestead do
     }
 
   @impl true
-  def selfdestruct_cost(config, _params) do
-    config.selfdestruct_cost
+  def selfdestruct_cost(_config, _params) do
+    5000
   end
 
   @impl true

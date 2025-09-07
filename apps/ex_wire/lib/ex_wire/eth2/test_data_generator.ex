@@ -791,7 +791,7 @@ defmodule ExWire.Eth2.TestDataGenerator do
   end
 
   # Utility functions
-  defp compute_state_root(state) do
+  defp compute_state_root(_state) do
     # Simplified state root computation
     :crypto.hash(:sha256, :erlang.term_to_binary(state))
   end

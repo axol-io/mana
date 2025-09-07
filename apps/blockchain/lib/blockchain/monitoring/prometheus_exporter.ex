@@ -26,7 +26,7 @@ defmodule Blockchain.Monitoring.PrometheusExporter do
   @storage_operation_time_metric "mana_storage_operation_seconds"
   @evm_execution_time_metric "mana_evm_execution_seconds"
   @evm_gas_used_metric "mana_evm_gas_used_total"
-  @sync_progress_metric "mana_sync_progress_ratio"
+  # @sync_progress_metric "mana_sync_progress_ratio" # TODO: Unused attribute
   @memory_usage_metric "mana_memory_usage_bytes"
   @disk_usage_metric "mana_disk_usage_bytes"
 
@@ -429,7 +429,7 @@ defmodule Blockchain.Monitoring.PrometheusExporter do
       @storage_operation_time_metric -> "Time spent on storage operations in seconds"
       @evm_execution_time_metric -> "Time spent executing EVM code in seconds"
       @evm_gas_used_metric -> "Total gas used in EVM executions"
-      @sync_progress_metric -> "Blockchain synchronization progress (0.0 to 1.0)"
+  # @sync_progress_metric -> "Blockchain synchronization progress (0.0 to 1.0)" # TODO: Unused attribute
       @memory_usage_metric -> "Memory usage in bytes"
       @disk_usage_metric -> "Disk usage in bytes"
       "mana_erlang_processes" -> "Number of Erlang processes"

@@ -119,42 +119,42 @@ defmodule ExWire.Layer2.Web3Client do
     }
 
     # Initialize nonce and gas price
-    {:ok, state} = refresh_account_state(state)
+    {:ok, _state} = refresh_account_state(state)
 
     Logger.info("Web3 client initialized for #{address} on chain #{state.chain_id}")
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:send_transaction, tx_params}, _from, state) do
+  def handle_call({:send_transaction, tx_params}, _from, _state) do
     case build_and_send_transaction(tx_params, state) do
       {:ok, tx_hash, new_state} ->
         # Start monitoring the transaction
         TransactionMonitor.monitor_transaction(tx_hash, tx_params)
         {:reply, {:ok, tx_hash}, new_state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Failed to send transaction: #{inspect(reason)}")
         {:reply, error, state}
     end
   end
 
   @impl true
-  def handle_call({:call_contract, contract_address, call_data, block}, _from, state) do
+  def handle_call({:call_contract, contract_address, call_data, block}, _from, _state) do
     request = build_call_request(contract_address, call_data, block)
 
     case make_rpc_request(request, state) do
       {:ok, result} ->
         {:reply, {:ok, decode_hex(result)}, state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Contract call failed: #{inspect(reason)}")
         {:reply, error, state}
     end
   end
 
   @impl true
-  def handle_call({:estimate_gas, tx_params}, _from, state) do
+  def handle_call({:estimate_gas, tx_params}, _from, _state) do
     request = build_estimate_gas_request(tx_params, state)
 
     case make_rpc_request(request, state) do
@@ -162,25 +162,25 @@ defmodule ExWire.Layer2.Web3Client do
         gas_limit = hex_to_integer(hex_gas)
         {:reply, {:ok, gas_limit}, state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Gas estimation failed: #{inspect(reason)}")
         {:reply, error, state}
     end
   end
 
   @impl true
-  def handle_call(:get_gas_price, _from, state) do
+  def handle_call(:get_gas_price, _from, _state) do
     case fetch_current_gas_prices(state) do
       {:ok, gas_prices, new_state} ->
         {:reply, {:ok, gas_prices}, new_state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         {:reply, error, state}
     end
   end
 
   @impl true
-  def handle_call({:get_transaction_receipt, tx_hash}, _from, state) do
+  def handle_call({:get_transaction_receipt, tx_hash}, _from, _state) do
     request = %{
       jsonrpc: "2.0",
       method: "eth_getTransactionReceipt",
@@ -196,13 +196,13 @@ defmodule ExWire.Layer2.Web3Client do
       {:ok, nil} ->
         {:reply, {:error, :not_found}, state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         {:reply, error, state}
     end
   end
 
   @impl true
-  def handle_call(:get_block_number, _from, state) do
+  def handle_call(:get_block_number, _from, _state) do
     request = %{
       jsonrpc: "2.0",
       method: "eth_blockNumber",
@@ -215,13 +215,13 @@ defmodule ExWire.Layer2.Web3Client do
         block_number = hex_to_integer(hex_number)
         {:reply, {:ok, block_number}, state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         {:reply, error, state}
     end
   end
 
   @impl true
-  def handle_call({:get_block, block_identifier}, _from, state) do
+  def handle_call({:get_block, block_identifier}, _from, _state) do
     block_param =
       case block_identifier do
         n when is_integer(n) -> "0x" <> Integer.to_string(n, 16)
@@ -231,7 +231,7 @@ defmodule ExWire.Layer2.Web3Client do
     request = %{
       jsonrpc: "2.0",
       method: "eth_getBlockByNumber",
-      params: [block_param, false],
+      _params: [block_param, false],
       id: generate_request_id()
     }
 
@@ -243,14 +243,14 @@ defmodule ExWire.Layer2.Web3Client do
       {:ok, nil} ->
         {:reply, {:error, :not_found}, state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         {:reply, error, state}
     end
   end
 
   # Private Functions
 
-  defp build_and_send_transaction(tx_params, state) do
+  defp build_and_send_transaction(tx_params, _state) do
     with {:ok, tx} <- build_transaction(tx_params, state),
          {:ok, signed_tx} <- sign_transaction(tx, state.private_key, state.chain_id),
          {:ok, tx_hash} <- broadcast_transaction(signed_tx, state) do
@@ -258,11 +258,11 @@ defmodule ExWire.Layer2.Web3Client do
       new_state = %{state | nonce: state.nonce + 1}
       {:ok, tx_hash, new_state}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
-  defp build_transaction(params, state) do
+  defp build_transaction(_params, _state) do
     # Get gas estimates if not provided
     gas_limit = params[:gas] || estimate_gas_for_params(params, state)
 
@@ -347,18 +347,18 @@ defmodule ExWire.Layer2.Web3Client do
     end
   end
 
-  defp broadcast_transaction(signed_tx, state) do
+  defp broadcast_transaction(signed_tx, _state) do
     request = %{
       jsonrpc: "2.0",
       method: "eth_sendRawTransaction",
-      params: [signed_tx],
+      _params: [signed_tx],
       id: generate_request_id()
     }
 
     make_rpc_request(request, state)
   end
 
-  defp make_rpc_request(%{method: method, params: params}, _state) do
+  defp make_rpc_request(%{method: method, params: _params}, _state) do
     # Use Ethereumex for actual RPC calls
     case apply(
            Ethereumex.HttpClient,
@@ -371,7 +371,7 @@ defmodule ExWire.Layer2.Web3Client do
       {:error, %{"error" => error}} ->
         {:error, {:rpc_error, error}}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         {:error, {:rpc_request_failed, reason}}
     end
   rescue
@@ -380,7 +380,7 @@ defmodule ExWire.Layer2.Web3Client do
       make_direct_rpc_request(%{jsonrpc: "2.0", method: method, params: params, id: 1}, _state)
   end
 
-  defp make_direct_rpc_request(request, state) do
+  defp make_direct_rpc_request(request, _state) do
     headers = [
       {"Content-Type", "application/json"},
       {"Accept", "application/json"}
@@ -404,7 +404,7 @@ defmodule ExWire.Layer2.Web3Client do
       {:ok, %{status_code: status_code, body: body}} ->
         {:error, {:http_error, status_code, body}}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         {:error, {:http_request_failed, reason}}
     end
   rescue
@@ -412,7 +412,7 @@ defmodule ExWire.Layer2.Web3Client do
       {:error, {:exception, exception}}
   end
 
-  defp fetch_current_gas_prices(state) do
+  defp fetch_current_gas_prices(_state) do
     # Try to get EIP-1559 gas info first
     case get_fee_history(state) do
       {:ok, fee_history} ->
@@ -446,13 +446,13 @@ defmodule ExWire.Layer2.Web3Client do
             new_state = %{state | gas_price: gas_price}
             {:ok, gas_prices, new_state}
 
-          {:error, reason} ->
-            {:error, reason}
+          {:error, _reason} ->
+            {:error, _reason}
         end
     end
   end
 
-  defp get_fee_history(state) do
+  defp get_fee_history(_state) do
     request = %{
       jsonrpc: "2.0",
       method: "eth_feeHistory",
@@ -471,12 +471,12 @@ defmodule ExWire.Layer2.Web3Client do
 
         {:ok, parsed}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
-  defp get_legacy_gas_price(state) do
+  defp get_legacy_gas_price(_state) do
     request = %{
       jsonrpc: "2.0",
       method: "eth_gasPrice",
@@ -488,23 +488,23 @@ defmodule ExWire.Layer2.Web3Client do
       {:ok, hex_price} ->
         {:ok, hex_to_integer(hex_price)}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
-  defp refresh_account_state(state) do
+  defp refresh_account_state(_state) do
     with {:ok, nonce} <- get_account_nonce(state),
          {:ok, _gas_prices, updated_state} <- fetch_current_gas_prices(state) do
       {:ok, %{updated_state | nonce: nonce}}
     else
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.warning("Failed to refresh account state: #{inspect(reason)}")
-        {:ok, state}
+        {:ok, _state}
     end
   end
 
-  defp get_account_nonce(state) do
+  defp get_account_nonce(_state) do
     request = %{
       jsonrpc: "2.0",
       method: "eth_getTransactionCount",
@@ -516,8 +516,8 @@ defmodule ExWire.Layer2.Web3Client do
       {:ok, hex_nonce} ->
         {:ok, hex_to_integer(hex_nonce)}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -572,7 +572,7 @@ defmodule ExWire.Layer2.Web3Client do
     }
   end
 
-  defp build_estimate_gas_request(params, state) do
+  defp build_estimate_gas_request(_params, _state) do
     tx_data = %{
       from: state.address,
       to: params[:to],
@@ -617,7 +617,7 @@ defmodule ExWire.Layer2.Web3Client do
     base_fee * 2 + priority_fee
   end
 
-  defp get_transaction_fees(params, state) do
+  defp get_transaction_fees(_params, _state) do
     case {params[:maxFeePerGas], params[:maxPriorityFeePerGas]} do
       {nil, nil} when not is_nil(state.base_fee) ->
         # Use EIP-1559 fees
@@ -637,7 +637,7 @@ defmodule ExWire.Layer2.Web3Client do
     end
   end
 
-  defp estimate_gas_for_params(params, _state) do
+  defp estimate_gas_for_params(_params, _state) do
     case estimate_gas(__MODULE__, params) do
       # Add 20% buffer
       {:ok, gas_limit} -> trunc(gas_limit * 1.2)

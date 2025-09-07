@@ -105,11 +105,11 @@ defmodule ExWire.Layer2.Rollup do
     # Every 12 seconds (L1 block time)
     Process.send_after(self(), :sync_l1, 12_000)
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:submit_batch, batch}, _from, state) do
+  def handle_call({:submit_batch, batch}, _from, _state) do
     case process_batch(batch, state) do
       {:ok, new_state, batch_number} ->
         {:reply, {:ok, batch_number}, new_state}
@@ -120,7 +120,7 @@ defmodule ExWire.Layer2.Rollup do
   end
 
   @impl true
-  def handle_call({:verify_proof, batch_number, proof}, _from, state) do
+  def handle_call({:verify_proof, batch_number, proof}, _from, _state) do
     case Map.get(state.batches, batch_number) do
       nil ->
         {:reply, {:error, :batch_not_found}, state}
@@ -142,12 +142,12 @@ defmodule ExWire.Layer2.Rollup do
   end
 
   @impl true
-  def handle_call(:get_state_root, _from, state) do
+  def handle_call(:get_state_root, _from, _state) do
     {:reply, {:ok, state.state_root}, state}
   end
 
   @impl true
-  def handle_call({:get_batch, batch_number}, _from, state) do
+  def handle_call({:get_batch, batch_number}, _from, _state) do
     case Map.get(state.batches, batch_number) do
       nil -> {:reply, {:error, :not_found}, state}
       batch -> {:reply, {:ok, batch}, state}
@@ -155,7 +155,7 @@ defmodule ExWire.Layer2.Rollup do
   end
 
   @impl true
-  def handle_call({:sync_with_l1, l1_block_number}, _from, state) do
+  def handle_call({:sync_with_l1, l1_block_number}, _from, _state) do
     case perform_l1_sync(state, l1_block_number) do
       {:ok, new_state} ->
         {:reply, :ok, new_state}
@@ -166,7 +166,7 @@ defmodule ExWire.Layer2.Rollup do
   end
 
   @impl true
-  def handle_info(:sync_l1, state) do
+  def handle_info(:sync_l1, _state) do
     # Periodic L1 synchronization
     case get_latest_l1_block() do
       {:ok, block_number} ->
@@ -174,7 +174,7 @@ defmodule ExWire.Layer2.Rollup do
         Process.send_after(self(), :sync_l1, 12_000)
         {:noreply, new_state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("L1 sync failed: #{inspect(reason)}")
         Process.send_after(self(), :sync_l1, 12_000)
         {:noreply, state}
@@ -209,7 +209,7 @@ defmodule ExWire.Layer2.Rollup do
 
   defp default_config(_), do: %{}
 
-  defp process_batch(batch, state) do
+  defp process_batch(batch, _state) do
     batch_number = state.current_batch + 1
 
     # Validate batch
@@ -242,7 +242,7 @@ defmodule ExWire.Layer2.Rollup do
     end
   end
 
-  defp validate_batch(batch, state) do
+  defp validate_batch(batch, _state) do
     cond do
       length(batch.transactions) > state.config[:max_batch_size] ->
         {:error, :batch_too_large}
@@ -272,7 +272,7 @@ defmodule ExWire.Layer2.Rollup do
     ProofVerifier.verify_validity_proof(batch, proof)
   end
 
-  defp perform_l1_sync(state, l1_block_number) do
+  defp perform_l1_sync(_state, l1_block_number) do
     # Sync rollup state with L1
     Logger.debug("Syncing rollup #{state.id} with L1 block #{l1_block_number}")
 
@@ -294,7 +294,7 @@ defmodule ExWire.Layer2.Rollup do
     else
       _ ->
         # No oracle configured or sync failed - continue with current state
-        {:ok, state}
+        {:ok, _state}
     end
   end
 
@@ -304,7 +304,7 @@ defmodule ExWire.Layer2.Rollup do
       {:ok, block_number} ->
         {:ok, block_number}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.warning("Failed to get L1 block number: #{inspect(reason)}")
         # Fallback to a default for testing
         {:ok, 0}

@@ -109,7 +109,7 @@ defmodule ExWire.Eth2.ForkChoice do
   @doc """
   Process a new block for fork choice
   """
-  def on_block(store, block, block_root, state) do
+  def on_block(store, block, block_root, _state) do
     # Check block slot is not in the future
     current_slot = get_current_slot(store)
 
@@ -170,7 +170,7 @@ defmodule ExWire.Eth2.ForkChoice do
         # Extract validator indices from attestation
         validators =
           get_attesting_indices(
-            target_block_info.state,
+            target_block_info._state,
             attestation.data,
             attestation.aggregation_bits
           )
@@ -328,14 +328,14 @@ defmodule ExWire.Eth2.ForkChoice do
 
   # Private Functions - Checkpoint Updates
 
-  defp update_checkpoints(store, state) do
+  defp update_checkpoints(store, _state) do
     # Update justified checkpoint if better
     store =
       if state.current_justified_checkpoint.epoch > store.justified_checkpoint.epoch do
         %{
           store
           | justified_checkpoint: state.current_justified_checkpoint,
-            best_justified_checkpoint: state.current_justified_checkpoint
+            best_justified_checkpoint: _state.current_justified_checkpoint
         }
       else
         store
@@ -349,7 +349,7 @@ defmodule ExWire.Eth2.ForkChoice do
     end
   end
 
-  defp update_unrealized_checkpoints(store, block_root, state) do
+  defp update_unrealized_checkpoints(store, block_root, _state) do
     # Store unrealized justification and finalization
     store =
       put_in(
@@ -407,14 +407,14 @@ defmodule ExWire.Eth2.ForkChoice do
     end
   end
 
-  defp calculate_proposer_boost(state) do
+  defp calculate_proposer_boost(_state) do
     # Calculate proposer boost amount
     # This is a percentage of the total active balance
     total_active_balance = calculate_total_active_balance(state)
     div(total_active_balance * @proposer_score_boost, 100)
   end
 
-  defp calculate_total_active_balance(state) do
+  defp calculate_total_active_balance(_state) do
     # Sum effective balances of active validators
     state.validators
     |> Enum.with_index()
@@ -439,7 +439,7 @@ defmodule ExWire.Eth2.ForkChoice do
     new_slot > old_slot
   end
 
-  defp get_current_epoch(state) do
+  defp get_current_epoch(_state) do
     div(state.slot, @slots_per_epoch)
   end
 
@@ -447,7 +447,7 @@ defmodule ExWire.Eth2.ForkChoice do
     validator.activation_epoch <= epoch && epoch < validator.exit_epoch
   end
 
-  defp get_attesting_indices(state, attestation_data, aggregation_bits) do
+  defp get_attesting_indices(_state, attestation_data, aggregation_bits) do
     # Get committee for this attestation
     committee =
       get_beacon_committee(
@@ -465,7 +465,7 @@ defmodule ExWire.Eth2.ForkChoice do
     |> Enum.map(fn {validator_index, _i} -> validator_index end)
   end
 
-  defp get_beacon_committee(state, slot, index) do
+  defp get_beacon_committee(_state, slot, index) do
     # Simplified committee retrieval
     # In production, this would use the actual committee computation
     []

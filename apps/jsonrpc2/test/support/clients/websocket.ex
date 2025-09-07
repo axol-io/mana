@@ -20,7 +20,7 @@ defmodule JSONRPC2.Clients.WebSocket do
   def call(
         pid,
         method,
-        params,
+        _params,
         request_counter
       ) do
     {:ok, _external_request_id, message} = handle_request(:call, method, params, request_counter)
@@ -42,23 +42,23 @@ defmodule JSONRPC2.Clients.WebSocket do
     WebSockex.start_link(url, __MODULE__, %{external_request_id: 0, parent: self()}, [])
   end
 
-  def handle_connect(_conn, state) do
+  def handle_connect(_conn, _state) do
     _ = Logger.info("Connected!")
-    {:ok, state}
+    {:ok, _state}
   end
 
-  def handle_frame({:text, msg}, state = %{parent: parent}) do
+  def handle_frame({:text, msg}, _state = %{parent: parent}) do
     {:ok, data, ^state} = handle_data(msg, state)
     send(parent, {:websocket_response, {:ok, data}})
-    {:ok, state}
+    {:ok, _state}
   end
 
-  def handle_disconnect(%{reason: {:local, reason}}, state) do
+  def handle_disconnect(%{reason: {:local, _reason}}, _state) do
     _ = Logger.info("Local close with reason: #{inspect(reason)}")
-    {:ok, state}
+    {:ok, _state}
   end
 
-  def handle_disconnect(disconnect_map, state) do
+  def handle_disconnect(disconnect_map, _state) do
     super(disconnect_map, state)
   end
 
@@ -68,7 +68,7 @@ defmodule JSONRPC2.Clients.WebSocket do
     {:ok, data}
   end
 
-  defp handle_request(:call, method, params, request_counter) do
+  defp handle_request(:call, method, _params, request_counter) do
     external_request_id_int = external_request_id(request_counter)
 
     external_request_id = external_request_id_int
@@ -84,7 +84,7 @@ defmodule JSONRPC2.Clients.WebSocket do
     {:ok, process_batch(deserialized_body), state}
   end
 
-  defp handle_data(data, state) do
+  defp handle_data(data, _state) do
     case Response.deserialize_response(data) do
       {:ok, {nil, result}} ->
         _ =

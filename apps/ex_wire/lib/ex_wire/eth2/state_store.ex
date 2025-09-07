@@ -41,7 +41,7 @@ defmodule ExWire.Eth2.StateStore do
   @doc """
   Store a beacon state efficiently
   """
-  def store_state(state, slot, state_root) do
+  def store_state(_state, slot, state_root) do
     GenServer.call(__MODULE__, {:store_state, state, slot, state_root})
   end
 
@@ -97,11 +97,11 @@ defmodule ExWire.Eth2.StateStore do
     # Schedule periodic pruning
     schedule_pruning()
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:store_state, beacon_state, slot, state_root}, _from, state) do
+  def handle_call({:store_state, beacon_state, slot, state_root}, _from, _state) do
     # Determine storage tier
     current_slot = beacon_state.slot
 
@@ -135,7 +135,7 @@ defmodule ExWire.Eth2.StateStore do
   end
 
   @impl true
-  def handle_call({:get_state, slot}, _from, state) do
+  def handle_call({:get_state, slot}, _from, _state) do
     result = retrieve_state(state, slot)
 
     state =
@@ -148,7 +148,7 @@ defmodule ExWire.Eth2.StateStore do
   end
 
   @impl true
-  def handle_call({:get_state_by_root, state_root}, _from, state) do
+  def handle_call({:get_state_by_root, state_root}, _from, _state) do
     # Look up slot by state root
     case :ets.lookup(:state_roots, state_root) do
       [{^state_root, slot}] ->
@@ -161,7 +161,7 @@ defmodule ExWire.Eth2.StateStore do
   end
 
   @impl true
-  def handle_call(:get_metrics, _from, state) do
+  def handle_call(:get_metrics, _from, _state) do
     metrics =
       Map.merge(state.metrics, %{
         hot_states_count: map_size(state.hot_states),
@@ -174,7 +174,7 @@ defmodule ExWire.Eth2.StateStore do
   end
 
   @impl true
-  def handle_cast({:prune, finalized_slot}, state) do
+  def handle_cast({:prune, finalized_slot}, _state) do
     Logger.info("Pruning states before slot #{finalized_slot}")
 
     # Prune hot states
@@ -205,7 +205,7 @@ defmodule ExWire.Eth2.StateStore do
   end
 
   @impl true
-  def handle_info(:scheduled_pruning, state) do
+  def handle_info(:scheduled_pruning, _state) do
     # Get finalized slot (simplified - should get from beacon chain)
     current_slot = get_current_slot()
     finalized_slot = max(0, current_slot - @warm_slots * 2)
@@ -218,7 +218,7 @@ defmodule ExWire.Eth2.StateStore do
 
   # Private Functions - Storage Operations
 
-  defp store_hot(state, beacon_state, slot, state_root) do
+  defp store_hot(_state, beacon_state, slot, state_root) do
     # Store full state in memory
     hot_states = Map.put(state.hot_states, slot, beacon_state)
 
@@ -243,10 +243,10 @@ defmodule ExWire.Eth2.StateStore do
         hot_states
       end
 
-    %{state | hot_states: hot_states}
+    %{_state | hot_states: hot_states}
   end
 
-  defp store_warm(state, beacon_state, slot, state_root) do
+  defp store_warm(_state, beacon_state, slot, state_root) do
     # Compress state before storing in ETS
     compressed = compress_state(beacon_state)
 
@@ -261,7 +261,7 @@ defmodule ExWire.Eth2.StateStore do
     state
   end
 
-  defp store_cold(state, beacon_state, slot, state_root) do
+  defp store_cold(_state, beacon_state, slot, state_root) do
     # Store to persistent storage
     case state.cold_storage do
       {:rocksdb, db} ->
@@ -282,7 +282,7 @@ defmodule ExWire.Eth2.StateStore do
     state
   end
 
-  defp store_checkpoint(state, beacon_state, slot, state_root) do
+  defp store_checkpoint(_state, beacon_state, slot, state_root) do
     Logger.debug("Storing checkpoint at slot #{slot}")
 
     checkpoint = %{
@@ -295,7 +295,7 @@ defmodule ExWire.Eth2.StateStore do
     %{state | checkpoints: Map.put(state.checkpoints, slot, checkpoint)}
   end
 
-  defp store_delta(state, beacon_state, slot) do
+  defp store_delta(_state, beacon_state, slot) do
     # Find previous state
     prev_slot = slot - 1
 
@@ -314,7 +314,7 @@ defmodule ExWire.Eth2.StateStore do
 
   # Private Functions - Retrieval
 
-  defp retrieve_state(state, slot) do
+  defp retrieve_state(_state, slot) do
     # Check hot storage first
     case Map.get(state.hot_states, slot) do
       nil ->
@@ -331,7 +331,7 @@ defmodule ExWire.Eth2.StateStore do
                 reconstruct_from_deltas(state, slot)
 
               checkpoint ->
-                {:ok, checkpoint.state}
+                {:ok, checkpoint._state}
             end
         end
 
@@ -340,7 +340,7 @@ defmodule ExWire.Eth2.StateStore do
     end
   end
 
-  defp reconstruct_from_deltas(state, target_slot) do
+  defp reconstruct_from_deltas(_state, target_slot) do
     # Find nearest checkpoint
     checkpoint_slot = div(target_slot, @checkpoint_interval) * @checkpoint_interval
 
@@ -350,7 +350,7 @@ defmodule ExWire.Eth2.StateStore do
 
       checkpoint ->
         # Apply deltas from checkpoint to target
-        base_state = checkpoint.state
+        base_state = checkpoint._state
 
         deltas =
           :ets.select(:state_deltas, [
@@ -369,7 +369,7 @@ defmodule ExWire.Eth2.StateStore do
     end
   end
 
-  defp retrieve_from_cold_storage(state, slot) do
+  defp retrieve_from_cold_storage(_state, slot) do
     case state.cold_storage do
       {:rocksdb, db} ->
         key = "state:#{slot}"
@@ -423,31 +423,31 @@ defmodule ExWire.Eth2.StateStore do
     delta
   end
 
-  defp apply_delta(state, {:full, new_state}) do
+  defp apply_delta(_state, {:full, new_state}) do
     new_state
   end
 
-  defp apply_delta(state, delta) when is_map(delta) do
+  defp apply_delta(_state, delta) when is_map(delta) do
     Enum.reduce(delta, state, fn {field, change}, acc ->
       apply_field_delta(acc, field, change)
     end)
   end
 
-  defp apply_field_delta(state, :slot, new_slot) do
+  defp apply_field_delta(_state, :slot, new_slot) do
     %{state | slot: new_slot}
   end
 
-  defp apply_field_delta(state, :validators, validator_delta) do
+  defp apply_field_delta(_state, :validators, validator_delta) do
     new_validators = apply_validator_delta(state.validators, validator_delta)
     %{state | validators: new_validators}
   end
 
-  defp apply_field_delta(state, :balances, balance_delta) do
+  defp apply_field_delta(_state, :balances, balance_delta) do
     new_balances = apply_balance_delta(state.balances, balance_delta)
     %{state | balances: new_balances}
   end
 
-  defp apply_field_delta(state, field, value) do
+  defp apply_field_delta(_state, field, value) do
     Map.put(state, field, value)
   end
 
@@ -549,7 +549,7 @@ defmodule ExWire.Eth2.StateStore do
     System.system_time(:second) |> div(12)
   end
 
-  defp estimate_memory_usage(state) do
+  defp estimate_memory_usage(_state) do
     # ~50MB per state
     hot_size = map_size(state.hot_states) * 50_000_000
 
@@ -571,7 +571,7 @@ defmodule ExWire.Eth2.StateStore do
     }
   end
 
-  defp update_metrics(state, metric, count \\ 1) do
+  defp update_metrics(_state, metric, count \\ 1) do
     update_in(state.metrics[metric], &(&1 + count))
   end
 

@@ -17,7 +17,7 @@ defmodule JSONRPC2.SubscriptionManager do
   alias JSONRPC2.Response.Helpers
   alias JSONRPC2.Bridge.Sync
 
-  @sync Application.compile_env(:jsonrpc2, :bridge_mock, Sync)
+  # @sync Application.compile_env(:jsonrpc2, :bridge_mock, Sync) # TODO: Unused attribute
 
   # Client API
 
@@ -38,9 +38,9 @@ defmodule JSONRPC2.SubscriptionManager do
 
   ## Returns
   - {:ok, subscription_id} on success
-  - {:error, reason} on failure
+  - {:error, _reason} on failure
   """
-  def subscribe(subscription_type, params \\ %{}, ws_pid) do
+  def subscribe(subscription_type, _params \\ %{}, ws_pid) do
     GenServer.call(__MODULE__, {:subscribe, subscription_type, params, ws_pid})
   end
 
@@ -54,7 +54,7 @@ defmodule JSONRPC2.SubscriptionManager do
   ## Returns
   - {:ok, true} if subscription was cancelled
   - {:ok, false} if subscription was not found
-  - {:error, reason} on failure
+  - {:error, _reason} on failure
   """
   def unsubscribe(subscription_id, ws_pid) do
     GenServer.call(__MODULE__, {:unsubscribe, subscription_id, ws_pid})
@@ -120,21 +120,21 @@ defmodule JSONRPC2.SubscriptionManager do
     # Start periodic tasks
     schedule_periodic_check()
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:subscribe, subscription_type, params, ws_pid}, _from, state) do
+  def handle_call({:subscribe, subscription_type, _params, ws_pid}, _from, _state) do
     case validate_subscription_type(subscription_type) do
       :ok ->
         # Generate unique subscription ID
-        subscription_id = generate_subscription_id(state.next_id)
+        subscription_id = generate_subscription_id(_state.next_id)
 
         # Create subscription record
         subscription = %{
           id: subscription_id,
           type: subscription_type,
-          params: params,
+          params: _params,
           ws_pid: ws_pid,
           created_at: System.system_time(:second)
         }
@@ -158,13 +158,13 @@ defmodule JSONRPC2.SubscriptionManager do
 
         {:reply, {:ok, subscription_id}, new_state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:unsubscribe, subscription_id, ws_pid}, _from, state) do
+  def handle_call({:unsubscribe, subscription_id, ws_pid}, _from, _state) do
     case Map.get(state.subscriptions, subscription_id) do
       nil ->
         {:reply, {:ok, false}, state}
@@ -187,7 +187,7 @@ defmodule JSONRPC2.SubscriptionManager do
   end
 
   @impl true
-  def handle_cast({:new_block, block}, state) do
+  def handle_cast({:new_block, block}, _state) do
     # Notify all newHeads subscribers
     state.subscriptions
     |> Enum.filter(fn {_id, sub} -> sub.type == "newHeads" end)
@@ -199,7 +199,7 @@ defmodule JSONRPC2.SubscriptionManager do
   end
 
   @impl true
-  def handle_cast({:new_logs, logs}, state) do
+  def handle_cast({:new_logs, logs}, _state) do
     # Notify logs subscribers with matching filters
     state.subscriptions
     |> Enum.filter(fn {_id, sub} -> sub.type == "logs" end)
@@ -215,7 +215,7 @@ defmodule JSONRPC2.SubscriptionManager do
   end
 
   @impl true
-  def handle_cast({:new_pending_transaction, transaction}, state) do
+  def handle_cast({:new_pending_transaction, transaction}, _state) do
     # Notify all newPendingTransactions subscribers
     state.subscriptions
     |> Enum.filter(fn {_id, sub} -> sub.type == "newPendingTransactions" end)
@@ -227,7 +227,7 @@ defmodule JSONRPC2.SubscriptionManager do
   end
 
   @impl true
-  def handle_cast({:sync_status, status}, state) do
+  def handle_cast({:sync_status, status}, _state) do
     # Only notify if sync status changed
     if status != state.last_sync_status do
       state.subscriptions
@@ -241,13 +241,13 @@ defmodule JSONRPC2.SubscriptionManager do
   end
 
   @impl true
-  def handle_cast({:cleanup, ws_pid}, state) do
+  def handle_cast({:cleanup, ws_pid}, _state) do
     new_state = cleanup_connection(state, ws_pid)
     {:noreply, new_state}
   end
 
   @impl true
-  def handle_info({:DOWN, _ref, :process, ws_pid, _reason}, state) do
+  def handle_info({:DOWN, _ref, :process, ws_pid, _reason}, _state) do
     # WebSocket disconnected, cleanup subscriptions
     Logger.info("WebSocket #{inspect(ws_pid)} disconnected, cleaning up subscriptions")
     new_state = cleanup_connection(state, ws_pid)
@@ -255,7 +255,7 @@ defmodule JSONRPC2.SubscriptionManager do
   end
 
   @impl true
-  def handle_info(:periodic_check, state) do
+  def handle_info(:periodic_check, _state) do
     # Periodic maintenance tasks
     # For now, just log statistics
     total_subs = map_size(state.subscriptions)
@@ -290,7 +290,7 @@ defmodule JSONRPC2.SubscriptionManager do
     |> then(&"0x#{&1}")
   end
 
-  defp remove_subscription(state, subscription_id, ws_pid) do
+  defp remove_subscription(_state, subscription_id, ws_pid) do
     state
     |> update_in([:subscriptions], &Map.delete(&1, subscription_id))
     |> update_in([:connections, ws_pid], fn
@@ -307,7 +307,7 @@ defmodule JSONRPC2.SubscriptionManager do
     end)
   end
 
-  defp cleanup_connection(state, ws_pid) do
+  defp cleanup_connection(_state, ws_pid) do
     subscription_ids = Map.get(state.connections, ws_pid, [])
 
     Enum.reduce(subscription_ids, state, fn id, acc ->

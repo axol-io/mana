@@ -173,7 +173,7 @@ defmodule Blockchain.Transaction do
   @spec execute_with_validation(Trie.t(), t, Header.t(), Chain.t()) ::
           {Repo.t(), Gas.t(), Receipt.t()}
   def execute_with_validation(
-        state,
+        _state,
         tx,
         block_header,
         chain
@@ -181,7 +181,7 @@ defmodule Blockchain.Transaction do
     validation_result = Validity.validate(state, tx, block_header, chain)
 
     case validation_result do
-      :valid -> execute(state, tx, block_header, chain)
+      :valid -> execute(_state, tx, block_header, chain)
       {:invalid, _} -> {Repo.new(state), 0, %Receipt{}}
     end
   end
@@ -201,7 +201,7 @@ defmodule Blockchain.Transaction do
   Υ^l, Y^z} in the Transaction Execution section of the Yellow Paper.
   """
   @spec execute(Trie.t(), t, Header.t(), Chain.t()) :: {Repo.t(), Gas.t(), Receipt.t()}
-  def execute(state, tx, block_header, chain) do
+  def execute(_state, tx, block_header, chain) do
     sender =
       if is_nil(tx.from) do
         {:ok, sender} = Transaction.Signature.sender(tx, chain.params.network_id)
@@ -298,7 +298,7 @@ defmodule Blockchain.Transaction do
           EVM.address(),
           EVM.Configuration.t()
         ) :: {Repo.t(), Gas.t(), EVM.SubState.t(), status()}
-  def apply_transaction(account_repo, tx, block_header, sender, config) do
+  def apply_transaction(account_repo, tx, block_header, sender, _config) do
     # sender and originator are the same for transaction execution
     originator = sender
     # stack depth starts at zero for transaction execution
@@ -352,7 +352,7 @@ defmodule Blockchain.Transaction do
          refund,
          block_header,
          sub_state,
-         config
+         _config
        ) do
     account_repo
     |> pay_and_refund_gas(sender, tx, refund, block_header)
@@ -364,7 +364,7 @@ defmodule Blockchain.Transaction do
     contract_creation?(tx) && tx.init == <<>> && tx.value == 0 && tx.gas_price == 0
   end
 
-  defp touch_beneficiary_account({state, gas, sub_state, status}, beneficiary) do
+  defp touch_beneficiary_account({_state, gas, sub_state, status}, beneficiary) do
     new_sub_state = SubState.add_touched_account(sub_state, beneficiary)
     {state, gas, new_sub_state, status}
   end
@@ -467,7 +467,7 @@ defmodule Blockchain.Transaction do
     end
   end
 
-  defp clean_touched_accounts(account_repo, sub_state, config) do
+  defp clean_touched_accounts(account_repo, sub_state, _config) do
     accounts = sub_state.touched_accounts
 
     AccountCleaner.clean_touched_accounts(account_repo, accounts, config)
@@ -497,7 +497,7 @@ defmodule Blockchain.Transaction do
       3 * 68 + 4  + 21000
   """
   @spec intrinsic_gas_cost(t, Configuration.t()) :: Gas.t()
-  def intrinsic_gas_cost(tx, config) do
+  def intrinsic_gas_cost(tx, _config) do
     data_cost = input_data_cost(tx)
 
     data_cost + transaction_cost(tx, config)
@@ -509,7 +509,7 @@ defmodule Blockchain.Transaction do
     |> Gas.g_txdata()
   end
 
-  defp transaction_cost(tx, config) do
+  defp transaction_cost(tx, _config) do
     if contract_creation?(tx) do
       config.contract_creation_cost
     else

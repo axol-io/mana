@@ -38,7 +38,7 @@ defmodule Blockchain.TransactionPool do
 
   ## Returns
   - {:ok, transaction_hash} on success
-  - {:error, reason} on failure
+  - {:error, _reason} on failure
   """
   def add_transaction(raw_transaction) when is_binary(raw_transaction) do
     GenServer.call(__MODULE__, {:add_transaction, raw_transaction})
@@ -52,7 +52,7 @@ defmodule Blockchain.TransactionPool do
 
   ## Returns
   - {:ok, transaction_hash} on success
-  - {:error, reason} on failure
+  - {:error, _reason} on failure
   """
   def send_transaction(transaction_params) do
     GenServer.call(__MODULE__, {:send_transaction, transaction_params})
@@ -503,18 +503,32 @@ defmodule Blockchain.TransactionPool do
   end
 
   defp notify_new_pending_transaction(transaction, hash) do
-    # Notify SubscriptionManager about new pending transaction
-    if Process.whereis(JSONRPC2.SubscriptionManager) do
-      JSONRPC2.SubscriptionManager.notify_new_pending_transaction(%{
-        hash: hash,
-        from: derive_sender_address(transaction),
-        to: transaction.to,
-        value: transaction.value,
-        gas: transaction.gas_limit,
-        gas_price: transaction.gas_price,
-        data: transaction.data,
-        nonce: transaction.nonce
-      })
+    # Notify SubscriptionManager about new pending transaction using dynamic dispatch
+    try do
+      case Code.ensure_loaded(JSONRPC2.SubscriptionManager) do
+        {:module, module} ->
+          if Process.whereis(module) do
+            apply(module, :notify_new_pending_transaction, [
+              %{
+                hash: hash,
+                from: derive_sender_address(transaction),
+                to: transaction.to,
+                value: transaction.value,
+                gas: transaction.gas_limit,
+                gas_price: transaction.gas_price,
+                data: transaction.data,
+                nonce: transaction.nonce
+              }
+            ])
+          end
+
+        {:error, _} ->
+          # JSONRPC2 not available, skip notification
+          :ok
+      end
+    rescue
+      # Handle any errors gracefully
+      _ -> :ok
     end
   end
 

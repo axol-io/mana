@@ -379,7 +379,7 @@ td.source {
 <tr class="miss">
 <td class="line" id="L55"><a href="#L55">55</a></td>
 <td class="hits"><pre style="display: inline;">:-(</pre></td>
-<td class="source"><code>  def start_link(config \\ %{}) do</code></td>
+<td class="source"><code>  def start_link(_config \\ %{}) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L56"><a href="#L56">56</a></td>
@@ -399,7 +399,7 @@ td.source {
 <tr>
 <td class="line" id="L59"><a href="#L59">59</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def init(config) do</code></td>
+<td class="source"><code>  def init(_config) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L60"><a href="#L60">60</a></td>
@@ -494,7 +494,7 @@ td.source {
 <tr>
 <td class="line" id="L78"><a href="#L78">78</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_continue(:initialize, state) do</code></td>
+<td class="source"><code>  def handle_continue(:initialize, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L79"><a href="#L79">79</a></td>
@@ -614,7 +614,7 @@ td.source {
 <tr>
 <td class="line" id="L102"><a href="#L102">102</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_call({:get_key, key_id}, _from, state) do</code></td>
+<td class="source"><code>  def handle_call({:get_key, key_id}, _from, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L103"><a href="#L103">103</a></td>
@@ -649,7 +649,7 @@ td.source {
 <tr>
 <td class="line" id="L109"><a href="#L109">109</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_call({:sign, key_id, data}, _from, state) do</code></td>
+<td class="source"><code>  def handle_call({:sign, key_id, data}, _from, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L110"><a href="#L110">110</a></td>
@@ -704,7 +704,7 @@ td.source {
 <tr>
 <td class="line" id="L120"><a href="#L120">120</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_call({:generate_key, params}, _from, state) do</code></td>
+<td class="source"><code>  def handle_call({:generate_key, _params}, _from, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L121"><a href="#L121">121</a></td>
@@ -729,7 +729,7 @@ td.source {
 <tr>
 <td class="line" id="L125"><a href="#L125">125</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_call({:list_keys, filters}, _from, state) do</code></td>
+<td class="source"><code>  def handle_call({:list_keys, filters}, _from, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L126"><a href="#L126">126</a></td>
@@ -754,7 +754,7 @@ td.source {
 <tr>
 <td class="line" id="L130"><a href="#L130">130</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_call({:delete_key, key_id}, _from, state) do</code></td>
+<td class="source"><code>  def handle_call({:delete_key, key_id}, _from, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L131"><a href="#L131">131</a></td>
@@ -779,7 +779,7 @@ td.source {
 <tr>
 <td class="line" id="L135"><a href="#L135">135</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_call(:get_stats, _from, state) do</code></td>
+<td class="source"><code>  def handle_call(:get_stats, _from, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L136"><a href="#L136">136</a></td>
@@ -839,7 +839,7 @@ td.source {
 <tr>
 <td class="line" id="L147"><a href="#L147">147</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_info(:health_check, state) do</code></td>
+<td class="source"><code>  def handle_info(:health_check, _state) do</code></td>
 </tr>
 <tr>
 <td class="line" id="L148"><a href="#L148">148</a></td>
@@ -1029,7 +1029,7 @@ td.source {
 <tr class="miss">
 <td class="line" id="L185"><a href="#L185">185</a></td>
 <td class="hits"><pre style="display: inline;">:-(</pre></td>
-<td class="source"><code>  def generate_key(params \\ %{}) do</code></td>
+<td class="source"><code>  def generate_key(_params \\ %{}) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L186"><a href="#L186">186</a></td>
@@ -1624,7 +1624,7 @@ td.source {
 <tr>
 <td class="line" id="L304"><a href="#L304">304</a></td>
 <td class="hits"></td>
-<td class="source"><code>  defp perform_signing(key, data, state) do</code></td>
+<td class="source"><code>  defp perform_signing(key, data, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L305"><a href="#L305">305</a></td>
@@ -1639,7 +1639,7 @@ td.source {
 <tr>
 <td class="line" id="L307"><a href="#L307">307</a></td>
 <td class="hits"></td>
-<td class="source"><code>        :hsm when state.hsm_available -&gt;</code></td>
+<td class="source"><code>        :hsm when _state.hsm_available -&gt;</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L308"><a href="#L308">308</a></td>
@@ -1939,7 +1939,7 @@ td.source {
 <tr>
 <td class="line" id="L367"><a href="#L367">367</a></td>
 <td class="hits"></td>
-<td class="source"><code>  defp software_sign(key, data, state) do</code></td>
+<td class="source"><code>  defp software_sign(key, data, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L368"><a href="#L368">368</a></td>
@@ -2099,7 +2099,7 @@ td.source {
 <tr>
 <td class="line" id="L399"><a href="#L399">399</a></td>
 <td class="hits"></td>
-<td class="source"><code>  defp fallback_software_sign(key, data, state) do</code></td>
+<td class="source"><code>  defp fallback_software_sign(key, data, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L400"><a href="#L400">400</a></td>
@@ -2144,7 +2144,7 @@ td.source {
 <tr>
 <td class="line" id="L408"><a href="#L408">408</a></td>
 <td class="hits"></td>
-<td class="source"><code>  defp generate_new_key(params, state) do</code></td>
+<td class="source"><code>  defp generate_new_key(_params, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L409"><a href="#L409">409</a></td>
@@ -2304,7 +2304,7 @@ td.source {
 <tr class="miss">
 <td class="line" id="L440"><a href="#L440">440</a></td>
 <td class="hits"><pre style="display: inline;">:-(</pre></td>
-<td class="source"><code>        generate_software_key(label, role, usage, state)</code></td>
+<td class="source"><code>        generate_software_key(label, role, usage, _state)</code></td>
 </tr>
 <tr>
 <td class="line" id="L441"><a href="#L441">441</a></td>
@@ -2339,7 +2339,7 @@ td.source {
 <tr>
 <td class="line" id="L447"><a href="#L447">447</a></td>
 <td class="hits"></td>
-<td class="source"><code>  defp generate_hsm_key(label, role, usage, state) do</code></td>
+<td class="source"><code>  defp generate_hsm_key(label, role, usage, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L448"><a href="#L448">448</a></td>
@@ -2574,7 +2574,7 @@ td.source {
 <tr>
 <td class="line" id="L494"><a href="#L494">494</a></td>
 <td class="hits"></td>
-<td class="source"><code>  defp generate_software_key(label, role, usage, state) do</code></td>
+<td class="source"><code>  defp generate_software_key(label, role, usage, _state) do</code></td>
 </tr>
 <tr>
 <td class="line" id="L495"><a href="#L495">495</a></td>
@@ -2784,7 +2784,7 @@ td.source {
 <tr>
 <td class="line" id="L536"><a href="#L536">536</a></td>
 <td class="hits"></td>
-<td class="source"><code>  defp delete_key(key_id, state) do</code></td>
+<td class="source"><code>  defp delete_key(key_id, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L537"><a href="#L537">537</a></td>

@@ -27,9 +27,9 @@ defmodule ExWire.Packet.Capability.Eth.V66Wrapper do
   For other messages or older protocols, returns the packet unchanged.
   """
   @spec wrap_packet(struct(), integer(), integer() | nil) :: {struct() | map(), integer() | nil}
-  def wrap_packet(packet, version, request_id \\ nil)
+  def wrap_packet(_packet, version, request_id \\ nil)
 
-  def wrap_packet(packet, version, request_id) when version >= 66 do
+  def wrap_packet(_packet, version, request_id) when version >= 66 do
     if requires_request_id?(packet) do
       # Generate request ID if not provided
       req_id = request_id || RequestId.generate()
@@ -47,7 +47,7 @@ defmodule ExWire.Packet.Capability.Eth.V66Wrapper do
     end
   end
 
-  def wrap_packet(packet, _version, _request_id) do
+  def wrap_packet(_packet, _version, _request_id) do
     # Pre-eth/66 protocols don't use request IDs
     {packet, nil}
   end
@@ -59,11 +59,11 @@ defmodule ExWire.Packet.Capability.Eth.V66Wrapper do
   For other messages, returns the packet unchanged.
   """
   @spec unwrap_packet(map() | struct(), integer()) :: {struct(), integer() | nil}
-  def unwrap_packet(%{request_id: request_id, packet: packet}, version) when version >= 66 do
+  def unwrap_packet(%{request_id: request_id, packet: _packet}, version) when version >= 66 do
     {packet, request_id}
   end
 
-  def unwrap_packet(packet, _version) do
+  def unwrap_packet(_packet, _version) do
     {packet, nil}
   end
 
@@ -71,7 +71,7 @@ defmodule ExWire.Packet.Capability.Eth.V66Wrapper do
   Serializes a packet with request ID support for eth/66+.
   """
   @spec serialize(struct() | map(), integer()) :: ExRLP.t()
-  def serialize(%{request_id: request_id, packet: packet}, version) when version >= 66 do
+  def serialize(%{request_id: request_id, packet: _packet}, version) when version >= 66 do
     # Get the base serialization from the packet module
     packet_module = packet.__struct__
     base_serialization = packet_module.serialize(packet)
@@ -80,7 +80,7 @@ defmodule ExWire.Packet.Capability.Eth.V66Wrapper do
     [request_id | base_serialization]
   end
 
-  def serialize(packet, _version) do
+  def serialize(_packet, _version) do
     # For non-wrapped packets, use normal serialization
     packet_module = packet.__struct__
     packet_module.serialize(packet)

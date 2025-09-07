@@ -291,7 +291,7 @@ PruningScheduler.update_config(%{enable_load_aware_scheduling: true})
 PruningManager.prune_all()
 
 # Verify configuration
-{:ok, config} = PruningConfig.validate_config(current_config)
+{:ok, _config} = PruningConfig.validate_config(current_config)
 ```
 
 #### Poor Pruning Performance

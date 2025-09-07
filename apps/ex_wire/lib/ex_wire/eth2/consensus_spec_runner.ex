@@ -105,7 +105,7 @@ defmodule ExWire.Eth2.ConsensusSpecRunner do
   Run tests for a specific fork and configuration.
   """
   @spec run_fork_tests(t(), atom(), atom(), atom() | list()) :: list()
-  def run_fork_tests(runner, fork, config, test_suites) do
+  def run_fork_tests(runner, fork, _config, test_suites) do
     test_dir = Path.join([@test_data_dir, to_string(fork), to_string(config)])
 
     if File.exists?(test_dir) do
@@ -127,7 +127,7 @@ defmodule ExWire.Eth2.ConsensusSpecRunner do
   Run a specific test suite (e.g., finality, fork_choice, blocks).
   """
   @spec run_test_suite(t(), atom(), atom(), atom(), String.t()) :: list()
-  def run_test_suite(runner, fork, config, suite, suite_dir) do
+  def run_test_suite(runner, fork, _config, suite, suite_dir) do
     if File.exists?(suite_dir) do
       Logger.debug("Running test suite: #{fork}/#{config}/#{suite}")
 
@@ -195,9 +195,9 @@ defmodule ExWire.Eth2.ConsensusSpecRunner do
       :ok ->
         :ok
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Failed to create test directory: #{inspect(reason)}")
-        {:error, reason}
+        {:error, _reason}
     end
   end
 
@@ -288,7 +288,7 @@ defmodule ExWire.Eth2.ConsensusSpecRunner do
       {:ok, _output} ->
         %{status: :pass, duration: duration, error: nil}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         %{status: :fail, duration: duration, error: reason}
 
       {:skip, reason} ->

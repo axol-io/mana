@@ -2,7 +2,7 @@ defmodule ExWire.Eth2.BlobIntegrationTest do
   use ExUnit.Case
 
   alias ExWire.Eth2.{BeaconChain, BlobVerification, BlobSidecar}
-  alias ExWire.Crypto.KZG
+  alias ExthCrypto.KZG
 
   describe "blob verification integration" do
     setup do

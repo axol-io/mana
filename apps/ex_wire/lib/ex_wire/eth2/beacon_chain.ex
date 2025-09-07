@@ -182,11 +182,11 @@ defmodule ExWire.Eth2.BeaconChain do
     # Schedule slot ticker
     schedule_slot_tick()
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:initialize, genesis_state_root, genesis_block}, _from, state) do
+  def handle_call({:initialize, genesis_state_root, genesis_block}, _from, _state) do
     Logger.info("Initializing beacon chain from genesis")
 
     # Initialize beacon state
@@ -211,13 +211,13 @@ defmodule ExWire.Eth2.BeaconChain do
   end
 
   @impl true
-  def handle_call({:process_block, signed_block}, _from, state) do
+  def handle_call({:process_block, signed_block}, _from, _state) do
     # Process block without blob sidecars (legacy)
     handle_call({:process_block_with_blobs, signed_block, []}, _from, state)
   end
 
   @impl true
-  def handle_call({:process_block_with_blobs, signed_block, blob_sidecars}, _from, state) do
+  def handle_call({:process_block_with_blobs, signed_block, blob_sidecars}, _from, _state) do
     block = signed_block.message
 
     # Verify block slot
@@ -239,15 +239,15 @@ defmodule ExWire.Eth2.BeaconChain do
 
         {:reply, :ok, new_state}
       else
-        {:error, reason} ->
+        {:error, _reason} ->
           Logger.error("Failed to process block with blobs: #{inspect(reason)}")
-          {:reply, {:error, reason}, state}
+          {:reply, {:error, _reason}, state}
       end
     end
   end
 
   @impl true
-  def handle_call({:process_blob_sidecar, blob_sidecar}, _from, state) do
+  def handle_call({:process_blob_sidecar, blob_sidecar}, _from, _state) do
     case BlobVerification.validate_blob_sidecar_for_gossip(blob_sidecar) do
       {:ok, :valid} ->
         # Store blob sidecar using optimized storage
@@ -261,26 +261,26 @@ defmodule ExWire.Eth2.BeaconChain do
 
             {:reply, :ok, state}
 
-          {:error, reason} ->
+          {:error, _reason} ->
             Logger.error("Failed to store blob sidecar: #{inspect(reason)}")
-            {:reply, {:error, reason}, state}
+            {:reply, {:error, _reason}, state}
         end
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.warning("Invalid blob sidecar for gossip: #{inspect(reason)}")
-        {:reply, {:error, reason}, state}
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:process_attestation, attestation}, _from, state) do
+  def handle_call({:process_attestation, attestation}, _from, _state) do
     case validate_attestation(state, attestation) do
       :ok ->
         # Add to attestation pool
         slot = attestation.data.slot
         new_pool = Map.update(state.attestation_pool, slot, [attestation], &[attestation | &1])
 
-        state = %{state | attestation_pool: new_pool}
+        state = %{_state | attestation_pool: new_pool}
 
         # Update fork choice with attestation
         state = process_attestation_for_fork_choice(state, attestation)
@@ -290,76 +290,76 @@ defmodule ExWire.Eth2.BeaconChain do
 
         {:reply, :ok, state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call(:get_state, _from, state) do
+  def handle_call(:get_state, _from, _state) do
     {:reply, {:ok, state.beacon_state}, state}
   end
 
   @impl true
-  def handle_call(:get_head, _from, state) do
+  def handle_call(:get_head, _from, _state) do
     head_root = ForkChoice.get_head(state.fork_choice_store)
     head_block = Map.get(state.block_store, head_root)
     {:reply, {:ok, head_block}, state}
   end
 
   @impl true
-  def handle_call(:get_finalized_checkpoint, _from, state) do
+  def handle_call(:get_finalized_checkpoint, _from, _state) do
     checkpoint = state.beacon_state.finalized_checkpoint
     {:reply, {:ok, checkpoint}, state}
   end
 
   @impl true
-  def handle_call({:get_validator_duties, epoch, validator_indices}, _from, state) do
+  def handle_call({:get_validator_duties, epoch, validator_indices}, _from, _state) do
     duties = compute_validator_duties(state.beacon_state, epoch, validator_indices)
     {:reply, {:ok, duties}, state}
   end
 
   @impl true
-  def handle_call({:build_block, slot, randao_reveal, graffiti}, _from, state) do
+  def handle_call({:build_block, slot, randao_reveal, graffiti}, _from, _state) do
     case build_beacon_block(state, slot, randao_reveal, graffiti) do
       {:ok, block} ->
         {:reply, {:ok, block}, state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:get_blob_sidecar, block_root, index}, _from, state) do
+  def handle_call({:get_blob_sidecar, block_root, index}, _from, _state) do
     case BlobStorage.get_blob(block_root, index, state.blob_storage) do
       {:ok, blob_sidecar} ->
         {:reply, {:ok, blob_sidecar}, state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:get_blob_sidecars_batch, blob_keys}, _from, state) do
+  def handle_call({:get_blob_sidecars_batch, blob_keys}, _from, _state) do
     case BlobStorage.get_blobs_batch(blob_keys, state.blob_storage) do
       {:ok, results} ->
         {:reply, {:ok, results}, state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call(:get_blob_stats, _from, state) do
+  def handle_call(:get_blob_stats, _from, _state) do
     stats = BlobStorage.get_stats(state.blob_storage)
     {:reply, {:ok, stats}, state}
   end
 
   @impl true
-  def handle_info(:slot_tick, state) do
+  def handle_info(:slot_tick, _state) do
     current_slot = compute_current_slot(state.config.genesis_time)
 
     # Process slot if needed
@@ -386,12 +386,12 @@ defmodule ExWire.Eth2.BeaconChain do
 
   # Private Functions - State Transition
 
-  defp process_beacon_block(state, signed_block) do
+  defp process_beacon_block(_state, signed_block) do
     # Legacy function for backward compatibility - process without blob sidecars
     process_beacon_block_with_blobs(state, signed_block, [])
   end
 
-  defp process_beacon_block_with_blobs(state, signed_block, blob_sidecars) do
+  defp process_beacon_block_with_blobs(_state, signed_block, blob_sidecars) do
     block = signed_block.message
 
     # Process slots up to block slot
@@ -429,7 +429,7 @@ defmodule ExWire.Eth2.BeaconChain do
   defp verify_blob_sidecars_for_block(block, blob_sidecars) do
     case BlobVerification.verify_blob_sidecars(block, blob_sidecars) do
       {:ok, :valid} -> :ok
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -444,7 +444,7 @@ defmodule ExWire.Eth2.BeaconChain do
           # Proceed with normal block processing
           StateTransition.process_block(beacon_state, block)
 
-        {:error, reason} ->
+        {:error, _reason} ->
           {:error, {:blob_verification_failed, reason}}
       end
     else
@@ -459,7 +459,7 @@ defmodule ExWire.Eth2.BeaconChain do
     Enum.each(blob_sidecars, fn sidecar ->
       case BlobStorage.store_blob(sidecar) do
         :ok -> :ok
-        {:error, reason} -> Logger.error("Failed to store blob sidecar: #{inspect(reason)}")
+        {:error, _reason} -> Logger.error("Failed to store blob sidecar: #{inspect(reason)}")
       end
     end)
 
@@ -467,7 +467,7 @@ defmodule ExWire.Eth2.BeaconChain do
     %{}
   end
 
-  defp process_slots(state, target_slot) do
+  defp process_slots(_state, target_slot) do
     current_slot = state.beacon_state.slot
 
     if target_slot > current_slot do
@@ -479,7 +479,7 @@ defmodule ExWire.Eth2.BeaconChain do
     end
   end
 
-  defp process_slot(state, slot) do
+  defp process_slot(_state, slot) do
     # Cache state root
     previous_state_root = hash_tree_root(state.beacon_state)
 
@@ -506,7 +506,7 @@ defmodule ExWire.Eth2.BeaconChain do
     %{state | beacon_state: beacon_state}
   end
 
-  defp process_epoch_transition(state) do
+  defp process_epoch_transition(_state) do
     beacon_state = state.beacon_state
 
     # Process justification and finalization
@@ -529,7 +529,7 @@ defmodule ExWire.Eth2.BeaconChain do
 
   # Private Functions - Fork Choice
 
-  defp update_fork_choice(state, block) do
+  defp update_fork_choice(_state, block) do
     block_root = hash_tree_root(block)
 
     # Update fork choice store
@@ -544,7 +544,7 @@ defmodule ExWire.Eth2.BeaconChain do
     %{state | fork_choice_store: fork_choice_store}
   end
 
-  defp process_attestation_for_fork_choice(state, attestation) do
+  defp process_attestation_for_fork_choice(_state, attestation) do
     fork_choice_store =
       ForkChoice.on_attestation(
         state.fork_choice_store,
@@ -556,7 +556,7 @@ defmodule ExWire.Eth2.BeaconChain do
 
   # Private Functions - Validation
 
-  defp validate_attestation(state, attestation) do
+  defp validate_attestation(_state, attestation) do
     data = attestation.data
     current_slot = state.beacon_state.slot
 
@@ -633,7 +633,7 @@ defmodule ExWire.Eth2.BeaconChain do
 
   # Private Functions - Block Building
 
-  defp build_beacon_block(state, slot, randao_reveal, graffiti) do
+  defp build_beacon_block(_state, slot, randao_reveal, graffiti) do
     if slot <= state.beacon_state.slot do
       {:error, :invalid_slot}
     else
@@ -679,7 +679,7 @@ defmodule ExWire.Eth2.BeaconChain do
     end
   end
 
-  defp build_execution_payload(state, slot) do
+  defp build_execution_payload(_state, slot) do
     # This would interact with the execution engine via Engine API
     %ExWire.Eth2.ExecutionPayload{
       parent_hash: state.beacon_state.latest_execution_payload_header.block_hash,
@@ -784,7 +784,7 @@ defmodule ExWire.Eth2.BeaconChain do
 
   # Private Functions - Helpers
 
-  defp create_genesis_state(state_root, genesis_block, config) do
+  defp create_genesis_state(state_root, genesis_block, _config) do
     %BeaconState{
       genesis_time: config.genesis_time,
       genesis_validators_root: state_root,

@@ -30,7 +30,7 @@ defmodule Mana.Migration.V2Migrator do
 
   ## Returns
   - {:ok, v2_state} on successful migration
-  - {:error, reason} on failure
+  - {:error, _reason} on failure
   """
   @spec migrate_module_state(atom(), map(), keyword()) :: migration_result()
   def migrate_module_state(module_type, v1_state, opts \\ []) do
@@ -68,7 +68,7 @@ defmodule Mana.Migration.V2Migrator do
 
       {:ok, v2_state}
     else
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         duration_ms = (:os.system_time(:microsecond) - start_time) / 1000
 
         Logger.error("V1 to V2 migration failed", %{
@@ -110,7 +110,7 @@ defmodule Mana.Migration.V2Migrator do
 
       {:ok, v2_state}
     else
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Transaction pool migration failed", %{
           error: inspect(reason),
           v1_state_keys: Map.keys(v1_state)
@@ -188,7 +188,7 @@ defmodule Mana.Migration.V2Migrator do
 
       {:ok, v2_state}
     else
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Sync service migration failed", %{
           error: inspect(reason),
           v1_state_keys: Map.keys(v1_state)
@@ -285,7 +285,7 @@ defmodule Mana.Migration.V2Migrator do
         Logger.info("Migration rollback completed", %{backup_ref: backup_ref})
         {:ok, v1_state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Migration rollback failed", %{
           backup_ref: backup_ref,
           reason: reason
