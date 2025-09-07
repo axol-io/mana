@@ -132,4 +132,27 @@ defmodule ExWire.Eth2.ExecutionPayload do
       {:error, {:invalid_excess_blob_gas, payload.excess_blob_gas}}
     end
   end
+
+  @doc """
+  Validate blob gas fields in execution payload.
+  """
+  @spec validate_blob_gas_fields(t(), non_neg_integer()) :: :ok | {:error, term()}
+  def validate_blob_gas_fields(payload, expected_blob_gas) do
+    case payload do
+      %{blob_gas_used: blob_gas_used, excess_blob_gas: excess_blob_gas} 
+      when blob_gas_used == expected_blob_gas ->
+        # Additional validation for excess blob gas
+        if excess_blob_gas >= 0 do
+          :ok
+        else
+          {:error, {:invalid_excess_blob_gas, excess_blob_gas}}
+        end
+      
+      %{blob_gas_used: blob_gas_used} ->
+        {:error, {:blob_gas_mismatch, blob_gas_used, expected_blob_gas}}
+        
+      _ ->
+        {:error, :missing_blob_gas_fields}
+    end
+  end
 end
