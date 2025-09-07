@@ -239,8 +239,8 @@ defmodule Blockchain.State.VerkleAdapter do
     full_key = storage_key(address, storage_key)
 
     case Migration.get_with_migration(migration, full_key) do
-      {nil, _} -> :not_found
-      {value, _} -> {:ok, value}
+      {:not_found, _} -> :not_found
+      {{:ok, value}, _} -> {:ok, value}
     end
   end
 
