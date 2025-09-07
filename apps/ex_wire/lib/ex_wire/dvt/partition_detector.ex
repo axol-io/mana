@@ -13,7 +13,7 @@ defmodule ExWire.DVT.PartitionDetector do
   require Logger
 
   alias ExWire.Enterprise.AuditLogger
-  alias ExWire.DVT.{DutyConsensus, KeyManager}
+  # Remove unused aliases
 
   @type cluster_id :: String.t()
   @type node_id :: pos_integer()
@@ -50,25 +50,24 @@ defmodule ExWire.DVT.PartitionDetector do
     :monitoring_config        # Configuration for monitoring
   ]
 
-  # Cluster monitoring info
-  defstruct cluster_info: [
-    :cluster_id,
-    :total_nodes,
-    :threshold,
-    :expected_nodes,          # Set of expected node IDs
-    :last_full_connectivity,  # When all nodes were last reachable
-    :partition_tolerance      # :none | :minority | :majority
-  ]
+  # Type definitions for nested structures
+  @type cluster_info :: %{
+    cluster_id: String.t(),
+    total_nodes: pos_integer(),
+    threshold: pos_integer(),
+    expected_nodes: MapSet.t(),          # Set of expected node IDs
+    last_full_connectivity: pos_integer(),  # When all nodes were last reachable
+    partition_tolerance: :none | :minority | :majority      # :none | :minority | :majority
+  }
 
-  # Consensus monitoring state
-  defstruct consensus_state: [
-    :current_round,
-    :round_start_time,
-    :participating_nodes,
-    :missing_nodes,
-    :last_successful_round,
-    :consecutive_timeouts
-  ]
+  @type consensus_state :: %{
+    current_round: pos_integer(),
+    round_start_time: pos_integer(),
+    participating_nodes: MapSet.t(),
+    missing_nodes: MapSet.t(),
+    last_successful_round: pos_integer(),
+    consecutive_timeouts: pos_integer()
+  }
 
   ## Public API
 
@@ -165,18 +164,18 @@ defmodule ExWire.DVT.PartitionDetector do
 
   @impl true
   def handle_call({:monitor_cluster, cluster_id, node_count, threshold, partition_tolerance}, _from, state) do
-    cluster_info = %__MODULE__.ClusterInfo{
+    cluster_info = %{
       cluster_id: cluster_id,
       total_nodes: node_count,
       threshold: threshold,
       expected_nodes: MapSet.new(1..node_count),
-      last_full_connectivity: DateTime.utc_now(),
+      last_full_connectivity: System.system_time(:millisecond),
       partition_tolerance: partition_tolerance
     }
 
-    consensus_state = %__MODULE__.ConsensusState{
+    consensus_state = %{
       current_round: 0,
-      round_start_time: DateTime.utc_now(),
+      round_start_time: System.system_time(:millisecond),
       participating_nodes: MapSet.new(),
       missing_nodes: MapSet.new(),
       last_successful_round: 0,

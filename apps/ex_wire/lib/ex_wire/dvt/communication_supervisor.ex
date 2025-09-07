@@ -137,7 +137,7 @@ defmodule ExWire.DVT.CommunicationSupervisor do
     :crypto.strong_rand_bytes(8) |> Base.encode16(case: :lower)
   end
 
-  defp get_component_health(component_id, pid) do
+  defp get_component_health(component_id, _pid) do
     try do
       case component_id do
         ExWire.DVT.P2PProtocol ->

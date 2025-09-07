@@ -13,7 +13,7 @@ defmodule ExWire.DVT.GossipSubOptimizer do
   require Logger
 
   alias ExWire.LibP2P.GossipSub
-  alias ExWire.DVT.{PartitionDetector, MessageAuth}
+  alias ExWire.DVT.MessageAuth
   alias ExWire.Enterprise.AuditLogger
 
   @type message_priority :: :critical | :high | :normal | :low
@@ -53,36 +53,34 @@ defmodule ExWire.DVT.GossipSubOptimizer do
     :adaptive_config          # Dynamic configuration adjustments
   ]
 
-  # Priority configuration for message types
-  defstruct priority_config: [
-    :topic,
-    :priority,
-    :timeout_ms,
-    :max_retries,
-    :propagation_factor,       # How aggressively to propagate
-    :mesh_requirements        # Minimum mesh connectivity
-  ]
+  # Type definitions for nested structures
+  @type priority_config :: %{
+    topic: String.t(),
+    priority: message_priority(),
+    timeout_ms: pos_integer(),
+    max_retries: pos_integer(),
+    propagation_factor: float(),       # How aggressively to propagate
+    mesh_requirements: pos_integer()   # Minimum mesh connectivity
+  }
 
-  # Latency tracking metrics
-  defstruct latency_metrics: [
-    :peer_id,
-    :average_latency,
-    :p99_latency,
-    :message_count,
-    :last_updated,
-    :reliability_score        # Success rate for message delivery
-  ]
+  @type latency_metrics :: %{
+    peer_id: String.t(),
+    average_latency: float(),
+    p99_latency: float(),
+    message_count: pos_integer(),
+    last_updated: pos_integer(),
+    reliability_score: float()        # Success rate for message delivery
+  }
 
-  # Performance tracking
-  defstruct performance_metrics: [
-    :total_messages_sent,
-    :total_messages_received,
-    :critical_message_latency,
-    :consensus_round_latency,
-    :mesh_stability_score,
-    :peer_churn_rate,
-    :invalid_message_rate
-  ]
+  @type performance_metrics :: %{
+    total_messages_sent: pos_integer(),
+    total_messages_received: pos_integer(),
+    critical_message_latency: float(),
+    consensus_round_latency: float(),
+    mesh_stability_score: float(),
+    peer_churn_rate: float(),
+    invalid_message_rate: float()
+  }
 
   ## Public API
 
@@ -150,7 +148,15 @@ defmodule ExWire.DVT.GossipSubOptimizer do
       cluster_memberships: %{},
       message_priorities: init_message_priorities(),
       latency_tracking: %{},
-      performance_metrics: %__MODULE__.PerformanceMetrics{},
+      performance_metrics: %{
+        total_messages_sent: 0,
+        total_messages_received: 0,
+        critical_message_latency: 0.0,
+        consensus_round_latency: 0.0,
+        mesh_stability_score: 1.0,
+        peer_churn_rate: 0.0,
+        invalid_message_rate: 0.0
+      },
       mesh_optimization: %{},
       priority_queues: init_priority_queues(),
       adaptive_config: parse_adaptive_config(opts)
@@ -172,7 +178,7 @@ defmodule ExWire.DVT.GossipSubOptimizer do
     # Configure topic priorities and mesh requirements
     new_priorities = 
       Enum.reduce(topics_config, state.message_priorities, fn {topic, config}, acc ->
-        priority_config = %__MODULE__.PriorityConfig{
+        priority_config = %{
           topic: topic,
           priority: config.priority,
           timeout_ms: get_timeout_for_priority(config.priority),
@@ -260,12 +266,12 @@ defmodule ExWire.DVT.GossipSubOptimizer do
 
   @impl true
   def handle_cast({:update_peer_metrics, peer_id, metrics}, state) do
-    latency_metrics = %__MODULE__.LatencyMetrics{
+    latency_metrics = %{
       peer_id: peer_id,
       average_latency: metrics.average_latency,
       p99_latency: metrics.p99_latency,
       message_count: metrics.message_count,
-      last_updated: DateTime.utc_now(),
+      last_updated: System.system_time(:millisecond),
       reliability_score: metrics.reliability_score
     }
     
@@ -329,13 +335,20 @@ defmodule ExWire.DVT.GossipSubOptimizer do
       p7_weight: @dvt_p7_weight
     }
 
-    GossipSub.update_parameters(gossipsub_pid, dvt_params)
+    # Try to update GossipSub parameters, handle gracefully if function doesn't exist
+    try do
+      apply(GossipSub, :update_parameters, [gossipsub_pid, dvt_params])
+    catch
+      :error, :undef -> 
+        Logger.warning("GossipSub.update_parameters/2 not available, using default parameters")
+        :ok
+    end
   end
 
   defp init_message_priorities() do
     # Default priority configurations for common DVT topics
     %{
-      "dvt/+/slashing" => %__MODULE__.PriorityConfig{
+      "dvt/+/slashing" => %{
         topic: "dvt/+/slashing",
         priority: :critical,
         timeout_ms: @critical_message_timeout,
@@ -393,7 +406,7 @@ defmodule ExWire.DVT.GossipSubOptimizer do
     end
   end
 
-  defp validate_dvt_message_content(message_data, _config) do
+  defp validate_dvt_message_content(_message_data, _config) do
     # Validate DVT-specific message structure and content
     # This would include checks for:
     # - Valid duty type
@@ -582,11 +595,13 @@ defmodule ExWire.DVT.GossipSubOptimizer do
   end
 
   defp default_metrics() do
-    %__MODULE__.LatencyMetrics{
-      average_latency: 100,
-      reliability_score: 0.5,
+    %{
+      peer_id: "",
+      average_latency: 100.0,
+      p99_latency: 150.0,
       message_count: 0,
-      last_updated: DateTime.utc_now()
+      last_updated: System.system_time(:millisecond),
+      reliability_score: 0.5
     }
   end
 

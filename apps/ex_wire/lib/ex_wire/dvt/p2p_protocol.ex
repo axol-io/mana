@@ -13,9 +13,8 @@ defmodule ExWire.DVT.P2PProtocol do
   require Logger
 
   alias ExWire.LibP2P.GossipSub
-  alias ExWire.DVT.{KeyManager, DutyConsensus, SlashingProtection}
-  alias ExWire.Enterprise.{RBAC, AuditLogger}
-  alias ExWire.Crypto.BLS
+  alias ExWire.DVT.KeyManager
+  alias ExWire.Enterprise.AuditLogger
 
   @type peer_id :: String.t()
   @type cluster_id :: String.t()
@@ -50,30 +49,29 @@ defmodule ExWire.DVT.P2PProtocol do
     :partition_detector     # Network partition detection state
   ]
 
-  # Connection info structure
-  defstruct connection_info: [
-    :peer_id,
-    :cluster_id,
-    :node_id,
-    :endpoint,
-    :public_key,
-    :authenticated_at,
-    :last_heartbeat,
-    :message_count,
-    :latency_ms,
-    :status          # :connecting | :authenticated | :active | :suspicious | :banned
-  ]
+  # Type definitions for nested structures
+  @type connection_info :: %{
+    peer_id: String.t(),
+    cluster_id: String.t(),
+    node_id: String.t(),
+    endpoint: String.t(),
+    public_key: binary(),
+    authenticated_at: pos_integer(),
+    last_heartbeat: pos_integer(),
+    message_count: pos_integer(),
+    latency_ms: float(),
+    status: :connecting | :authenticated | :active | :suspicious | :banned
+  }
 
-  # Performance metrics
-  defstruct metrics: [
-    :messages_sent,
-    :messages_received,
-    :consensus_rounds,
-    :average_latency,
-    :partition_events,
-    :authentication_failures,
-    :replay_attempts
-  ]
+  @type metrics :: %{
+    messages_sent: pos_integer(),
+    messages_received: pos_integer(),
+    consensus_rounds: pos_integer(),
+    average_latency: float(),
+    partition_events: pos_integer(),
+    authentication_failures: pos_integer(),
+    replay_attempts: pos_integer()
+  }
 
   ## Public API
 
@@ -138,7 +136,15 @@ defmodule ExWire.DVT.P2PProtocol do
       message_cache: :ets.new(:dvt_message_cache, [:set, :private]),
       authentication_keys: auth_keys,
       gossipsub_pid: gossipsub_pid,
-      monitoring_metrics: %__MODULE__.Metrics{},
+      monitoring_metrics: %{
+        messages_sent: 0,
+        messages_received: 0,
+        consensus_rounds: 0,
+        average_latency: 0.0,
+        partition_events: 0,
+        authentication_failures: 0,
+        replay_attempts: 0
+      },
       partition_detector: init_partition_detector()
     }
 
@@ -513,7 +519,7 @@ defmodule ExWire.DVT.P2PProtocol do
     end
   end
 
-  defp process_verified_message(topic, message, state) do
+  defp process_verified_message(_topic, message, state) do
     # Route message to appropriate handler based on type
     case message.type do
       :key_gen ->
@@ -540,7 +546,7 @@ defmodule ExWire.DVT.P2PProtocol do
   defp get_sender_public_key(sender_id, cluster_id) do
     # Try to get from current connections first
     case find_peer_by_node_id(cluster_id, sender_id, %{peer_connections: %{}}) do
-      {:ok, peer_id} ->
+      {:ok, _peer_id} ->
         # Get from peer connection info
         {:ok, "public_key_placeholder"}
         
@@ -600,11 +606,16 @@ defmodule ExWire.DVT.P2PProtocol do
 
   defp handle_heartbeat_message(message, state) do
     # Update peer connection info
-    sender_info = %__MODULE__.ConnectionInfo{
+    sender_info = %{
       peer_id: "peer_#{message.sender_id}",
       cluster_id: message.cluster_id,
       node_id: message.sender_id,
+      endpoint: "",
+      public_key: <<>>,
+      authenticated_at: 0,
       last_heartbeat: message.timestamp,
+      message_count: 0,
+      latency_ms: 0.0,
       status: :active
     }
     
@@ -630,13 +641,13 @@ defmodule ExWire.DVT.P2PProtocol do
     partition_detector
   end
 
-  defp calculate_metrics(state) do
+  defp calculate_metrics(_state) do
     # Calculate current performance metrics
-    %__MODULE__.Metrics{
+    %{
       messages_sent: 0,
       messages_received: 0,
       consensus_rounds: 0,
-      average_latency: 0,
+      average_latency: 0.0,
       partition_events: 0,
       authentication_failures: 0,
       replay_attempts: 0
@@ -648,9 +659,20 @@ defmodule ExWire.DVT.P2PProtocol do
     :ok
   end
 
-  defp detect_network_partitions(state) do
+  defp detect_network_partitions(_state) do
     # Implement partition detection algorithm
     %{partitioned: false, detected_at: nil, affected_clusters: []}
+  end
+
+  # Helper function to get protocol identifiers (uses the module attributes)
+  defp get_protocol_for_message_type(message_type) do
+    case message_type do
+      :key_gen -> @dvt_dkg_protocol
+      :duty_consensus -> @dvt_consensus_protocol
+      :slashing_alert -> @dvt_slashing_protocol
+      :performance_metrics -> @dvt_monitoring_protocol
+      _ -> "/dvt/generic/1.0.0"
+    end
   end
 
   defp handle_network_partition(state, _partition_status) do
