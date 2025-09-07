@@ -1,4 +1,13 @@
 defmodule Blockchain.Compliance.Framework do
+  @compile {:no_warn_unused, [
+    check_segregation_of_duties: 0,
+    check_privileged_access_review: 0,
+    check_hsm_key_storage: 0,
+    check_key_rotation_schedule: 0,
+    check_comprehensive_logging: 0,
+    check_log_completeness: 0
+  ]}
+
   @moduledoc """
   Enterprise compliance framework supporting major regulatory standards.
 
