@@ -81,6 +81,11 @@ jobs:
         elixir-version: ${{ env.ELIXIR_VERSION }}
         otp-version: ${{ env.OTP_VERSION }}
 
+    - name: Install Hex and Rebar
+      run: |
+        mix local.hex --force
+        mix local.rebar --force
+
     - name: Check formatting
       run: |
         mix format --check-formatted
