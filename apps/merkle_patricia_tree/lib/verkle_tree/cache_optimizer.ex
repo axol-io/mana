@@ -1,7 +1,7 @@
 defmodule VerkleTree.AdvancedCacheOptimizer do
   @moduledoc """
   Advanced cache optimization techniques to push Verkle tree performance beyond current 9-11x speedup.
-  
+
   Target improvements:
   - Cache hit rate: 85-95% → 98%+
   - Witness generation: 11k/sec → 50k/sec 
@@ -24,7 +24,7 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
     # Machine learning predictor for access patterns  
     :access_predictor,
     # Bloom filter for negative cache lookups
-    :bloom_filter, 
+    :bloom_filter,
     # Thermal cache for hot data identification
     :thermal_cache,
     # SIMD batch processor for witness generation
@@ -48,8 +48,8 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
   Optimize cache access pattern with ML prediction.
   Returns optimized access strategy and prefetch recommendations.
   """
-  @spec optimize_access_pattern(binary(), map()) :: 
-    {:ok, :cache_hit | :cache_miss | :prefetch_recommended, [binary()]}
+  @spec optimize_access_pattern(binary(), map()) ::
+          {:ok, :cache_hit | :cache_miss | :prefetch_recommended, [binary()]}
   def optimize_access_pattern(key, context) do
     GenServer.call(__MODULE__, {:optimize_access, key, context})
   end
@@ -58,8 +58,8 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
   Advanced witness batch generation with SIMD and ML optimization.
   Target: 50k witnesses/sec (4.5x improvement over current 11k/sec).
   """
-  @spec generate_witnesses_optimized([binary()], VerkleTree.t()) :: 
-    {:ok, [binary()]} | {:error, term()}
+  @spec generate_witnesses_optimized([binary()], VerkleTree.t()) ::
+          {:ok, [binary()]} | {:error, term()}
   def generate_witnesses_optimized(keys, tree) when length(keys) > 32 do
     GenServer.call(__MODULE__, {:generate_witnesses_advanced, keys, tree}, 60_000)
   end
@@ -92,7 +92,7 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
 
     # Schedule thermal analysis
     schedule_thermal_analysis()
-    
+
     {:ok, state}
   end
 
@@ -103,35 +103,37 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
       false ->
         # Definitely not in cache, skip expensive operations
         {:reply, {:ok, :cache_miss, []}, state}
-      
+
       true ->
         # Might be in cache, proceed with ML prediction
         prediction = predict_access_pattern(state.access_predictor, key, context)
         prefetch_keys = generate_prefetch_recommendations(prediction, key, context)
-        
+
         access_result = determine_access_result(prediction, key)
-        
+
         # Update ML model with actual access pattern
         new_state = update_access_predictor(state, key, context, access_result)
-        
+
         {:reply, {:ok, access_result, prefetch_keys}, new_state}
     end
   end
 
   def handle_call({:generate_witnesses_advanced, keys, tree}, _from, state) do
     # Advanced witness generation with multiple optimization techniques
-    result = with {:ok, thermal_groups} <- group_keys_by_thermal_profile(keys, state.thermal_cache),
-                  {:ok, memory_pools} <- allocate_witness_memory_pools(length(keys)),
-                  {:ok, simd_batches} <- prepare_simd_batches(thermal_groups, tree),
-                  {:ok, witnesses} <- execute_parallel_simd_witness_generation(simd_batches, memory_pools) do
-      {:ok, witnesses}
-    else
-      {:error, reason} ->
-        Logger.warning("Advanced witness generation failed: #{inspect(reason)}")
-        # Fallback to existing optimized implementation
-        PerformanceWitness.generate_batch_optimized(tree, keys)
-    end
-    
+    result =
+      with {:ok, thermal_groups} <- group_keys_by_thermal_profile(keys, state.thermal_cache),
+           {:ok, memory_pools} <- allocate_witness_memory_pools(length(keys)),
+           {:ok, simd_batches} <- prepare_simd_batches(thermal_groups, tree),
+           {:ok, witnesses} <-
+             execute_parallel_simd_witness_generation(simd_batches, memory_pools) do
+        {:ok, witnesses}
+      else
+        {:error, reason} ->
+          Logger.warning("Advanced witness generation failed: #{inspect(reason)}")
+          # Fallback to existing optimized implementation
+          PerformanceWitness.generate_batch_optimized(tree, keys)
+      end
+
     {:reply, result, state}
   end
 
@@ -144,10 +146,10 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
   def handle_info(:thermal_analysis, state) do
     # Periodic thermal analysis to update hot/cold data classification
     new_thermal_cache = refresh_thermal_analysis(state.thermal_cache)
-    
+
     # Adjust cache policies based on thermal analysis
     optimize_cache_policies(new_thermal_cache)
-    
+
     schedule_thermal_analysis()
     {:noreply, %{state | thermal_cache: new_thermal_cache}}
   end
@@ -158,7 +160,7 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
 
   defp initialize_ml_predictor(opts) do
     model_type = Keyword.get(opts, :ml_model, :decision_tree)
-    
+
     %{
       model_type: model_type,
       feature_extractor: initialize_feature_extractor(),
@@ -171,14 +173,14 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
 
   defp predict_access_pattern(predictor, key, context) do
     features = extract_features(predictor.feature_extractor, key, context)
-    
+
     case predictor.model_type do
       :decision_tree ->
         predict_with_decision_tree(features, predictor.model_weights)
-      
+
       :neural_network ->
         predict_with_neural_network(features, predictor.model_weights)
-        
+
       :ensemble ->
         predict_with_ensemble(features, predictor.model_weights)
     end
@@ -186,10 +188,11 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
 
   defp predict_with_neural_network(features, _weights) do
     # Simplified neural network prediction based on features
-    score = features.recent_access_count * 0.3 + 
-            features.access_frequency * 0.4 + 
-            (if features.operation_type in [:read, :witness_generation], do: 0.3, else: 0.1)
-    
+    score =
+      features.recent_access_count * 0.3 +
+        features.access_frequency * 0.4 +
+        if features.operation_type in [:read, :witness_generation], do: 0.3, else: 0.1
+
     %{
       cache_probability: min(0.95, score),
       prefetch_recommended: score > 0.6,
@@ -201,7 +204,7 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
     # Ensemble prediction combining multiple models
     dt_pred = predict_with_decision_tree(features, %{})
     nn_pred = predict_with_neural_network(features, %{})
-    
+
     %{
       cache_probability: (dt_pred.cache_probability + nn_pred.cache_probability) / 2,
       prefetch_recommended: dt_pred.prefetch_recommended or nn_pred.prefetch_recommended,
@@ -216,17 +219,17 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
       key_prefix: binary_part(key, 0, min(8, byte_size(key))),
       key_suffix: binary_part(key, max(0, byte_size(key) - 8), min(8, byte_size(key))),
       key_entropy: calculate_entropy(key),
-      
+
       # Temporal features
       time_of_day: System.system_time(:hour),
       day_of_week: Date.day_of_week(Date.utc_today()),
       millisecond_in_hour: rem(System.system_time(:millisecond), 3_600_000),
-      
+
       # Context features
       operation_type: Map.get(context, :operation, :unknown),
       caller_module: Map.get(context, :caller, :unknown),
       workload_intensity: Map.get(context, :intensity, :normal),
-      
+
       # Historical features
       recent_access_count: get_recent_access_count(key),
       access_frequency: calculate_access_frequency(key),
@@ -237,15 +240,15 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
   defp predict_with_decision_tree(features, _weights) do
     # Simplified decision tree for access prediction
     cond do
-      features.recent_access_count > 5 -> 
+      features.recent_access_count > 5 ->
         %{cache_probability: 0.9, prefetch_recommended: true, confidence: 0.85}
-        
+
       features.access_frequency > 0.1 and features.key_entropy < 4.0 ->
         %{cache_probability: 0.7, prefetch_recommended: true, confidence: 0.75}
-        
+
       features.operation_type in [:read, :witness_generation] ->
         %{cache_probability: 0.6, prefetch_recommended: false, confidence: 0.6}
-        
+
       true ->
         %{cache_probability: 0.3, prefetch_recommended: false, confidence: 0.5}
     end
@@ -267,7 +270,7 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
 
   defp bloom_filter_contains?(filter, key) do
     hashes = calculate_bloom_hashes(key, filter.hash_functions)
-    
+
     Enum.all?(hashes, fn hash_value ->
       index = rem(hash_value, filter.size)
       :array.get(index, filter.bit_array)
@@ -303,12 +306,12 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
   defp perform_thermal_analysis(thermal_cache) do
     now = System.monotonic_time(:millisecond)
     window_start = now - thermal_cache.analysis_window
-    
+
     # Classify keys based on access patterns
     hot_keys = identify_hot_keys(thermal_cache, window_start, now)
     warm_keys = identify_warm_keys(thermal_cache, window_start, now)
     cold_keys = identify_cold_keys(thermal_cache, window_start, now)
-    
+
     %{hot: hot_keys, warm: warm_keys, cold: cold_keys}
   end
 
@@ -316,7 +319,8 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
     thermal_cache.access_frequencies
     |> Enum.filter(fn {_key, frequency} -> frequency > 10.0 end)
     |> Enum.map(&elem(&1, 0))
-    |> Enum.take(1000)  # Limit hot keys to prevent cache pollution
+    # Limit hot keys to prevent cache pollution
+    |> Enum.take(1000)
   end
 
   # SIMD Witness Generation
@@ -326,38 +330,41 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
       batch_size: 64,
       vectorization_enabled: true,
       parallel_workers: System.schedulers_online() * 2,
-      memory_alignment: 64,  # 64-byte alignment for SIMD operations
+      # 64-byte alignment for SIMD operations
+      memory_alignment: 64,
       optimization_level: :aggressive
     }
   end
 
   defp group_keys_by_thermal_profile(keys, thermal_cache) do
-    grouped = Enum.group_by(keys, fn key ->
-      cond do
-        MapSet.member?(thermal_cache.thermal_zones.hot, key) -> :hot
-        MapSet.member?(thermal_cache.thermal_zones.warm, key) -> :warm
-        true -> :cold
-      end
-    end)
-    
+    grouped =
+      Enum.group_by(keys, fn key ->
+        cond do
+          MapSet.member?(thermal_cache.thermal_zones.hot, key) -> :hot
+          MapSet.member?(thermal_cache.thermal_zones.warm, key) -> :warm
+          true -> :cold
+        end
+      end)
+
     {:ok, grouped}
   end
 
   defp execute_parallel_simd_witness_generation(simd_batches, memory_pools) do
     # Execute witness generation in parallel with SIMD optimization
-    tasks = Enum.map(simd_batches, fn {thermal_type, keys} ->
-      Task.async(fn ->
-        case thermal_type do
-          :hot -> generate_hot_witnesses_simd(keys, memory_pools)
-          :warm -> generate_warm_witnesses_simd(keys, memory_pools)
-          :cold -> generate_cold_witnesses_standard(keys, memory_pools)
-        end
+    tasks =
+      Enum.map(simd_batches, fn {thermal_type, keys} ->
+        Task.async(fn ->
+          case thermal_type do
+            :hot -> generate_hot_witnesses_simd(keys, memory_pools)
+            :warm -> generate_warm_witnesses_simd(keys, memory_pools)
+            :cold -> generate_cold_witnesses_standard(keys, memory_pools)
+          end
+        end)
       end)
-    end)
-    
+
     results = Task.await_many(tasks, 30_000)
     witnesses = List.flatten(results)
-    
+
     {:ok, witnesses}
   end
 
@@ -372,7 +379,7 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
         :crypto.strong_rand_bytes(32),
         Integer.to_string(System.monotonic_time(:microsecond))
       ]
-      
+
       ExthCrypto.Hash.Keccak.kec(Enum.join(witness_data))
     end)
   end
@@ -381,12 +388,12 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
     # Standard SIMD generation for moderately accessed keys
     Enum.map(keys, fn key ->
       witness_data = [
-        "warm_witness_v3", 
+        "warm_witness_v3",
         key,
         :crypto.strong_rand_bytes(24),
         Integer.to_string(System.monotonic_time(:microsecond))
       ]
-      
+
       ExthCrypto.Hash.Keccak.kec(Enum.join(witness_data))
     end)
   end
@@ -396,11 +403,11 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
     Enum.map(keys, fn key ->
       witness_data = [
         "cold_witness_v3",
-        key, 
+        key,
         :crypto.strong_rand_bytes(16),
         Integer.to_string(System.monotonic_time(:microsecond))
       ]
-      
+
       ExthCrypto.Hash.Keccak.kec(Enum.join(witness_data))
     end)
   end
@@ -419,7 +426,7 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
 
   defp create_witness_memory_pools do
     pool_sizes = [256, 512, 1024, 2048, 4096]
-    
+
     Enum.map(pool_sizes, fn size ->
       {size, create_memory_pool(size, 100)}
     end)
@@ -451,19 +458,20 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
     # Generate keys likely to be accessed together
     base_prefixes = get_key_prefixes(key)
     operation_type = Map.get(context, :operation, :unknown)
-    
+
     case operation_type do
       :witness_generation -> generate_witness_related_keys(key, base_prefixes)
       :state_access -> generate_state_related_keys(key, base_prefixes)
       _ -> generate_generic_related_keys(key, base_prefixes)
     end
-    |> Enum.take(5)  # Limit prefetch to avoid cache pollution
+    # Limit prefetch to avoid cache pollution
+    |> Enum.take(5)
   end
 
   defp get_key_prefixes(key) when byte_size(key) > 8 do
     [
       binary_part(key, 0, 4),
-      binary_part(key, 0, 8), 
+      binary_part(key, 0, 8),
       binary_part(key, 0, 12)
     ]
   end
@@ -482,11 +490,11 @@ defmodule VerkleTree.AdvancedCacheOptimizer do
   end
 
   defp generate_state_related_keys(_key, prefixes) do
-    # For state access, look for account storage patterns
+    # For _state access, look for account storage patterns
     Enum.flat_map(prefixes, fn prefix ->
       [
         prefix <> "storage_root",
-        prefix <> "code_hash", 
+        prefix <> "code_hash",
         prefix <> "balance"
       ]
     end)

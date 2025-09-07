@@ -161,8 +161,8 @@ defmodule VerkleTree.StateExpiry do
 
         {:ok, updated_tree, updated_manager, @resurrection_gas_cost}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 

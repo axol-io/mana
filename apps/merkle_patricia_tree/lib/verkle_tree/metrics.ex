@@ -258,7 +258,7 @@ defmodule VerkleTree.Metrics do
 
   # Private Functions
 
-  defp initialize_baselines(_state) do
+  defp initialize_baselines(state) do
     # Initialize performance baselines for comparison
     baselines = %{
       # 1ms baseline for MPT inserts
