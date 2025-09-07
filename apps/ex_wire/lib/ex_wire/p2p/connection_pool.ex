@@ -155,16 +155,16 @@ defmodule ExWire.P2P.ConnectionPool do
       "[ConnectionPool] Started with max_connections=#{config.max_connections}, target=#{config.target_connections}"
     )
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:connect_to_peer, peer}, _from, state) do
+  def handle_call({:connect_to_peer, peer}, _from, _state) do
     case should_connect_to_peer?(peer, state) do
       {:ok, :connect} ->
         case attempt_connection(peer, state) do
           {:ok, new_state} -> {:reply, :ok, new_state}
-          {:error, reason, new_state} -> {:reply, {:error, reason}, new_state}
+          {:error, reason, new_state} -> {:reply, {:error, _reason}, new_state}
         end
 
       {:error, :already_connected} ->
@@ -181,7 +181,7 @@ defmodule ExWire.P2P.ConnectionPool do
     end
   end
 
-  def handle_call(:get_connected_peers, _from, state) do
+  def handle_call(:get_connected_peers, _from, _state) do
     peers =
       state.active_connections
       |> Map.values()
@@ -190,7 +190,7 @@ defmodule ExWire.P2P.ConnectionPool do
     {:reply, peers, state}
   end
 
-  def handle_call(:get_pool_stats, _from, state) do
+  def handle_call(:get_pool_stats, _from, _state) do
     stats = %{
       active: map_size(state.active_connections),
       pending: map_size(state.pending_connections),
@@ -202,7 +202,7 @@ defmodule ExWire.P2P.ConnectionPool do
     {:reply, stats, state}
   end
 
-  def handle_call({:get_peer_reputation, peer}, _from, state) do
+  def handle_call({:get_peer_reputation, peer}, _from, _state) do
     reputation =
       case Map.get(state.connection_history, peer) do
         # Neutral for unknown peers
@@ -210,16 +210,16 @@ defmodule ExWire.P2P.ConnectionPool do
         history -> history.reputation_score
       end
 
-    {:reply, reputation, state}
+    {:reply, reputation, _state}
   end
 
   @impl true
-  def handle_cast({:disconnect_peer, peer}, state) do
+  def handle_cast({:disconnect_peer, peer}, _state) do
     new_state = disconnect_peer_internal(peer, state)
     {:noreply, new_state}
   end
 
-  def handle_cast({:peer_connected, pid, peer}, state) do
+  def handle_cast({:peer_connected, pid, peer}, _state) do
     connection_info = %{
       peer: peer,
       connected_at: DateTime.utc_now(),
@@ -242,10 +242,10 @@ defmodule ExWire.P2P.ConnectionPool do
     {:noreply, updated_state}
   end
 
-  def handle_cast({:peer_disconnected, pid}, state) do
+  def handle_cast({:peer_disconnected, pid}, _state) do
     case Map.get(state.active_connections, pid) do
       nil ->
-        {:noreply, state}
+        {:noreply, _state}
 
       connection_info ->
         new_state = handle_peer_disconnection(pid, connection_info, state)
@@ -253,10 +253,10 @@ defmodule ExWire.P2P.ConnectionPool do
     end
   end
 
-  def handle_cast({:peer_activity, pid}, state) do
+  def handle_cast({:peer_activity, pid}, _state) do
     case Map.get(state.active_connections, pid) do
       nil ->
-        {:noreply, state}
+        {:noreply, _state}
 
       connection_info ->
         updated_info = %{
@@ -275,22 +275,22 @@ defmodule ExWire.P2P.ConnectionPool do
   end
 
   @impl true
-  def handle_info(:health_check, state) do
+  def handle_info(:health_check, _state) do
     new_state = perform_health_check(state)
     schedule_health_check(state.pool_config.health_check_interval)
     {:noreply, new_state}
   end
 
-  def handle_info(:peer_discovery, state) do
+  def handle_info(:peer_discovery, _state) do
     perform_peer_discovery(state)
     schedule_peer_discovery()
     {:noreply, state}
   end
 
-  def handle_info({:DOWN, _ref, :process, pid, reason}, state) do
+  def handle_info({:DOWN, _ref, :process, pid, _reason}, _state) do
     case Map.get(state.active_connections, pid) do
       nil ->
-        {:noreply, state}
+        {:noreply, _state}
 
       connection_info ->
         Logger.debug(
@@ -334,7 +334,7 @@ defmodule ExWire.P2P.ConnectionPool do
     end
   end
 
-  defp get_peer_reputation_score(peer, state) do
+  defp get_peer_reputation_score(peer, _state) do
     case Map.get(state.connection_history, peer) do
       # Neutral for new peers
       nil -> 0.5
@@ -342,13 +342,13 @@ defmodule ExWire.P2P.ConnectionPool do
     end
   end
 
-  defp attempt_connection(peer, state) do
+  defp attempt_connection(peer, _state) do
     # Add to pending connections
     pending_info = %{
       attempts: 1,
       last_attempt: DateTime.utc_now(),
       backoff_until:
-        DateTime.add(DateTime.utc_now(), state.pool_config.retry_backoff_base, :millisecond)
+        DateTime.add(DateTime.utc_now(), _state.pool_config.retry_backoff_base, :millisecond)
     }
 
     updated_state = %{
@@ -364,7 +364,7 @@ defmodule ExWire.P2P.ConnectionPool do
         Process.monitor(pid)
         {:ok, updated_state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         # Remove from pending and update failure metrics
         final_state = %{
           updated_state
@@ -381,15 +381,15 @@ defmodule ExWire.P2P.ConnectionPool do
 
     case DynamicSupervisor.start_child(ExWire.PeerSupervisor, spec) do
       {:ok, pid} -> {:ok, pid}
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
-  defp disconnect_peer_internal(peer, state) do
+  defp disconnect_peer_internal(peer, _state) do
     # Find the connection PID for this peer
     case Enum.find(state.active_connections, fn {_pid, info} -> info.peer == peer end) do
       nil ->
-        state
+        _state
 
       {pid, _connection_info} ->
         # Terminate the connection process
@@ -400,7 +400,7 @@ defmodule ExWire.P2P.ConnectionPool do
     end
   end
 
-  defp handle_peer_disconnection(pid, connection_info, state) do
+  defp handle_peer_disconnection(pid, connection_info, _state) do
     peer = connection_info.peer
     now = DateTime.utc_now()
     uptime = DateTime.diff(now, connection_info.connected_at, :second)
@@ -460,7 +460,7 @@ defmodule ExWire.P2P.ConnectionPool do
     max(0.0, min(1.0, new_score))
   end
 
-  defp update_metrics(state, :connection_successful) do
+  defp update_metrics(_state, :connection_successful) do
     %{
       state
       | metrics: %{
@@ -478,7 +478,7 @@ defmodule ExWire.P2P.ConnectionPool do
     %{metrics | total_connections_failed: metrics.total_connections_failed + 1}
   end
 
-  defp perform_health_check(state) do
+  defp perform_health_check(_state) do
     Logger.debug(
       "[ConnectionPool] Performing health check - active: #{map_size(state.active_connections)}, target: #{state.pool_config.target_connections}"
     )
