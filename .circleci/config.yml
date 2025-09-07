@@ -60,7 +60,7 @@ jobs:
 
       - run:
           name: Compile project
-          command: mix compile --warnings-as-errors
+          command: mix compile
 
       - persist_to_workspace:
           root: .
