@@ -25,7 +25,7 @@ defmodule ExWire.Config.Validator do
   @doc """
   Validates an entire configuration map against a schema.
   """
-  def validate_config(config, schema) when is_map(config) and is_map(schema) do
+  def validate_config(_config, schema) when is_map(config) and is_map(schema) do
     errors = collect_validation_errors(config, schema, [])
 
     case errors do
@@ -37,7 +37,7 @@ defmodule ExWire.Config.Validator do
   @doc """
   Performs deep validation of nested configuration.
   """
-  def deep_validate(config, schema, path \\ []) do
+  def deep_validate(_config, schema, path \\ []) do
     Enum.reduce(schema, [], fn {key, spec}, errors ->
       value = Map.get(config, key)
       current_path = path ++ [key]
@@ -50,7 +50,7 @@ defmodule ExWire.Config.Validator do
             errors
           end
 
-        {:error, reason} ->
+        {:error, _reason} ->
           [{current_path, reason} | errors]
       end
     end)
@@ -163,7 +163,7 @@ defmodule ExWire.Config.Validator do
     end
   end
 
-  defp collect_validation_errors(config, schema, path) do
+  defp collect_validation_errors(_config, schema, path) do
     deep_validate(config, schema, path)
   end
 
@@ -183,13 +183,13 @@ defmodule ExWire.Config.Validator do
   @doc """
   Generates a validation report for a configuration.
   """
-  def validation_report(config, schema) do
+  def validation_report(_config, schema) do
     case validate_config(config, schema) do
       :ok ->
         %{
           valid: true,
           errors: [],
-          warnings: collect_warnings(config, schema)
+          warnings: collect_warnings(_config, schema)
         }
 
       {:error, {:validation_failed, errors}} ->
@@ -230,11 +230,11 @@ defmodule ExWire.Config.Validator do
     "Required field is missing"
   end
 
-  defp format_error_reason(reason) do
+  defp format_error_reason(_reason) do
     inspect(reason)
   end
 
-  defp collect_warnings(config, schema) do
+  defp collect_warnings(_config, schema) do
     # Collect deprecation warnings, unused fields, etc.
     unused = find_unused_fields(config, schema)
     deprecated = find_deprecated_fields(config, schema)
@@ -258,7 +258,7 @@ defmodule ExWire.Config.Validator do
     warnings
   end
 
-  defp find_unused_fields(config, schema) do
+  defp find_unused_fields(_config, schema) do
     config_keys = extract_all_keys(config)
     schema_keys = extract_all_keys(schema)
 
@@ -266,7 +266,7 @@ defmodule ExWire.Config.Validator do
     |> MapSet.to_list()
   end
 
-  defp find_deprecated_fields(config, schema, path \\ []) do
+  defp find_deprecated_fields(_config, schema, path \\ []) do
     Enum.flat_map(schema, fn {key, spec} ->
       if Map.get(spec, :deprecated, false) and Map.has_key?(config, key) do
         [Enum.join(path ++ [key], ".")]

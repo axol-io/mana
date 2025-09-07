@@ -9,7 +9,7 @@ defmodule Blockchain.Performance.KZGBenchmarks do
   - Memory usage profiling
   """
 
-  alias ExWire.Crypto.KZG
+  alias ExthCrypto.KZG
 
   @doc """
   Run comprehensive KZG benchmarks.

@@ -41,7 +41,7 @@ defmodule ExWire.Rank.ConnectionObserver do
   # getting exits from connections from us to them
   def handle_info(
         {:EXIT, _pid, {_, connection = %Connection{is_outbound: true}}},
-        state
+        _state
       ) do
     :ok = start_new_outbound_connections()
     {:noreply, enlist(connection, state)}
@@ -50,14 +50,14 @@ defmodule ExWire.Rank.ConnectionObserver do
   # getting exits from connections from them to us
   def handle_info(
         {:EXIT, _pid, {_, connection = %Connection{is_outbound: false}}},
-        state
+        _state
       ) do
     {:noreply, enlist(connection, state)}
   end
 
   # Kademlia server process notifies us of their discovery round.
   # We start new connections to peers from the discovery results.
-  def handle_cast(:kademlia_discovery_round, state) do
+  def handle_cast(:kademlia_discovery_round, _state) do
     :ok = start_new_outbound_connections()
 
     {:noreply, state}
@@ -82,7 +82,7 @@ defmodule ExWire.Rank.ConnectionObserver do
   @spec enlist(Connection.t(), t) :: t
   defp enlist(
          connection = %Connection{is_outbound: true},
-         state = %__MODULE__{outbound_links: outbound_links}
+         _state = %__MODULE__{outbound_links: outbound_links}
        ) do
     peer = connection.peer
     connection_initiated_at = connection.connection_initiated_at
@@ -105,7 +105,7 @@ defmodule ExWire.Rank.ConnectionObserver do
 
   defp enlist(
          connection = %Connection{is_outbound: false},
-         state = %__MODULE__{inbound_links: inbound_links}
+         _state = %__MODULE__{inbound_links: inbound_links}
        ) do
     peer = connection.peer
     connection_initiated_at = connection.connection_initiated_at

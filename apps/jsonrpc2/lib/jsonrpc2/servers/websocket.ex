@@ -8,7 +8,7 @@ defmodule JSONRPC2.Servers.WebSocket do
   A server for JSON-RPC 2.0 using WebSocket transport with support for eth_subscribe/eth_unsubscribe.
   """
 
-  def init(req, state) do
+  def init(req, _state) do
     {:cowboy_websocket, req, state}
   end
 
@@ -26,18 +26,18 @@ defmodule JSONRPC2.Servers.WebSocket do
     {:ok, Map.new(opts)}
   end
 
-  def websocket_handle({:text, body_params}, state = %{handler: _handler}) do
+  def websocket_handle({:text, body_params}, _state = %{handler: _handler}) do
     do_handle_jsonrpc2(body_params, state)
   end
 
-  def websocket_info({:send_notification, notification}, state) do
+  def websocket_info({:send_notification, notification}, _state) do
     # Send subscription notification to client
     json = Jason.encode!(notification)
     {:reply, {:text, json}, state}
   end
 
-  def websocket_info(_info, state) do
-    {:ok, state}
+  def websocket_info(_info, _state) do
+    {:ok, _state}
   end
 
   def terminate(_reason, _req, _state) do
@@ -47,7 +47,7 @@ defmodule JSONRPC2.Servers.WebSocket do
     :ok
   end
 
-  defp do_handle_jsonrpc2(body_params, state = %{handler: handler}) do
+  defp do_handle_jsonrpc2(body_params, _state = %{handler: handler}) do
     # Pass WebSocket PID as context for subscription methods
     context = %{ws_pid: self()}
 

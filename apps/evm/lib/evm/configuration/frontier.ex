@@ -34,7 +34,7 @@ defmodule EVM.Configuration.Frontier do
   def new, do: %__MODULE__{}
 
   @impl true
-  def selfdestruct_cost(config, _params), do: config.selfdestruct_cost
+  def selfdestruct_cost(_config, _params), do: 5000
 
   @impl true
   def limit_contract_code_size?(config, _), do: config.limit_contract_code_size

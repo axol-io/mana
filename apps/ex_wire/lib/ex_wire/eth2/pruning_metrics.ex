@@ -169,11 +169,11 @@ defmodule ExWire.Eth2.PruningMetrics do
     schedule_trend_analysis()
     schedule_cleanup()
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_cast({:record_operation, operation_type, result, duration_ms, metadata}, state) do
+  def handle_cast({:record_operation, operation_type, result, duration_ms, metadata}, _state) do
     timestamp = DateTime.utc_now()
 
     # Store operation record
@@ -206,7 +206,7 @@ defmodule ExWire.Eth2.PruningMetrics do
   @impl true
   def handle_cast(
         {:record_space_freed, data_type, freed_mb, before_size_mb, after_size_mb},
-        state
+        _state
       ) do
     timestamp = DateTime.utc_now()
 
@@ -232,7 +232,7 @@ defmodule ExWire.Eth2.PruningMetrics do
   @impl true
   def handle_cast(
         {:record_system_impact, cpu_percent, memory_mb, io_wait_percent, consensus_latency_ms},
-        state
+        _state
       ) do
     timestamp = DateTime.utc_now()
 
@@ -255,7 +255,7 @@ defmodule ExWire.Eth2.PruningMetrics do
   end
 
   @impl true
-  def handle_cast({:record_tier_migration, from_tier, to_tier, items_moved, size_mb}, state) do
+  def handle_cast({:record_tier_migration, from_tier, to_tier, items_moved, size_mb}, _state) do
     timestamp = DateTime.utc_now()
 
     migration_record = %{
@@ -276,7 +276,7 @@ defmodule ExWire.Eth2.PruningMetrics do
   end
 
   @impl true
-  def handle_call(:get_metrics_summary, _from, state) do
+  def handle_call(:get_metrics_summary, _from, _state) do
     summary = %{
       operations: get_operation_summary(state),
       space_savings: get_space_summary(state),
@@ -290,31 +290,31 @@ defmodule ExWire.Eth2.PruningMetrics do
   end
 
   @impl true
-  def handle_call({:get_metrics, from_time, to_time, categories}, _from, state) do
+  def handle_call({:get_metrics, from_time, to_time, categories}, _from, _state) do
     metrics = collect_metrics_for_period(from_time, to_time, categories)
     {:reply, {:ok, metrics}, state}
   end
 
   @impl true
-  def handle_call(:get_efficiency_analysis, _from, state) do
+  def handle_call(:get_efficiency_analysis, _from, _state) do
     analysis = perform_efficiency_analysis(state)
     {:reply, {:ok, analysis}, state}
   end
 
   @impl true
-  def handle_call(:get_storage_report, _from, state) do
+  def handle_call(:get_storage_report, _from, _state) do
     report = generate_storage_report(state)
     {:reply, {:ok, report}, state}
   end
 
   @impl true
-  def handle_call(:get_recommendations, _from, state) do
+  def handle_call(:get_recommendations, _from, _state) do
     recommendations = generate_optimization_recommendations(state)
     {:reply, {:ok, recommendations}, state}
   end
 
   @impl true
-  def handle_info(:collect_metrics, state) do
+  def handle_info(:collect_metrics, _state) do
     # Collect current system metrics
     state = collect_current_metrics(state)
 
@@ -323,7 +323,7 @@ defmodule ExWire.Eth2.PruningMetrics do
   end
 
   @impl true
-  def handle_info(:analyze_trends, state) do
+  def handle_info(:analyze_trends, _state) do
     # Perform trend analysis
     state = analyze_pruning_trends(state)
 
@@ -332,7 +332,7 @@ defmodule ExWire.Eth2.PruningMetrics do
   end
 
   @impl true
-  def handle_info(:cleanup_old_metrics, state) do
+  def handle_info(:cleanup_old_metrics, _state) do
     # Remove old metrics beyond retention period
     cleanup_old_data()
 
@@ -342,7 +342,7 @@ defmodule ExWire.Eth2.PruningMetrics do
 
   # Private Functions - Statistics Updates
 
-  defp update_operation_stats(state, operation_type, result, duration_ms) do
+  defp update_operation_stats(_state, operation_type, result, duration_ms) do
     stats = state.performance_stats
 
     # Update operation counts
@@ -369,7 +369,7 @@ defmodule ExWire.Eth2.PruningMetrics do
     %{state | performance_stats: stats, error_counts: error_counts}
   end
 
-  defp update_space_tracking(state, data_type, freed_mb) do
+  defp update_space_tracking(_state, data_type, freed_mb) do
     tracking = state.space_tracking
 
     # Update total freed space
@@ -386,7 +386,7 @@ defmodule ExWire.Eth2.PruningMetrics do
     %{state | space_tracking: tracking}
   end
 
-  defp update_system_impact(state, impact_record) do
+  defp update_system_impact(_state, impact_record) do
     impact = state.system_impact
 
     # Track average impact over recent samples
@@ -413,7 +413,7 @@ defmodule ExWire.Eth2.PruningMetrics do
     %{state | system_impact: impact}
   end
 
-  defp update_tier_stats(state, from_tier, to_tier, items_moved, size_mb) do
+  defp update_tier_stats(_state, from_tier, to_tier, items_moved, size_mb) do
     tiers = state.storage_tiers
 
     # Update migration counts
@@ -436,7 +436,7 @@ defmodule ExWire.Eth2.PruningMetrics do
 
   # Private Functions - Analysis
 
-  defp perform_efficiency_analysis(state) do
+  defp perform_efficiency_analysis(_state) do
     # Analyze pruning efficiency across different strategies
     space_stats = state.space_tracking
     perf_stats = state.performance_stats
@@ -496,7 +496,7 @@ defmodule ExWire.Eth2.PruningMetrics do
     }
   end
 
-  defp generate_storage_report(state) do
+  defp generate_storage_report(_state) do
     # Generate comprehensive storage utilization report
     tiers = state.storage_tiers
     space_tracking = state.space_tracking
@@ -533,7 +533,7 @@ defmodule ExWire.Eth2.PruningMetrics do
     }
   end
 
-  defp generate_optimization_recommendations(state) do
+  defp generate_optimization_recommendations(_state) do
     efficiency = perform_efficiency_analysis(state)
     storage_report = generate_storage_report(state)
     system_impact = state.system_impact
@@ -641,7 +641,7 @@ defmodule ExWire.Eth2.PruningMetrics do
 
   # Private Functions - Summaries
 
-  defp get_operation_summary(state) do
+  defp get_operation_summary(_state) do
     history = state.operation_history
 
     if length(history) == 0 do
@@ -662,7 +662,7 @@ defmodule ExWire.Eth2.PruningMetrics do
     end
   end
 
-  defp get_space_summary(state) do
+  defp get_space_summary(_state) do
     tracking = state.space_tracking
 
     total_freed =
@@ -687,7 +687,7 @@ defmodule ExWire.Eth2.PruningMetrics do
     }
   end
 
-  defp get_performance_summary(state) do
+  defp get_performance_summary(_state) do
     stats = state.performance_stats
 
     # Calculate average durations for each operation type
@@ -716,7 +716,7 @@ defmodule ExWire.Eth2.PruningMetrics do
     }
   end
 
-  defp get_system_impact_summary(state) do
+  defp get_system_impact_summary(_state) do
     impact = state.system_impact
 
     %{
@@ -728,7 +728,7 @@ defmodule ExWire.Eth2.PruningMetrics do
     }
   end
 
-  defp get_storage_tier_summary(state) do
+  defp get_storage_tier_summary(_state) do
     tiers = state.storage_tiers
 
     %{
@@ -871,12 +871,12 @@ defmodule ExWire.Eth2.PruningMetrics do
   defp calculate_migration_efficiency(_tiers), do: 85.0
   defp calculate_overall_health_score(_efficiency, _storage, _impact, _errors), do: 85.0
 
-  defp collect_current_metrics(state) do
+  defp collect_current_metrics(_state) do
     # Collect current system metrics
     state
   end
 
-  defp analyze_pruning_trends(state) do
+  defp analyze_pruning_trends(_state) do
     # Analyze trends in pruning performance
     state
   end

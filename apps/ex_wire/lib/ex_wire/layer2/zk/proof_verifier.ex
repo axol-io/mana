@@ -6,7 +6,7 @@ defmodule ExWire.Layer2.ZK.ProofVerifier do
   @doc """
   Initializes the proof verifier with a specific proof system.
   """
-  def init(proof_system, config) do
+  def init(proof_system, _config) do
     config_json = Jason.encode!(config)
 
     case __MODULE__.Native.init_proof_system(to_string(proof_system), config_json) do
@@ -18,7 +18,7 @@ defmodule ExWire.Layer2.ZK.ProofVerifier do
   @doc """
   Verifies a Groth16 proof using native implementation when available.
   """
-  def verify_groth16(proof, public_inputs, config) do
+  def verify_groth16(proof, public_inputs, _config) do
     vk_data = Map.get(config, :verifying_key, :crypto.strong_rand_bytes(128))
 
     case __MODULE__.Native.verify_groth16(proof, public_inputs, vk_data) do
@@ -30,7 +30,7 @@ defmodule ExWire.Layer2.ZK.ProofVerifier do
   @doc """
   Verifies a PLONK proof using native implementation when available.
   """
-  def verify_plonk(proof, public_inputs, config) do
+  def verify_plonk(proof, public_inputs, _config) do
     srs_data = Map.get(config, :srs, :crypto.strong_rand_bytes(256))
 
     case __MODULE__.Native.verify_plonk(proof, public_inputs, srs_data) do
@@ -42,7 +42,7 @@ defmodule ExWire.Layer2.ZK.ProofVerifier do
   @doc """
   Verifies a STARK proof using native implementation when available.
   """
-  def verify_stark(proof, public_inputs, config) do
+  def verify_stark(proof, public_inputs, _config) do
     trace_length = Map.get(config, :trace_length, 1024)
 
     case __MODULE__.Native.verify_stark(proof, public_inputs, trace_length) do
@@ -54,7 +54,7 @@ defmodule ExWire.Layer2.ZK.ProofVerifier do
   @doc """
   Verifies an fflonk proof using native implementation when available.
   """
-  def verify_fflonk(proof, public_inputs, config) do
+  def verify_fflonk(proof, public_inputs, _config) do
     crs_data = Map.get(config, :crs, :crypto.strong_rand_bytes(256))
 
     case __MODULE__.Native.verify_fflonk(proof, public_inputs, crs_data) do
@@ -66,7 +66,7 @@ defmodule ExWire.Layer2.ZK.ProofVerifier do
   @doc """
   Verifies a Halo2 proof using native implementation when available.
   """
-  def verify_halo2(proof, public_inputs, config) do
+  def verify_halo2(proof, public_inputs, _config) do
     params_data = Map.get(config, :params, :crypto.strong_rand_bytes(256))
 
     case __MODULE__.Native.verify_halo2(proof, public_inputs, params_data) do

@@ -23,7 +23,7 @@ defmodule ExWire.Eth2.VoluntaryExit.Validator do
   """
   @spec validate_signed_voluntary_exit(SignedVoluntaryExit.t(), BeaconState.t()) ::
           :ok | {:error, term()}
-  def validate_signed_voluntary_exit(signed_exit, state) do
+  def validate_signed_voluntary_exit(signed_exit, _state) do
     with :ok <- validate_exit_message(signed_exit.message, state),
          :ok <- validate_exit_signature(signed_exit, state) do
       :ok
@@ -34,7 +34,7 @@ defmodule ExWire.Eth2.VoluntaryExit.Validator do
   Validate the voluntary exit message content.
   """
   @spec validate_exit_message(VoluntaryExit.t(), BeaconState.t()) :: :ok | {:error, term()}
-  def validate_exit_message(exit, state) do
+  def validate_exit_message(exit, _state) do
     validator = Enum.at(state.validators, exit.validator_index)
 
     cond do
@@ -63,7 +63,7 @@ defmodule ExWire.Eth2.VoluntaryExit.Validator do
   """
   @spec validate_exit_signature(SignedVoluntaryExit.t(), BeaconState.t()) ::
           :ok | {:error, term()}
-  def validate_exit_signature(signed_exit, state) do
+  def validate_exit_signature(signed_exit, _state) do
     validator = Enum.at(state.validators, signed_exit.message.validator_index)
 
     if is_nil(validator) do
@@ -81,7 +81,7 @@ defmodule ExWire.Eth2.VoluntaryExit.Validator do
         {:ok, false} ->
           {:error, :invalid_signature}
 
-        {:error, reason} ->
+        {:error, _reason} ->
           {:error, {:signature_verification_failed, reason}}
       end
     end
@@ -92,7 +92,7 @@ defmodule ExWire.Eth2.VoluntaryExit.Validator do
   """
   @spec process_voluntary_exit(BeaconState.t(), SignedVoluntaryExit.t()) ::
           {:ok, BeaconState.t()} | {:error, term()}
-  def process_voluntary_exit(state, signed_exit) do
+  def process_voluntary_exit(_state, signed_exit) do
     with :ok <- validate_signed_voluntary_exit(signed_exit, state) do
       exit = signed_exit.message
       validator = Enum.at(state.validators, exit.validator_index)
@@ -117,7 +117,7 @@ defmodule ExWire.Eth2.VoluntaryExit.Validator do
   Get the earliest possible exit epoch based on current state.
   """
   @spec get_earliest_exit_epoch(BeaconState.t()) :: non_neg_integer()
-  def get_earliest_exit_epoch(state) do
+  def get_earliest_exit_epoch(_state) do
     # Find maximum exit epoch among current validators
     max_exit_epoch =
       state.validators
@@ -149,11 +149,11 @@ defmodule ExWire.Eth2.VoluntaryExit.Validator do
 
   # Private helper functions
 
-  defp compute_domain_for_exit(state) do
+  defp compute_domain_for_exit(_state) do
     # EIP-7044: Use Capella fork version for perpetual validity
     fork_data = %{
       current_version: @capella_fork_version,
-      genesis_validators_root: state.genesis_validators_root
+      genesis_validators_root: _state.genesis_validators_root
     }
 
     compute_domain(@domain_voluntary_exit, fork_data)
@@ -174,7 +174,7 @@ defmodule ExWire.Eth2.VoluntaryExit.Validator do
     SSZ.hash_tree_root(signing_data)
   end
 
-  defp get_current_epoch(state) do
+  defp get_current_epoch(_state) do
     # 32 slots per epoch
     div(state.slot, 32)
   end

@@ -117,11 +117,11 @@ defmodule ExWire.Layer2.Optimistic.OptimisticRollup do
     # Every minute
     Process.send_after(self(), :check_challenge_expiry, 60_000)
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:challenge_state, batch_number, claimed_state_root}, _from, state) do
+  def handle_call({:challenge_state, batch_number, claimed_state_root}, _from, _state) do
     challenge_id = generate_challenge_id()
 
     challenge = %{
@@ -146,7 +146,7 @@ defmodule ExWire.Layer2.Optimistic.OptimisticRollup do
   end
 
   @impl true
-  def handle_call({:submit_fraud_proof, challenge_id, proof}, _from, state) do
+  def handle_call({:submit_fraud_proof, challenge_id, proof}, _from, _state) do
     case Map.get(state.challenges, challenge_id) do
       nil ->
         {:reply, {:error, :challenge_not_found}, state}
@@ -191,7 +191,7 @@ defmodule ExWire.Layer2.Optimistic.OptimisticRollup do
   end
 
   @impl true
-  def handle_call({:initiate_withdrawal, params}, _from, state) do
+  def handle_call({:initiate_withdrawal, _params}, _from, _state) do
     withdrawal_id = generate_withdrawal_id()
 
     withdrawal = %{
@@ -216,7 +216,7 @@ defmodule ExWire.Layer2.Optimistic.OptimisticRollup do
   end
 
   @impl true
-  def handle_call({:finalize_withdrawal, withdrawal_id}, _from, state) do
+  def handle_call({:finalize_withdrawal, withdrawal_id}, _from, _state) do
     case Map.get(state.withdrawals, withdrawal_id) do
       nil ->
         {:reply, {:error, :withdrawal_not_found}, state}
@@ -251,7 +251,7 @@ defmodule ExWire.Layer2.Optimistic.OptimisticRollup do
   end
 
   @impl true
-  def handle_call({:resolve_dispute, dispute_id}, _from, state) do
+  def handle_call({:resolve_dispute, dispute_id}, _from, _state) do
     # Implement Optimism's fault dispute game resolution
     case resolve_fault_dispute_game(dispute_id, state) do
       {:ok, :defender_wins} ->
@@ -263,13 +263,13 @@ defmodule ExWire.Layer2.Optimistic.OptimisticRollup do
         # Trigger appropriate actions for successful challenge
         {:reply, {:ok, :challenger_wins}, state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         {:reply, error, state}
     end
   end
 
   @impl true
-  def handle_info(:check_challenge_expiry, state) do
+  def handle_info(:check_challenge_expiry, _state) do
     now = DateTime.utc_now()
 
     expired_challenges =
@@ -438,13 +438,13 @@ defmodule ExWire.Layer2.Optimistic.OptimisticRollup do
       Logger.info("Withdrawal #{withdrawal.id} processed: #{tx_hash}")
       :ok
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
       false -> {:error, :invalid_proof}
       {:ok, true} -> {:error, :already_processed}
     end
   end
 
-  defp resolve_fault_dispute_game(dispute_id, state) do
+  defp resolve_fault_dispute_game(dispute_id, _state) do
     # Implement Optimism's fault dispute game resolution logic
     # This involves multiple rounds of bisection and instruction stepping
 

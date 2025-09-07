@@ -84,7 +84,7 @@ defmodule ExWire.Rank.ConnectionObserverTest do
        }}
     end
 
-    def handle_cast(:crash_test, state) do
+    def handle_cast(:crash_test, _state) do
       exit({:crash_test, state})
     end
   end

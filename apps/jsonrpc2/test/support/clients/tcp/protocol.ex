@@ -5,7 +5,7 @@ defmodule JSONRPC2.Clients.TCP.Protocol do
   alias JSONRPC2.Response
   @moduledoc false
   # API
-  def handle_call({:call, method, params, string_id}, _from, state) do
+  def handle_call({:call, method, _params, string_id}, _from, _state) do
     external_request_id_int = external_request_id(state.request_counter)
 
     external_request_id =
@@ -42,14 +42,14 @@ defmodule JSONRPC2.Clients.TCP.Protocol do
 
     case response do
       {:ok, socket} -> {:ok, %{request_counter: 0, socket: socket}}
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
   def receive_response(data, socket, timeout, result \\ <<>>)
 
-  def receive_response({:error, reason}, _socket, _timeout, _result) do
-    {:error, reason}
+  def receive_response({:error, _reason}, _socket, _timeout, _result) do
+    {:error, _reason}
   end
 
   def receive_response(:ok, socket, timeout, result) do

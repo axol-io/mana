@@ -118,11 +118,11 @@ defmodule ExWire.Layer2.ProductionTuning do
     end
 
     Logger.info("Production tuning system initialized for #{network} with #{profile} profile")
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:enable_auto_tuning, profile}, _from, state) do
+  def handle_call({:enable_auto_tuning, profile}, _from, _state) do
     updated_state = %{
       state
       | auto_tuning_enabled: true,
@@ -136,14 +136,14 @@ defmodule ExWire.Layer2.ProductionTuning do
   end
 
   @impl true
-  def handle_call(:disable_auto_tuning, _from, state) do
+  def handle_call(:disable_auto_tuning, _from, _state) do
     updated_state = %{state | auto_tuning_enabled: false}
     Logger.info("Auto-tuning disabled for #{state.network}")
     {:reply, :ok, updated_state}
   end
 
   @impl true
-  def handle_call(:run_optimization, _from, state) do
+  def handle_call(:run_optimization, _from, _state) do
     Logger.info("Running optimization cycle for #{state.network}")
 
     # Collect current metrics
@@ -186,7 +186,7 @@ defmodule ExWire.Layer2.ProductionTuning do
   end
 
   @impl true
-  def handle_call(:get_status, _from, state) do
+  def handle_call(:get_status, _from, _state) do
     status = %{
       network: state.network,
       tuning_profile: state.tuning_profile,
@@ -201,7 +201,7 @@ defmodule ExWire.Layer2.ProductionTuning do
   end
 
   @impl true
-  def handle_call({:update_targets, new_targets}, _from, state) do
+  def handle_call({:update_targets, new_targets}, _from, _state) do
     updated_targets = Map.merge(state.performance_targets, new_targets)
     updated_state = %{state | performance_targets: updated_targets, tuning_profile: :custom}
 
@@ -210,7 +210,7 @@ defmodule ExWire.Layer2.ProductionTuning do
   end
 
   @impl true
-  def handle_call(:get_recommendations, _from, state) do
+  def handle_call(:get_recommendations, _from, _state) do
     current_metrics = collect_performance_metrics(state.network)
     analysis = analyze_performance(current_metrics, state.performance_targets)
     recommendations = generate_optimizations(analysis, state.tuning_profile)
@@ -219,7 +219,7 @@ defmodule ExWire.Layer2.ProductionTuning do
   end
 
   @impl true
-  def handle_info(:monitor_performance, state) do
+  def handle_info(:monitor_performance, _state) do
     if state.auto_tuning_enabled do
       # Collect metrics and check if optimization is needed
       current_metrics = collect_performance_metrics(state.network)

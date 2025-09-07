@@ -93,7 +93,7 @@ defmodule ExWire.Eth2.ForkChoiceOptimized do
   @doc """
   Process a new block with optimized weight updates
   """
-  def on_block(store, %BeaconBlock{slot: slot} = block, block_root, %BeaconState{} = state) do
+  def on_block(store, %BeaconBlock{slot: slot} = block, block_root, %BeaconState{} = _state) do
     # Validate block timing
     current_slot = get_current_slot(store)
 
@@ -207,7 +207,7 @@ defmodule ExWire.Eth2.ForkChoiceOptimized do
 
   # Private Functions - Block Management
 
-  defp add_block_with_caching(store, block, block_root, state) do
+  defp add_block_with_caching(store, block, block_root, _state) do
     parent_root = block.parent_root
 
     # Create block info
@@ -461,12 +461,12 @@ defmodule ExWire.Eth2.ForkChoiceOptimized do
 
   # Private Functions - Proposer Boost
 
-  defp maybe_update_proposer_boost(store, block_root, state) do
+  defp maybe_update_proposer_boost(store, block_root, _state) do
     if should_update_proposer_boost?(store, block_root) do
       %{
         store
         | proposer_boost_root: block_root,
-          proposer_boost_amount: calculate_proposer_boost(state)
+          proposer_boost_amount: calculate_proposer_boost(_state)
       }
     else
       store
@@ -485,7 +485,7 @@ defmodule ExWire.Eth2.ForkChoiceOptimized do
     end
   end
 
-  defp calculate_proposer_boost(state) do
+  defp calculate_proposer_boost(_state) do
     # Boost is worth sqrt(total_active_balance) // 256
     total_balance = get_total_active_balance(state)
     floor(:math.sqrt(total_balance) / 256)
@@ -493,22 +493,22 @@ defmodule ExWire.Eth2.ForkChoiceOptimized do
 
   # Private Functions - Checkpoints
 
-  defp update_checkpoints(store, state) do
+  defp update_checkpoints(store, _state) do
     store
     |> update_justified_checkpoint(state)
     |> update_finalized_checkpoint(state)
     |> update_best_justified_checkpoint(state)
   end
 
-  defp update_justified_checkpoint(store, state) do
+  defp update_justified_checkpoint(store, _state) do
     if state.current_justified_checkpoint.epoch > store.justified_checkpoint.epoch do
-      %{store | justified_checkpoint: state.current_justified_checkpoint}
+      %{store | justified_checkpoint: _state.current_justified_checkpoint}
     else
       store
     end
   end
 
-  defp update_finalized_checkpoint(store, state) do
+  defp update_finalized_checkpoint(store, _state) do
     if state.finalized_checkpoint.epoch > store.finalized_checkpoint.epoch do
       %{store | finalized_checkpoint: state.finalized_checkpoint}
     else
@@ -516,7 +516,7 @@ defmodule ExWire.Eth2.ForkChoiceOptimized do
     end
   end
 
-  defp update_best_justified_checkpoint(store, state) do
+  defp update_best_justified_checkpoint(store, _state) do
     if state.current_justified_checkpoint.epoch > store.best_justified_checkpoint.epoch do
       %{store | best_justified_checkpoint: state.current_justified_checkpoint}
     else
@@ -577,7 +577,7 @@ defmodule ExWire.Eth2.ForkChoiceOptimized do
       block_info ->
         committee =
           get_beacon_committee(
-            block_info.state,
+            block_info._state,
             attestation.data.slot,
             attestation.data.index
           )
@@ -610,7 +610,7 @@ defmodule ExWire.Eth2.ForkChoiceOptimized do
     end
   end
 
-  defp get_total_active_balance(state) do
+  defp get_total_active_balance(_state) do
     # Sum of all active validator balances
     Enum.reduce(state.validators, 0, fn validator, acc ->
       if is_active_validator?(validator, get_current_epoch(state)) do
@@ -625,8 +625,8 @@ defmodule ExWire.Eth2.ForkChoiceOptimized do
     validator.activation_epoch <= epoch && epoch < validator.exit_epoch
   end
 
-  defp get_current_epoch(state) do
-    div(state.slot, 32)
+  defp get_current_epoch(_state) do
+    div(_state.slot, 32)
   end
 
   defp maybe_schedule_batch_processing(store) do

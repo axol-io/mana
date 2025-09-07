@@ -21,7 +21,7 @@ defmodule JSONRPC2.Clients.HTTP do
   def call(
         url,
         method,
-        params,
+        _params,
         headers \\ @default_headers,
         http_method \\ :post,
         hackney_opts \\ []
@@ -42,8 +42,8 @@ defmodule JSONRPC2.Clients.HTTP do
       {:ok, status_code, headers} ->
         {:error, {:http_request_failed, status_code, headers}}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -60,7 +60,7 @@ defmodule JSONRPC2.Clients.HTTP do
   def notify(
         url,
         method,
-        params,
+        _params,
         headers \\ @default_headers,
         http_method \\ :post,
         hackney_opts \\ []
@@ -70,7 +70,7 @@ defmodule JSONRPC2.Clients.HTTP do
     case :hackney.request(http_method, url, headers, payload, hackney_opts) do
       {:ok, 200, _headers, _body_ref} -> :ok
       {:ok, 200, _headers} -> :ok
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -105,8 +105,8 @@ defmodule JSONRPC2.Clients.HTTP do
       {:ok, status_code, headers} ->
         {:error, {:http_request_failed, status_code, headers}}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 

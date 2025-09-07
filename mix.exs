@@ -8,13 +8,13 @@ defmodule Mana.MixProject do
         :logger,
         :logger_file_backend,
         :common,
-        :blockchain,
-        :cli,
-        :evm,
-        :ex_wire,
         :exth,
         :exth_crypto,
         :merkle_patricia_tree,
+        :evm,
+        :ex_wire,
+        :blockchain,
+        :cli,
         :jsonrpc2
       ],
       elixirc_options: [warnings_as_errors: false],
@@ -31,7 +31,8 @@ defmodule Mana.MixProject do
         "coveralls.detail": :test,
         "coveralls.post": :test,
         "coveralls.html": :test,
-        "coveralls.json": :test
+        "coveralls.json": :test,
+        check: :test
       ],
       deps: deps()
     ]
@@ -56,7 +57,8 @@ defmodule Mana.MixProject do
       {:logger_file_backend, "~> 0.0.10"},
       {:ssl_verify_fun, "~> 1.1.7", override: true},
       # Fixed version of mix_erlang_tasks to avoid broken hex package
-      {:mix_erlang_tasks, "0.1.0", path: "vendor/mix_erlang_tasks", override: true}
+      {:mix_erlang_tasks, "0.1.0", path: "vendor/mix_erlang_tasks", override: true},
+      {:ex_check, "~> 0.14", only: [:dev, :test], runtime: false}
     ]
   end
 end

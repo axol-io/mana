@@ -224,7 +224,7 @@ defmodule Blockchain.PerformanceBenchmark do
       Enum.map(invalid_transactions, fn tx ->
         case add_transaction(pool_pid, version, tx) do
           {:ok, _} -> :unexpected_success
-          {:error, reason} -> {:expected_error, reason}
+          {:error, _reason} -> {:expected_error, reason}
           other -> {:unexpected_result, other}
         end
       end)

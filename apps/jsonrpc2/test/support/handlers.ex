@@ -52,7 +52,7 @@ defmodule JSONRPC2.ErrorHandlerTest do
     {:error, :not_supported}
   end
 
-  def handle_request("invalid_params", params) do
+  def handle_request("invalid_params", _params) do
     {:error, {:invalid_params, params}}
   end
 

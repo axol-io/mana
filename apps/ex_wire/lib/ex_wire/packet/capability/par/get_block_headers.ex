@@ -19,7 +19,7 @@ defmodule ExWire.Packet.Capability.Par.GetBlockHeaders do
 
   @behaviour ExWire.Packet
 
-  @sync Application.compile_env(:ex_wire, :sync_mock, Sync)
+  # @sync Application.compile_env(:ex_wire, :sync_mock, Sync) # TODO: Unused attribute
   @max_headers_supported 100
 
   @type t :: %__MODULE__{
@@ -61,7 +61,7 @@ defmodule ExWire.Packet.Capability.Par.GetBlockHeaders do
   """
   @impl true
   @spec serialize(t) :: ExRLP.t()
-  def serialize(packet = %__MODULE__{}) do
+  def serialize(_packet = %__MODULE__{}) do
     [
       packet.block_identifier,
       packet.max_headers,
@@ -118,12 +118,12 @@ defmodule ExWire.Packet.Capability.Par.GetBlockHeaders do
   """
   @impl true
   @spec handle(ExWire.Packet.packet()) :: ExWire.Packet.handle_response()
-  def handle(packet = %__MODULE__{max_headers: max_headers})
+  def handle(_packet = %__MODULE__{max_headers: max_headers})
       when max_headers > @max_headers_supported do
     handle(%__MODULE__{packet | max_headers: @max_headers_supported})
   end
 
-  def handle(packet = %__MODULE__{}) do
+  def handle(_packet = %__MODULE__{}) do
     headers =
       case @sync.get_current_trie() do
         {:ok, trie} ->

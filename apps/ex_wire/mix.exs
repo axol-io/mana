@@ -27,10 +27,6 @@ defmodule ExWire.Mixfile do
           path: "native/bls_nif",
           mode: if(Mix.env() == :prod, do: :release, else: :debug)
         ],
-        kzg_nif: [
-          path: "native/kzg_nif",
-          mode: if(Mix.env() == :prod, do: :release, else: :debug)
-        ],
         pkcs11_nif: [
           path: "native/pkcs11_nif",
           mode: if(Mix.env() == :prod, do: :release, else: :debug)

@@ -265,7 +265,7 @@ defmodule ExWire.Consensus.CRDTConsensusManager do
   end
 
   @impl GenServer
-  def handle_call({:process_transaction, transaction, opts}, from, state) do
+  def handle_call({:process_transaction, transaction, opts}, from, _state) do
     if state.consensus_state != :active do
       {:reply, {:error, :consensus_not_ready}, state}
     else
@@ -302,7 +302,7 @@ defmodule ExWire.Consensus.CRDTConsensusManager do
   end
 
   @impl GenServer
-  def handle_call({:process_transaction_batch, transactions, opts}, _from, state) do
+  def handle_call({:process_transaction_batch, transactions, opts}, _from, _state) do
     if state.consensus_state != :active do
       {:reply, {:error, :consensus_not_ready}, state}
     else
@@ -336,7 +336,7 @@ defmodule ExWire.Consensus.CRDTConsensusManager do
   def handle_call(
         {:update_account_balance, account_address, balance_change, operation_id},
         _from,
-        state
+        _state
       ) do
     Logger.debug(
       "[CRDTConsensus] Updating account balance #{Base.encode16(account_address, case: :lower)}"
@@ -353,14 +353,14 @@ defmodule ExWire.Consensus.CRDTConsensusManager do
 
         {:reply, {:ok, replication_result}, state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("[CRDTConsensus] Account balance update failed: #{inspect(reason)}")
-        {:reply, {:error, reason}, state}
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl GenServer
-  def handle_call({:manage_transaction_pool, tx_hash, tx_data, operation}, _from, state) do
+  def handle_call({:manage_transaction_pool, tx_hash, tx_data, operation}, _from, _state) do
     Logger.debug(
       "[CRDTConsensus] Managing transaction pool: #{operation} #{Base.encode16(tx_hash, case: :lower)}"
     )
@@ -373,14 +373,14 @@ defmodule ExWire.Consensus.CRDTConsensusManager do
 
         {:reply, {:ok, replication_result}, state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("[CRDTConsensus] Transaction pool update failed: #{inspect(reason)}")
-        {:reply, {:error, reason}, state}
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl GenServer
-  def handle_call({:update_state_tree, path, node_hash, node_data}, _from, state) do
+  def handle_call({:update_state_tree, path, node_hash, node_data}, _from, _state) do
     Logger.debug("[CRDTConsensus] Updating state tree path #{Base.encode16(path, case: :lower)}")
 
     case ActiveActiveReplicator.replicate_state_update(path, node_hash, node_data) do
@@ -391,14 +391,14 @@ defmodule ExWire.Consensus.CRDTConsensusManager do
 
         {:reply, {:ok, replication_result}, state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("[CRDTConsensus] State tree update failed: #{inspect(reason)}")
-        {:reply, {:error, reason}, state}
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl GenServer
-  def handle_call(:get_consensus_metrics, _from, state) do
+  def handle_call(:get_consensus_metrics, _from, _state) do
     # Gather metrics from all components
     coordinator_metrics = DistributedConsensusCoordinator.get_stats()
     replicator_metrics = ActiveActiveReplicator.get_replication_metrics()
@@ -414,7 +414,7 @@ defmodule ExWire.Consensus.CRDTConsensusManager do
   end
 
   @impl GenServer
-  def handle_call(:get_consensus_status, _from, state) do
+  def handle_call(:get_consensus_status, _from, _state) do
     status = %{
       node_id: state.node_id,
       consensus_state: state.consensus_state,
@@ -428,7 +428,7 @@ defmodule ExWire.Consensus.CRDTConsensusManager do
   end
 
   @impl GenServer
-  def handle_cast({:transaction_completed, operation_id, result}, state) do
+  def handle_cast({:transaction_completed, operation_id, result}, _state) do
     # Update operation history
     new_history =
       [
@@ -464,7 +464,7 @@ defmodule ExWire.Consensus.CRDTConsensusManager do
   end
 
   @impl GenServer
-  def handle_cast(:force_convergence, state) do
+  def handle_cast(:force_convergence, _state) do
     Logger.info("[CRDTConsensus] Forcing consensus convergence across all replicas")
 
     # Trigger convergence in all components
@@ -475,7 +475,7 @@ defmodule ExWire.Consensus.CRDTConsensusManager do
   end
 
   @impl GenServer
-  def handle_cast({:handle_partition_event, replica_id, event}, state) do
+  def handle_cast({:handle_partition_event, replica_id, event}, _state) do
     Logger.warning("[CRDTConsensus] Partition #{event} for replica #{replica_id}")
 
     # Update partition state
@@ -518,14 +518,14 @@ defmodule ExWire.Consensus.CRDTConsensusManager do
   end
 
   @impl GenServer
-  def handle_info(:update_metrics, state) do
+  def handle_info(:update_metrics, _state) do
     # Update consensus metrics
     schedule_metrics_update()
     {:noreply, state}
   end
 
   @impl GenServer
-  def handle_info(:partition_recovery, state) do
+  def handle_info(:partition_recovery, _state) do
     # Check for partition recovery
     Task.start(fn -> check_partition_recovery(state) end)
 
@@ -534,7 +534,7 @@ defmodule ExWire.Consensus.CRDTConsensusManager do
   end
 
   @impl GenServer
-  def handle_info(:check_convergence, state) do
+  def handle_info(:check_convergence, _state) do
     # Verify CRDT convergence across replicas
     Task.start(fn -> verify_crdt_convergence(state) end)
 
@@ -544,7 +544,7 @@ defmodule ExWire.Consensus.CRDTConsensusManager do
 
   # Private functions
 
-  defp execute_transaction_consensus(transaction, operation_id, opts, state) do
+  defp execute_transaction_consensus(transaction, operation_id, opts, _state) do
     # Extract affected accounts and state changes from transaction
     affected_accounts = extract_affected_accounts(transaction)
 
@@ -578,7 +578,7 @@ defmodule ExWire.Consensus.CRDTConsensusManager do
 
         {:ok, consensus_result}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("[CRDTConsensus] Transaction routing failed: #{inspect(reason)}")
         {:error, {:routing_failed, reason}}
     end
@@ -649,7 +649,7 @@ defmodule ExWire.Consensus.CRDTConsensusManager do
     :ok
   end
 
-  defp verify_crdt_convergence(state) do
+  defp verify_crdt_convergence(_state) do
     # Verify that CRDTs have converged across replicas
     Logger.debug("[CRDTConsensus] Verifying CRDT convergence")
     :ok

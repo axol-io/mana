@@ -38,7 +38,7 @@ defmodule EVM.Operation.MetadataRegistry do
   defmacro __before_compile__(_env) do
     quote do
       # Ensure the module implements the required function
-      unless Module.defines?(__MODULE__, {@sym, @input_count}, :def) do
+      if !Module.defines?(__MODULE__, {@sym, @input_count}, :def) do
         raise CompileError,
           description:
             "Operation module #{__MODULE__} must define function #{@sym}/#{@input_count}"

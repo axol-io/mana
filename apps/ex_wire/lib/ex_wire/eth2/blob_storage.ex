@@ -138,11 +138,11 @@ defmodule ExWire.Eth2.BlobStorage do
       "BlobStorage initialized with cache_size=#{config.cache_size}, compression=#{config.enable_compression}"
     )
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:store_blob, blob_sidecar, opts}, _from, state) do
+  def handle_call({:store_blob, blob_sidecar, opts}, _from, _state) do
     start_time = System.monotonic_time()
 
     try do
@@ -166,9 +166,9 @@ defmodule ExWire.Eth2.BlobStorage do
           Logger.debug("Stored blob #{inspect(blob_key)} with #{compression_ratio}x compression")
           {:reply, :ok, state}
 
-        {:error, reason} ->
+        {:error, _reason} ->
           Logger.error("Failed to store blob #{inspect(blob_key)}: #{inspect(reason)}")
-          {:reply, {:error, reason}, state}
+          {:reply, {:error, _reason}, state}
       end
     rescue
       error ->
@@ -178,7 +178,7 @@ defmodule ExWire.Eth2.BlobStorage do
   end
 
   @impl true
-  def handle_call({:get_blob, block_root, index}, _from, state) do
+  def handle_call({:get_blob, block_root, index}, _from, _state) do
     start_time = System.monotonic_time()
     blob_key = {block_root, index}
 
@@ -209,15 +209,15 @@ defmodule ExWire.Eth2.BlobStorage do
             state = update_metrics(state, :not_found, duration, 1.0)
             {:reply, {:error, :not_found}, state}
 
-          {:error, reason} ->
+          {:error, _reason} ->
             Logger.error("Failed to load blob #{inspect(blob_key)}: #{inspect(reason)}")
-            {:reply, {:error, reason}, state}
+            {:reply, {:error, _reason}, state}
         end
     end
   end
 
   @impl true
-  def handle_call({:get_blobs_batch, blob_keys}, _from, state) do
+  def handle_call({:get_blobs_batch, blob_keys}, _from, _state) do
     start_time = System.monotonic_time()
 
     # Parallel retrieval for better performance
@@ -279,7 +279,7 @@ defmodule ExWire.Eth2.BlobStorage do
   end
 
   @impl true
-  def handle_call({:blob_exists, block_root, index}, _from, state) do
+  def handle_call({:blob_exists, block_root, index}, _from, _state) do
     blob_key = {block_root, index}
 
     # Check cache first
@@ -293,7 +293,7 @@ defmodule ExWire.Eth2.BlobStorage do
   end
 
   @impl true
-  def handle_call(:get_stats, _from, state) do
+  def handle_call(:get_stats, _from, _state) do
     cache_stats = get_cache_stats(state.cache)
     storage_stats = get_storage_stats(state.storage_backend)
 
@@ -312,7 +312,7 @@ defmodule ExWire.Eth2.BlobStorage do
   end
 
   @impl true
-  def handle_cast(:prune_old_blobs, state) do
+  def handle_cast(:prune_old_blobs, _state) do
     Logger.info("Starting blob pruning operation")
     start_time = System.monotonic_time()
 
@@ -326,7 +326,7 @@ defmodule ExWire.Eth2.BlobStorage do
           "Pruned #{pruned_count} old blobs in #{duration |> System.convert_time_unit(:native, :millisecond)}ms"
         )
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Failed to prune blobs: #{inspect(reason)}")
     end
 
@@ -334,7 +334,7 @@ defmodule ExWire.Eth2.BlobStorage do
   end
 
   @impl true
-  def handle_cast({:preload_blobs, blob_keys}, state) do
+  def handle_cast({:preload_blobs, blob_keys}, _state) do
     Logger.debug("Preloading #{length(blob_keys)} blobs into cache")
 
     # Preload in background without blocking
@@ -363,13 +363,13 @@ defmodule ExWire.Eth2.BlobStorage do
   end
 
   @impl true
-  def handle_cast({:cache_update, blob_key, blob_sidecar}, state) do
+  def handle_cast({:cache_update, blob_key, blob_sidecar}, _state) do
     state = put_cache(state, blob_key, blob_sidecar)
     {:noreply, state}
   end
 
   @impl true
-  def handle_info(:cleanup, state) do
+  def handle_info(:cleanup, _state) do
     # Periodic cleanup tasks
     perform_maintenance(state)
 
@@ -396,7 +396,7 @@ defmodule ExWire.Eth2.BlobStorage do
 
   # Private Functions - Cache Management
 
-  defp initialize_cache(config) do
+  defp initialize_cache(_config) do
     %{
       data: %{},
       lru_order: [],
@@ -421,7 +421,7 @@ defmodule ExWire.Eth2.BlobStorage do
     end
   end
 
-  defp put_cache(state, key, blob_sidecar) do
+  defp put_cache(_state, key, blob_sidecar) do
     cache = state.cache
     timestamp = System.system_time(:second)
 
@@ -473,7 +473,7 @@ defmodule ExWire.Eth2.BlobStorage do
 
   # Private Functions - Compression
 
-  defp initialize_compression(config) do
+  defp initialize_compression(_config) do
     %{
       enabled: config.enable_compression,
       threshold: config.compression_threshold,
@@ -511,7 +511,7 @@ defmodule ExWire.Eth2.BlobStorage do
 
   # Private Functions - Storage Backend
 
-  defp initialize_storage_backend(config) do
+  defp initialize_storage_backend(_config) do
     case config.storage_backend do
       :memory ->
         %{type: :memory, data: %{}}
@@ -536,7 +536,7 @@ defmodule ExWire.Eth2.BlobStorage do
 
     case File.write(file_path, data) do
       :ok -> :ok
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -562,8 +562,8 @@ defmodule ExWire.Eth2.BlobStorage do
       {:error, :enoent} ->
         {:error, :not_found}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -645,8 +645,8 @@ defmodule ExWire.Eth2.BlobStorage do
 
         {:ok, pruned_count}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -671,7 +671,7 @@ defmodule ExWire.Eth2.BlobStorage do
     |> Enum.sum()
   end
 
-  defp update_metrics(state, operation, duration, value) do
+  defp update_metrics(_state, operation, duration, value) do
     metrics = BlobMetrics.record(state.metrics, operation, duration, value)
     %{state | metrics: metrics}
   end
@@ -681,7 +681,7 @@ defmodule ExWire.Eth2.BlobStorage do
     Process.send_after(self(), :cleanup, 300_000)
   end
 
-  defp perform_maintenance(state) do
+  defp perform_maintenance(_state) do
     # Clean expired cache entries
     Logger.debug("Performing blob storage maintenance")
 

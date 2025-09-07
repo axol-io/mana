@@ -57,7 +57,7 @@ defmodule ExWire.PeerSupervisor do
   ask for a `GetBlockBody` from all peers for a given block hash.
   """
   @spec send_packet(Packet.packet(), node_selector()) :: :ok | :unsent
-  def send_packet(packet, node_selector) do
+  def send_packet(_packet, node_selector) do
     # Send to all of the Supervisor's children...
     # ... not the best.
     children = find_children(node_selector)
@@ -67,7 +67,7 @@ defmodule ExWire.PeerSupervisor do
   @spec do_send_packet(Packet.packet(), list(pid)) :: :ok | :unsent
   defp do_send_packet(_packet, []), do: :unsent
 
-  defp do_send_packet(packet, children) do
+  defp do_send_packet(_packet, children) do
     spawn(fn ->
       for child <- children do
         Exth.trace(fn ->

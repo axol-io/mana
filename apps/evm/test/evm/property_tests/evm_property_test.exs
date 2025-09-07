@@ -442,7 +442,7 @@ defmodule EVM.PropertyTests.EVMPropertyTest do
     }
   end
 
-  defp execute_bytecode(state, bytecode) do
+  defp execute_bytecode(_state, bytecode) do
     # Simplified bytecode execution simulation
     # In practice, this would be much more complex
     if byte_size(bytecode) == 0 do
@@ -454,20 +454,20 @@ defmodule EVM.PropertyTests.EVMPropertyTest do
     end
   end
 
-  defp execute_operations(state, operations) do
+  defp execute_operations(_state, operations) do
     Enum.reduce(operations, state, fn op, acc_state ->
       execute_single_operation(acc_state, op)
     end)
   end
 
-  defp execute_single_operation(state, {:push, value}) do
+  defp execute_single_operation(_state, {:push, value}) do
     case Stack.push(state.stack, value) do
       {:ok, new_stack} -> %{state | stack: new_stack, gas: state.gas - 3}
       {:error, _} -> state
     end
   end
 
-  defp execute_single_operation(state, {:add}) do
+  defp execute_single_operation(_state, {:add}) do
     with {:ok, {a, stack1}} <- Stack.pop(state.stack),
          {:ok, {b, stack2}} <- Stack.pop(stack1),
          {:ok, result_stack} <- Stack.push(stack2, a + b) do
@@ -477,7 +477,7 @@ defmodule EVM.PropertyTests.EVMPropertyTest do
     end
   end
 
-  defp execute_single_operation(state, _op) do
+  defp execute_single_operation(_state, _op) do
     # Default: consume some gas
     %{state | gas: max(0, state.gas - 3)}
   end

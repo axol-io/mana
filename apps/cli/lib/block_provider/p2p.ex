@@ -33,16 +33,16 @@ defmodule CLI.BlockProvider.P2P do
         # Wait for initial peer connections
         wait_for_peers(opts.max_peers)
 
-        state = %{
+        _state = %{
           max_peers: opts.max_peers,
           discovery: opts.discovery,
           connected_peers: 0,
           sync_started: false
         }
 
-        {:ok, state}
+        {:ok, _state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         {:error, "Failed to start P2P networking: #{inspect(reason)}"}
     end
   end
@@ -86,7 +86,7 @@ defmodule CLI.BlockProvider.P2P do
   Gets a block from P2P peers by block number.
   """
   @spec get_block(integer(), map()) :: {:ok, Blockchain.Block.t(), map()} | {:error, any()}
-  def get_block(block_number, state) do
+  def get_block(block_number, _state) do
     try do
       # Request block from P2P peers
       case request_block_from_peers(block_number) do
@@ -94,9 +94,9 @@ defmodule CLI.BlockProvider.P2P do
           updated_state = %{state | connected_peers: PeerSupervisor.connected_peer_count()}
           {:ok, block, updated_state}
 
-        {:error, reason} ->
+        {:error, _reason} ->
           :ok = Logger.warning("Failed to get block #{block_number} via P2P: #{inspect(reason)}")
-          {:error, reason}
+          {:error, _reason}
       end
     rescue
       error ->
@@ -130,8 +130,8 @@ defmodule CLI.BlockProvider.P2P do
         :ok = Logger.debug("P2P networking already running")
         :ok
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -217,9 +217,9 @@ defmodule CLI.BlockProvider.P2P do
         {:ok, block} ->
           {:ok, block}
 
-        {:error, reason} ->
+        {:error, _reason} ->
           :ok = Logger.debug("Block request failed: #{inspect(reason)}")
-          {:error, reason}
+          {:error, _reason}
       end
     rescue
       error ->

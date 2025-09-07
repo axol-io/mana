@@ -225,7 +225,7 @@ defmodule ExWire.Eth2.ComprehensiveIntegrationTest do
     end)
   end
 
-  defp create_test_block(state, slot, block_hash) do
+  defp create_test_block(_state, slot, block_hash) do
     %BeaconBlock{
       slot: slot,
       proposer_index: rem(slot, length(state.validators)),
@@ -249,7 +249,7 @@ defmodule ExWire.Eth2.ComprehensiveIntegrationTest do
     }
   end
 
-  defp create_test_attestation(state, slot) do
+  defp create_test_attestation(_state, slot) do
     %Attestation{
       aggregation_bits: <<1::1, 0::31>>,
       data: %Attestation.Data{
@@ -266,7 +266,7 @@ defmodule ExWire.Eth2.ComprehensiveIntegrationTest do
     }
   end
 
-  defp process_epochs(chain, initial_state, epoch_count, config) do
+  defp process_epochs(chain, initial_state, epoch_count, _config) do
     slots_to_process = epoch_count * @slots_per_epoch
 
     Enum.reduce(1..slots_to_process, {chain, initial_state}, fn slot, {current_chain, state} ->

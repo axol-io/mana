@@ -27,13 +27,13 @@ defmodule JSONRPC2.HandlerMacro do
     quote do
       def handle_request(unquote(by_hash_method), [hex_hash]) do
         with {:ok, unquote(Macro.var(hash_param, nil))} <- decode_hex(hex_hash) do
-          @sync.unquote(sync_method)(unquote(Macro.var(hash_param, nil)))
+  # @sync.unquote(sync_method)(unquote(Macro.var(hash_param, nil))) # TODO: Unused attribute
         end
       end
 
       def handle_request(unquote(by_number_method), [hex_number]) do
         with {:ok, unquote(Macro.var(number_param, nil))} <- decode_unsigned(hex_number) do
-          @sync.unquote(sync_method)(unquote(Macro.var(number_param, nil)))
+  # @sync.unquote(sync_method)(unquote(Macro.var(number_param, nil))) # TODO: Unused attribute
         end
       end
     end

@@ -69,7 +69,7 @@ defmodule ExWire.Packet.Capability.Eth.BlockBodies do
   """
   @impl true
   @spec serialize(t) :: ExRLP.t()
-  def serialize(packet = %__MODULE__{}) do
+  def serialize(_packet = %__MODULE__{}) do
     for block <- packet.blocks, do: Block.serialize(block)
   end
 
@@ -119,7 +119,7 @@ defmodule ExWire.Packet.Capability.Eth.BlockBodies do
   """
   @impl true
   @spec handle(ExWire.Packet.packet()) :: ExWire.Packet.handle_response()
-  def handle(packet = %__MODULE__{}) do
+  def handle(_packet = %__MODULE__{}) do
     :ok = Logger.info("[Packet] Peer sent #{Enum.count(packet.blocks)} block(s).")
 
     :ok

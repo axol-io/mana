@@ -280,7 +280,7 @@ defmodule Blockchain.Chain do
   end
 
   @spec get_engine({String.t(), map}) :: {String.t(), engine()}
-  defp get_engine({engine, %{"params" => params}}) do
+  defp get_engine({engine, %{"params" => _params}}) do
     config = %{
       minimum_difficulty: params["minimumDifficulty"] |> load_hex(),
       difficulty_bound_divisor: params["difficultyBoundDivisor"] |> load_hex(),

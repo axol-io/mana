@@ -90,7 +90,7 @@ defmodule ExWire.Packet.Protocol.Disconnect do
   """
   @impl true
   @spec serialize(t) :: ExRLP.t()
-  def serialize(packet = %__MODULE__{}) do
+  def serialize(_packet = %__MODULE__{}) do
     [
       Map.get(@reasons, packet.reason)
     ]
@@ -129,7 +129,7 @@ defmodule ExWire.Packet.Protocol.Disconnect do
       iex> ExWire.Packet.Protocol.Disconnect.new(:something_else)
       ** (RuntimeError) Invalid reason
   """
-  def new(reason) do
+  def new(_reason) do
     if @reasons[reason] == nil, do: raise("Invalid reason")
 
     %__MODULE__{
@@ -146,7 +146,7 @@ defmodule ExWire.Packet.Protocol.Disconnect do
       "timeout on receiving a message"
   """
   @spec get_reason_msg(integer()) :: String.t() | nil
-  def get_reason_msg(reason) do
+  def get_reason_msg(_reason) do
     @reason_msgs[reason]
   end
 
@@ -162,7 +162,7 @@ defmodule ExWire.Packet.Protocol.Disconnect do
   """
   @impl true
   @spec handle(ExWire.Packet.packet()) :: ExWire.Packet.handle_response()
-  def handle(packet = %__MODULE__{}) do
+  def handle(_packet = %__MODULE__{}) do
     :ok =
       Logger.info(
         "[Packet] Peer asked to disconnect for #{get_reason_msg(packet.reason) || packet.reason}."

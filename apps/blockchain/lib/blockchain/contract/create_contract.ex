@@ -48,7 +48,7 @@ defmodule Blockchain.Contract.CreateContract do
         }
 
   @spec execute(t()) :: {:ok | :error, {Repo.t(), EVM.Gas.t(), EVM.SubState.t(), binary() | <<>>}}
-  def execute(params) do
+  def execute(_params) do
     original_account_repo = params.account_repo
     {updated_repo, contract_address} = new_account_address(params)
     {updated_repo, account} = Repo.account(updated_repo, contract_address)
@@ -83,7 +83,7 @@ defmodule Blockchain.Contract.CreateContract do
           EVM.Configuration.t(),
           EVM.address()
         ) :: Repo.t()
-  defp increment_nonce_of_touched_account(account_repo, config, address) do
+  defp increment_nonce_of_touched_account(account_repo, _config, address) do
     if config.increment_nonce_on_create do
       Repo.increment_account_nonce(account_repo, address)
     else
@@ -103,7 +103,7 @@ defmodule Blockchain.Contract.CreateContract do
 
   @spec create(t(), EVM.address()) ::
           {EVM.state(), EVM.Gas.t(), EVM.SubState.t(), EVM.VM.output()}
-  defp create(params, address) do
+  defp create(_params, address) do
     account_repo =
       params
       |> init_account(address)
@@ -130,7 +130,7 @@ defmodule Blockchain.Contract.CreateContract do
   end
 
   @spec init_account(t, EVM.address()) :: Repo.t()
-  defp init_account(params, address) do
+  defp init_account(_params, address) do
     {updated_repo, account} = Repo.account(params.account_repo, address)
 
     account_repo =
@@ -150,7 +150,7 @@ defmodule Blockchain.Contract.CreateContract do
           t(),
           EVM.address()
         ) :: {:ok | :error, {Repo.t(), EVM.Gas.t(), EVM.SubState.t(), binary() | <<>>}}
-  defp finalize({remaining_gas, accrued_sub_state, exec_env, output}, params, address) do
+  defp finalize({remaining_gas, accrued_sub_state, exec_env, output}, _params, address) do
     original_account_repo = params.account_repo
     contract_creation_cost = creation_cost(output)
     insufficient_gas = remaining_gas < contract_creation_cost
@@ -200,7 +200,7 @@ defmodule Blockchain.Contract.CreateContract do
     data_size * Gas.codedeposit_cost()
   end
 
-  defp new_account_address(params) do
+  defp new_account_address(_params) do
     if params.new_account_address do
       {params.account_repo, params.new_account_address}
     else

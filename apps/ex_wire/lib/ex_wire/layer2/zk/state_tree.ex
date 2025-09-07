@@ -190,7 +190,7 @@ defmodule ExWire.Layer2.ZK.StateTree do
     index
   end
 
-  defp encode_account_state(state) do
+  defp encode_account_state(_state) do
     # Encode account state for storage
     encoded = %{
       balance: state[:balance] || 0,

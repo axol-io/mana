@@ -359,7 +359,7 @@ defmodule ExWire.Eth2.PruningTestRunner do
     end
   end
 
-  defp run_functional_tests(config) do
+  defp run_functional_tests(_config) do
     Logger.info("Executing functional tests")
 
     # Run ExUnit tests with specific tags
@@ -378,7 +378,7 @@ defmodule ExWire.Eth2.PruningTestRunner do
     }
   end
 
-  defp run_stress_tests(config) do
+  defp run_stress_tests(_config) do
     Logger.info("Executing stress tests")
 
     # Run stress tests with extreme parameters
@@ -397,7 +397,7 @@ defmodule ExWire.Eth2.PruningTestRunner do
     }
   end
 
-  defp run_benchmark_tests(config) do
+  defp run_benchmark_tests(_config) do
     Logger.info("Executing benchmark tests")
 
     # Run performance benchmarks
@@ -420,7 +420,7 @@ defmodule ExWire.Eth2.PruningTestRunner do
     }
   end
 
-  defp run_production_validation(config) do
+  defp run_production_validation(_config) do
     Logger.info("Executing production validation")
 
     validation_results = %{}

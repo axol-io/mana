@@ -23,7 +23,7 @@ defmodule JSONRPC2.Bridge.Sync do
         false
 
       _ ->
-        state = last_sync_state()
+        _state = last_sync_state()
 
         {:ok, {block, _caching_trie}} =
           Blocktree.get_best_block(state.block_tree, state.chain, state.trie)
@@ -225,4 +225,12 @@ defmodule JSONRPC2.Bridge.Sync do
 
   @impl true
   def last_sync_state(), do: Sync.get_state()
+
+  @doc """
+  Gets a block by its number.
+  """
+  def get_block_by_number(block_number) do
+    trie = last_sync_state().trie
+    Block.get_block(block_number, trie)
+  end
 end

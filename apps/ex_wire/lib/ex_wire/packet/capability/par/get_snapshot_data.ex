@@ -70,7 +70,7 @@ defmodule ExWire.Packet.Capability.Par.GetSnapshotData do
       {:ok, %ExWire.Packet.Capability.Par.SnapshotData{}}
   """
   @impl true
-  def handle(packet = %__MODULE__{chunk_hash: chunk_hash}, peer_info \\ %{}) do
+  def handle(_packet = %__MODULE__{chunk_hash: chunk_hash}, peer_info \\ %{}) do
     require Logger
 
     peer_id = Map.get(peer_info, :peer_id, "unknown")
@@ -109,12 +109,12 @@ defmodule ExWire.Packet.Capability.Par.GetSnapshotData do
 
         {:ok, empty_response}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.warning(
           "[GetSnapshotData] Failed to serve chunk #{chunk_hash_hex} to peer #{peer_id}: #{inspect(reason)}"
         )
 
-        {:error, reason}
+        {:error, _reason}
     end
   end
 end

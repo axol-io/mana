@@ -58,7 +58,7 @@ defmodule ExWire.Packet.Protocol.Hello do
   """
   @impl true
   @spec serialize(t) :: ExRLP.t()
-  def serialize(packet = %__MODULE__{}) do
+  def serialize(_packet = %__MODULE__{}) do
     [
       packet.p2p_version,
       packet.client_id,
@@ -124,7 +124,7 @@ defmodule ExWire.Packet.Protocol.Hello do
   """
   @impl true
   @spec handle(ExWire.Packet.packet()) :: ExWire.Packet.handle_response()
-  def handle(packet = %__MODULE__{}) do
+  def handle(_packet = %__MODULE__{}) do
     Exth.trace(fn -> "[Packet] Got Hello: #{inspect(packet)}" end)
 
     if Capability.get_matching_capabilities(packet.caps, Mana.get_our_capabilities_map()) == [] do

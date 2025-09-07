@@ -97,7 +97,7 @@ defmodule ExWire.Eth2.ValidatorRegistryOptimized do
     # Schedule periodic memory stats update
     schedule_memory_stats_update()
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @doc """
@@ -166,32 +166,32 @@ defmodule ExWire.Eth2.ValidatorRegistryOptimized do
   # Server Callbacks
 
   @impl true
-  def handle_call({:add_validator, validator, initial_balance}, _from, state) do
+  def handle_call({:add_validator, validator, initial_balance}, _from, _state) do
     {new_state, index} = do_add_validator(state, validator, initial_balance)
     {:reply, {:ok, index}, new_state}
   end
 
   @impl true
-  def handle_call({:add_validators_batch, validators_with_balances}, _from, state) do
+  def handle_call({:add_validators_batch, validators_with_balances}, _from, _state) do
     {new_state, indices} = do_add_validators_batch(state, validators_with_balances)
     {:reply, {:ok, indices}, new_state}
   end
 
   @impl true
-  def handle_call({:get_validator, index}, _from, state) do
+  def handle_call({:get_validator, index}, _from, _state) do
     validator = :array.get(index, state.validators)
     {:reply, validator, state}
   end
 
   @impl true
-  def handle_call({:update_balance, index, new_balance}, _from, state) do
+  def handle_call({:update_balance, index, new_balance}, _from, _state) do
     new_balances = :array.set(index, new_balance, state.balances)
     new_state = %{state | balances: new_balances}
     {:reply, :ok, new_state}
   end
 
   @impl true
-  def handle_call({:update_balances_batch, updates}, _from, state) do
+  def handle_call({:update_balances_batch, updates}, _from, _state) do
     new_balances =
       Enum.reduce(updates, state.balances, fn {index, balance}, acc ->
         :array.set(index, balance, acc)
@@ -202,7 +202,7 @@ defmodule ExWire.Eth2.ValidatorRegistryOptimized do
   end
 
   @impl true
-  def handle_call({:get_active_validators, epoch}, _from, state) do
+  def handle_call({:get_active_validators, epoch}, _from, _state) do
     active_validators =
       state.active_indices
       |> Enum.map(fn index ->
@@ -218,24 +218,24 @@ defmodule ExWire.Eth2.ValidatorRegistryOptimized do
   end
 
   @impl true
-  def handle_call(:get_validator_count, _from, state) do
+  def handle_call(:get_validator_count, _from, _state) do
     {:reply, state.validator_count, state}
   end
 
   @impl true
-  def handle_call(:get_memory_stats, _from, state) do
+  def handle_call(:get_memory_stats, _from, _state) do
     stats = calculate_memory_stats(state)
     {:reply, stats, %{state | memory_stats: stats}}
   end
 
   @impl true
-  def handle_call({:process_epoch_transition, epoch}, _from, state) do
+  def handle_call({:process_epoch_transition, epoch}, _from, _state) do
     new_state = do_process_epoch_transition(state, epoch)
     {:reply, :ok, new_state}
   end
 
   @impl true
-  def handle_info(:update_memory_stats, state) do
+  def handle_info(:update_memory_stats, _state) do
     stats = calculate_memory_stats(state)
     schedule_memory_stats_update()
     {:noreply, %{state | memory_stats: stats}}
@@ -243,7 +243,7 @@ defmodule ExWire.Eth2.ValidatorRegistryOptimized do
 
   # Private Functions
 
-  defp do_add_validator(state, validator, initial_balance) do
+  defp do_add_validator(_state, validator, initial_balance) do
     index = state.next_validator_index
 
     # Grow arrays if needed
@@ -282,7 +282,7 @@ defmodule ExWire.Eth2.ValidatorRegistryOptimized do
     {new_state, index}
   end
 
-  defp do_add_validators_batch(state, validators_with_balances) do
+  defp do_add_validators_batch(_state, validators_with_balances) do
     count = length(validators_with_balances)
     start_index = state.next_validator_index
 
@@ -325,7 +325,7 @@ defmodule ExWire.Eth2.ValidatorRegistryOptimized do
     {new_state, indices}
   end
 
-  defp ensure_capacity(state, required_size) do
+  defp ensure_capacity(_state, required_size) do
     if required_size > state.array_capacity do
       new_capacity = calculate_new_capacity(state.array_capacity, required_size)
 
@@ -358,7 +358,7 @@ defmodule ExWire.Eth2.ValidatorRegistryOptimized do
     end
   end
 
-  defp do_process_epoch_transition(state, epoch) do
+  defp do_process_epoch_transition(_state, epoch) do
     # Update active validator set
     {new_active, new_exited} =
       0..(state.validator_count - 1)
@@ -412,7 +412,7 @@ defmodule ExWire.Eth2.ValidatorRegistryOptimized do
     0
   end
 
-  defp calculate_memory_stats(state) do
+  defp calculate_memory_stats(_state) do
     # Estimate memory usage
     # ~256 bytes per validator
     validator_memory = state.validator_count * 256

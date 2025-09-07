@@ -250,13 +250,13 @@ defmodule ExWire.Sync.VerkleStateSync do
   end
 
   @impl true
-  def handle_call(:get_progress, _from, state) do
+  def handle_call(:get_progress, _from, _state) do
     progress = calculate_progress(state)
     {:reply, progress, state}
   end
 
   @impl true
-  def handle_call(:get_stats, _from, state) do
+  def handle_call(:get_stats, _from, _state) do
     stats = %{
       target_root: encode_hex(state.target_root),
       sync_mode: state.sync_mode,
@@ -273,7 +273,7 @@ defmodule ExWire.Sync.VerkleStateSync do
   end
 
   @impl true
-  def handle_call({:request_witnesses, keys}, _from, state) do
+  def handle_call({:request_witnesses, keys}, _from, _state) do
     # Add new keys to the sync process
     new_needed_keys = MapSet.union(state.needed_keys, MapSet.new(keys))
 
@@ -293,26 +293,26 @@ defmodule ExWire.Sync.VerkleStateSync do
   end
 
   @impl true
-  def handle_call(:force_heal, _from, state) do
+  def handle_call(:force_heal, _from, _state) do
     new_state = perform_heal_check(state)
     {:reply, :ok, new_state}
   end
 
   @impl true
-  def handle_call({:set_key_priorities, key_priority_map}, _from, state) do
+  def handle_call({:set_key_priorities, key_priority_map}, _from, _state) do
     new_priorities = Map.merge(state.key_priorities, key_priority_map)
     new_state = %{state | key_priorities: new_priorities}
     {:reply, :ok, new_state}
   end
 
   @impl true
-  def handle_call({:resurrect_expired_state, keys_with_proofs}, _from, state) do
+  def handle_call({:resurrect_expired_state, keys_with_proofs}, _from, _state) do
     new_state = process_resurrection_requests(state, keys_with_proofs)
     {:reply, :ok, new_state}
   end
 
   @impl true
-  def handle_call({:set_network_adaptation, enabled}, _from, state) do
+  def handle_call({:set_network_adaptation, enabled}, _from, _state) do
     # Enable/disable adaptive batch sizing based on network conditions
     if enabled do
       Process.send_after(self(), :adapt_network_settings, @network_adaptation_interval)
@@ -322,7 +322,7 @@ defmodule ExWire.Sync.VerkleStateSync do
   end
 
   @impl true
-  def handle_call(:get_network_stats, _from, state) do
+  def handle_call(:get_network_stats, _from, _state) do
     network_stats = %{
       current_batch_size: state.current_batch_size,
       network_conditions: state.network_conditions,
@@ -334,11 +334,11 @@ defmodule ExWire.Sync.VerkleStateSync do
   end
 
   @impl true
-  def handle_info(:process_witness_requests, state) do
+  def handle_info(:process_witness_requests, _state) do
     new_state = process_witness_queue(state)
 
     # Continue processing unless complete
-    unless state.sync_mode == :complete do
+    if state.sync_mode != :complete do
       Process.send_after(self(), :process_witness_requests, 1000)
     end
 
@@ -346,7 +346,7 @@ defmodule ExWire.Sync.VerkleStateSync do
   end
 
   @impl true
-  def handle_info(:heal_check, state) do
+  def handle_info(:heal_check, _state) do
     new_state = perform_heal_check(state)
 
     # Schedule next heal check
@@ -356,19 +356,19 @@ defmodule ExWire.Sync.VerkleStateSync do
   end
 
   @impl true
-  def handle_info({:witness_response, witnesses, peer}, state) do
+  def handle_info({:witness_response, witnesses, peer}, _state) do
     new_state = handle_witness_response(witnesses, peer, state)
     {:noreply, new_state}
   end
 
   @impl true
-  def handle_info({:request_timeout, request_ref}, state) do
+  def handle_info({:request_timeout, request_ref}, _state) do
     new_state = handle_request_timeout(request_ref, state)
     {:noreply, new_state}
   end
 
   @impl true
-  def handle_info(:adapt_network_settings, state) do
+  def handle_info(:adapt_network_settings, _state) do
     new_state = adapt_network_conditions(state)
 
     # Schedule next adaptation
@@ -378,20 +378,20 @@ defmodule ExWire.Sync.VerkleStateSync do
   end
 
   @impl true
-  def handle_info({:parallel_verification_complete, results}, state) do
+  def handle_info({:parallel_verification_complete, results}, _state) do
     new_state = process_parallel_verification_results(results, state)
     {:noreply, new_state}
   end
 
   @impl true
-  def handle_cast(:trigger_verification, state) do
+  def handle_cast(:trigger_verification, _state) do
     new_state = trigger_parallel_verification(state)
     {:noreply, new_state}
   end
 
   # Private Functions
 
-  defp process_witness_queue(state) do
+  defp process_witness_queue(_state) do
     # Get pending keys with priority ordering
     pending_keys = get_pending_keys_prioritized(state)
 
@@ -419,14 +419,14 @@ defmodule ExWire.Sync.VerkleStateSync do
     end
   end
 
-  defp get_pending_keys(state) do
+  defp get_pending_keys(_state) do
     state.witness_requests
     |> Enum.filter(fn {_key, status} -> status == :pending end)
     |> Enum.map(fn {key, _status} -> key end)
     |> Enum.take(@witness_batch_size * @max_concurrent_witness_requests)
   end
 
-  defp send_witness_request(state, keys) do
+  defp send_witness_request(_state, keys) do
     peers = PeerSupervisor.connected_peers()
 
     if length(peers) > 0 do
@@ -459,7 +459,7 @@ defmodule ExWire.Sync.VerkleStateSync do
     end
   end
 
-  defp handle_witness_response(witnesses, _peer, state) do
+  defp handle_witness_response(witnesses, _peer, _state) do
     Logger.debug("Received #{length(witnesses)} witness proofs")
 
     # Verify and process each witness
@@ -481,7 +481,7 @@ defmodule ExWire.Sync.VerkleStateSync do
     final_state
   end
 
-  defp verify_and_process_witness(witness, state) do
+  defp verify_and_process_witness(witness, _state) do
     with {:ok, key_value_pairs} <- extract_key_value_pairs(witness),
          true <- VerkleTree.verify_witness(witness, state.target_root, key_value_pairs),
          :ok <- apply_witness_to_state(witness, key_value_pairs, state) do
@@ -508,13 +508,13 @@ defmodule ExWire.Sync.VerkleStateSync do
         Logger.warning("Witness verification failed")
         {:error, :verification_failed}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.warning("Failed to process witness: #{inspect(reason)}")
-        {:error, reason}
+        {:error, _reason}
     end
   end
 
-  defp apply_witness_to_state(witness, key_value_pairs, state) do
+  defp apply_witness_to_state(witness, key_value_pairs, _state) do
     # Apply the witness data to the local Verkle tree
     try do
       Enum.each(key_value_pairs, fn {key, value} ->
@@ -532,10 +532,10 @@ defmodule ExWire.Sync.VerkleStateSync do
     end
   end
 
-  defp handle_request_timeout(request_ref, state) do
+  defp handle_request_timeout(request_ref, _state) do
     case Map.get(state.active_requests, request_ref) do
       nil ->
-        state
+        _state
 
       {keys, _peer} ->
         Logger.debug("Witness request timeout for #{length(keys)} keys")
@@ -571,7 +571,7 @@ defmodule ExWire.Sync.VerkleStateSync do
     end
   end
 
-  defp perform_heal_check(state) do
+  defp perform_heal_check(_state) do
     Logger.debug("Performing Verkle state heal check...")
 
     # Find missing state by checking witness coverage
@@ -604,14 +604,14 @@ defmodule ExWire.Sync.VerkleStateSync do
     end
   end
 
-  defp find_missing_witness_keys(state) do
+  defp find_missing_witness_keys(_state) do
     # Check for keys that are needed but don't have verified witnesses
     state.needed_keys
     |> MapSet.difference(state.verified_witnesses)
     |> MapSet.to_list()
   end
 
-  defp check_sync_complete(state) do
+  defp check_sync_complete(_state) do
     pending_requests = map_size(state.active_requests) == 0
     all_keys_synced = MapSet.subset?(state.needed_keys, state.verified_witnesses)
 
@@ -630,7 +630,7 @@ defmodule ExWire.Sync.VerkleStateSync do
     end
   end
 
-  defp calculate_progress(state) do
+  defp calculate_progress(_state) do
     if state.total_keys_needed > 0 do
       completion = state.keys_synchronized / state.total_keys_needed * 100
 
@@ -716,7 +716,7 @@ defmodule ExWire.Sync.VerkleStateSync do
     end)
   end
 
-  defp get_pending_keys_prioritized(state) do
+  defp get_pending_keys_prioritized(_state) do
     state.witness_requests
     |> Enum.filter(fn {_key, status} -> status in [:pending, :priority] end)
     |> Enum.sort_by(fn {key, _status} ->
@@ -734,7 +734,7 @@ defmodule ExWire.Sync.VerkleStateSync do
     end
   end
 
-  defp determine_optimal_batch_size(state) do
+  defp determine_optimal_batch_size(_state) do
     base_size = state.network_conditions.optimal_batch_size
     success_rate = state.network_conditions.success_rate
 
@@ -747,7 +747,7 @@ defmodule ExWire.Sync.VerkleStateSync do
     end
   end
 
-  defp create_priority_batches(keys, batch_size, state) do
+  defp create_priority_batches(keys, batch_size, _state) do
     # Group keys by priority and create mixed batches
     priority_groups =
       Enum.group_by(keys, fn key ->
@@ -768,7 +768,7 @@ defmodule ExWire.Sync.VerkleStateSync do
     Enum.chunk_every(all_keys, batch_size)
   end
 
-  defp send_witness_request_optimized(state, keys) do
+  defp send_witness_request_optimized(_state, keys) do
     # Select the best performing peer
     best_peer = select_best_peer(state)
 
@@ -780,7 +780,7 @@ defmodule ExWire.Sync.VerkleStateSync do
     end
   end
 
-  defp select_best_peer(state) do
+  defp select_best_peer(_state) do
     peers = PeerSupervisor.connected_peers()
 
     if length(peers) == 0 do
@@ -788,13 +788,13 @@ defmodule ExWire.Sync.VerkleStateSync do
     else
       # Select peer with best performance metrics
       Enum.min_by(peers, fn peer ->
-        performance = Map.get(state.peer_performance, peer, default_performance())
+        performance = Map.get(_state.peer_performance, peer, default_performance())
         performance.avg_response_time * (2 - performance.success_rate)
       end)
     end
   end
 
-  defp send_witness_request_to_peer(state, keys, peer) do
+  defp send_witness_request_to_peer(_state, keys, peer) do
     request_ref = make_ref()
     start_time = System.system_time(:millisecond)
 
@@ -820,7 +820,7 @@ defmodule ExWire.Sync.VerkleStateSync do
     |> put_in([:active_requests, request_ref], {keys, peer, start_time})
   end
 
-  defp check_sync_status_and_mode(state) do
+  defp check_sync_status_and_mode(_state) do
     progress = calculate_completion_ratio(state)
 
     cond do
@@ -840,7 +840,7 @@ defmodule ExWire.Sync.VerkleStateSync do
     end
   end
 
-  defp calculate_completion_ratio(state) do
+  defp calculate_completion_ratio(_state) do
     if state.total_keys_needed > 0 do
       state.keys_synchronized / state.total_keys_needed
     else
@@ -848,7 +848,7 @@ defmodule ExWire.Sync.VerkleStateSync do
     end
   end
 
-  defp switch_to_priority_mode(state) do
+  defp switch_to_priority_mode(_state) do
     # Mark remaining keys as priority
     remaining_keys = MapSet.difference(state.needed_keys, state.verified_witnesses)
 
@@ -872,7 +872,7 @@ defmodule ExWire.Sync.VerkleStateSync do
     }
   end
 
-  defp adapt_network_conditions(state) do
+  defp adapt_network_conditions(_state) do
     # Analyze recent request performance and adapt batch sizes
     current_time = System.system_time(:second)
 
@@ -892,7 +892,7 @@ defmodule ExWire.Sync.VerkleStateSync do
     end
   end
 
-  defp calculate_network_performance(state) do
+  defp calculate_network_performance(_state) do
     # Analyze peer performance and derive optimal settings
     if map_size(state.peer_performance) > 0 do
       performances = Map.values(state.peer_performance)
@@ -944,7 +944,7 @@ defmodule ExWire.Sync.VerkleStateSync do
     end
   end
 
-  defp trigger_parallel_verification(state) do
+  defp trigger_parallel_verification(_state) do
     # Submit pending witnesses for parallel verification
     # This would integrate with the verification pool
     Task.Supervisor.async_nolink(state.verification_pool, fn ->
@@ -955,13 +955,13 @@ defmodule ExWire.Sync.VerkleStateSync do
     state
   end
 
-  defp process_parallel_verification_results(results, state) do
+  defp process_parallel_verification_results(results, _state) do
     # Process results from parallel verification
     Logger.debug("Processed #{length(results)} parallel verification results")
     state
   end
 
-  defp process_resurrection_requests(state, keys_with_proofs) do
+  defp process_resurrection_requests(_state, keys_with_proofs) do
     # Process state resurrection requests for expired keys
     Logger.info("Processing #{length(keys_with_proofs)} resurrection requests")
 

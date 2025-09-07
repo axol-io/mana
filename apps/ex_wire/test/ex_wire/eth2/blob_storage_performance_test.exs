@@ -2,7 +2,7 @@ defmodule ExWire.Eth2.BlobStoragePerformanceTest do
   use ExUnit.Case
 
   alias ExWire.Eth2.{BlobStorage, BlobSidecar}
-  alias ExWire.Crypto.KZG
+  alias ExthCrypto.KZG
 
   @moduletag :performance
 

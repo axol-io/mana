@@ -193,7 +193,7 @@ defmodule MerklePatriciaTree.Test.AntidoteClientMock do
   def put!(client, bucket, key, value, tx_id \\ nil) do
     case put(client, bucket, key, value, tx_id) do
       :ok -> :ok
-      {:error, reason} -> raise "Failed to put: #{reason}"
+      {:error, _reason} -> raise "Failed to put: #{reason}"
     end
   end
 
@@ -310,17 +310,17 @@ defmodule MerklePatriciaTree.Test.AntidoteConnectionPoolMock do
   end
 
   @impl true
-  def handle_call(:status, _from, state) do
+  def handle_call(:status, _from, _state) do
     {:reply, status(), state}
   end
 
   @impl true
-  def handle_call(_, _from, state) do
+  def handle_call(_, _from, _state) do
     {:reply, :ok, state}
   end
 
   @impl true
-  def handle_cast(_, state) do
+  def handle_cast(_, _state) do
     {:noreply, state}
   end
 end

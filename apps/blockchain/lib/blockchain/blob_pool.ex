@@ -12,7 +12,7 @@ defmodule Blockchain.BlobPool do
   use GenServer
 
   alias Blockchain.Transaction.Blob
-  alias ExWire.Crypto.KZG
+  alias ExthCrypto.KZG
 
   # Pool configuration
   @max_blob_txs 1000

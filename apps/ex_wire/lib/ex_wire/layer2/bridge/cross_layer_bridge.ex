@@ -146,11 +146,11 @@ defmodule ExWire.Layer2.Bridge.CrossLayerBridge do
     # Schedule periodic message relay
     Process.send_after(self(), :relay_pending_messages, 5_000)
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:deposit, params}, _from, state) do
+  def handle_call({:deposit, _params}, _from, _state) do
     deposit_id = generate_deposit_id()
 
     deposit = %{
@@ -191,7 +191,7 @@ defmodule ExWire.Layer2.Bridge.CrossLayerBridge do
   end
 
   @impl true
-  def handle_call({:withdraw, params}, _from, state) do
+  def handle_call({:withdraw, _params}, _from, _state) do
     withdrawal_id = generate_withdrawal_id()
 
     withdrawal = %{
@@ -234,7 +234,7 @@ defmodule ExWire.Layer2.Bridge.CrossLayerBridge do
   end
 
   @impl true
-  def handle_call({:send_message, from_layer, to_layer, target, data}, _from, state) do
+  def handle_call({:send_message, from_layer, to_layer, target, data}, _from, _state) do
     message_id = generate_message_id()
 
     message = %{
@@ -262,7 +262,7 @@ defmodule ExWire.Layer2.Bridge.CrossLayerBridge do
   end
 
   @impl true
-  def handle_call({:relay_message, message_id}, _from, state) do
+  def handle_call({:relay_message, message_id}, _from, _state) do
     case Map.get(state.relayed_messages, message_id) do
       nil ->
         {:reply, {:error, :message_not_found}, state}
@@ -286,7 +286,7 @@ defmodule ExWire.Layer2.Bridge.CrossLayerBridge do
 
             {:reply, {:ok, :relayed}, %{state | relayed_messages: new_relayed_messages}}
 
-          {:error, reason} = error ->
+          {:error, _reason} = error ->
             Logger.error("Failed to relay message #{message_id}: #{inspect(reason)}")
             {:reply, error, state}
         end
@@ -294,7 +294,7 @@ defmodule ExWire.Layer2.Bridge.CrossLayerBridge do
   end
 
   @impl true
-  def handle_call({:confirm_message, message_id, receipt}, _from, state) do
+  def handle_call({:confirm_message, message_id, receipt}, _from, _state) do
     case Map.get(state.relayed_messages, message_id) do
       nil ->
         {:reply, {:error, :message_not_found}, state}
@@ -319,7 +319,7 @@ defmodule ExWire.Layer2.Bridge.CrossLayerBridge do
   end
 
   @impl true
-  def handle_call({:get_message_status, message_id}, _from, state) do
+  def handle_call({:get_message_status, message_id}, _from, _state) do
     case Map.get(state.relayed_messages, message_id) do
       nil ->
         {:reply, {:error, :not_found}, state}
@@ -330,7 +330,7 @@ defmodule ExWire.Layer2.Bridge.CrossLayerBridge do
   end
 
   @impl true
-  def handle_call({:prove_inclusion, message_id, state_root}, _from, state) do
+  def handle_call({:prove_inclusion, message_id, state_root}, _from, _state) do
     case Map.get(state.relayed_messages, message_id) do
       nil ->
         {:reply, {:error, :message_not_found}, state}
@@ -348,12 +348,12 @@ defmodule ExWire.Layer2.Bridge.CrossLayerBridge do
   end
 
   @impl true
-  def handle_info(:relay_pending_messages, state) do
+  def handle_info(:relay_pending_messages, _state) do
     # Relay pending messages in the queue
     case MessageQueue.get_pending(state.message_queue, 10) do
       [] ->
         Process.send_after(self(), :relay_pending_messages, 5_000)
-        {:noreply, state}
+        {:noreply, _state}
 
       messages ->
         # Relay messages in parallel
@@ -369,14 +369,14 @@ defmodule ExWire.Layer2.Bridge.CrossLayerBridge do
   end
 
   @impl true
-  def handle_info({:l1_event, event}, state) do
+  def handle_info({:l1_event, event}, _state) do
     # Handle L1 events (deposits, message sends)
     new_state = process_l1_event(event, state)
     {:noreply, new_state}
   end
 
   @impl true
-  def handle_info({:l2_event, event}, state) do
+  def handle_info({:l2_event, event}, _state) do
     # Handle L2 events (withdrawals, message sends)
     new_state = process_l2_event(event, state)
     {:noreply, new_state}
@@ -400,7 +400,7 @@ defmodule ExWire.Layer2.Bridge.CrossLayerBridge do
     "msg_" <> Base.encode16(:crypto.strong_rand_bytes(16))
   end
 
-  defp load_asset_mappings(config) do
+  defp load_asset_mappings(_config) do
     # Load L1 -> L2 token mappings
     config[:asset_mappings] ||
       %{
@@ -454,7 +454,7 @@ defmodule ExWire.Layer2.Bridge.CrossLayerBridge do
     Process.get(:tx_sender, <<0::160>>)
   end
 
-  defp get_next_nonce(state) do
+  defp get_next_nonce(_state) do
     map_size(state.relayed_messages) + 1
   end
 
@@ -474,7 +474,7 @@ defmodule ExWire.Layer2.Bridge.CrossLayerBridge do
     end
   end
 
-  defp relay_to_destination(message, state) do
+  defp relay_to_destination(message, _state) do
     # Relay message to destination layer
     case message.to_layer do
       :l1 ->
@@ -483,7 +483,7 @@ defmodule ExWire.Layer2.Bridge.CrossLayerBridge do
 
       :l2 ->
         # Send to L2 contract
-        send_to_l2(message, state.l2_contract)
+        send_to_l2(message, _state.l2_contract)
     end
   end
 
@@ -519,18 +519,18 @@ defmodule ExWire.Layer2.Bridge.CrossLayerBridge do
     )
   end
 
-  defp update_transfer_status(message_id, status, state) do
+  defp update_transfer_status(message_id, status, _state) do
     # Update deposit or withdrawal status based on message confirmation
     state
   end
 
-  defp start_event_monitoring(state) do
+  defp start_event_monitoring(_state) do
     # Start monitoring L1 and L2 events
     EventRelay.start_monitoring(self(), state.l1_contract, :l1)
     EventRelay.start_monitoring(self(), state.l2_contract, :l2)
   end
 
-  defp process_l1_event(event, state) do
+  defp process_l1_event(event, _state) do
     Logger.debug("Processing L1 event: #{inspect(event)}")
 
     # Process different L1 event types
@@ -541,14 +541,14 @@ defmodule ExWire.Layer2.Bridge.CrossLayerBridge do
 
       :withdrawal_finalized ->
         # Mark withdrawal as complete
-        Map.update(state, :relayed_messages, %{}, &Map.put(&1, event.message_id, :finalized))
+        Map.update(_state, :relayed_messages, %{}, &Map.put(&1, event.message_id, :finalized))
 
       _ ->
         state
     end
   end
 
-  defp process_l2_event(event, state) do
+  defp process_l2_event(event, _state) do
     Logger.debug("Processing L2 event: #{inspect(event)}")
 
     # Process different L2 event types  
@@ -559,7 +559,7 @@ defmodule ExWire.Layer2.Bridge.CrossLayerBridge do
 
       :deposit_finalized ->
         # Mark deposit as complete
-        Map.update(state, :relayed_messages, %{}, &Map.put(&1, event.message_id, :finalized))
+        Map.update(_state, :relayed_messages, %{}, &Map.put(&1, event.message_id, :finalized))
 
       _ ->
         state

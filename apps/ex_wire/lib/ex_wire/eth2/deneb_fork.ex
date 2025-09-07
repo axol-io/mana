@@ -95,7 +95,7 @@ defmodule ExWire.Eth2.DenebFork do
   Validate a beacon block for Deneb-specific rules.
   """
   @spec validate_deneb_block(BeaconBlock.t(), BeaconState.t()) :: :ok | {:error, term()}
-  def validate_deneb_block(block, state) do
+  def validate_deneb_block(block, _state) do
     if is_deneb_epoch?(get_current_epoch(state)) do
       with :ok <- validate_blob_commitments(block),
            :ok <- validate_execution_payload_deneb(block.body.execution_payload),
@@ -113,7 +113,7 @@ defmodule ExWire.Eth2.DenebFork do
   """
   @spec process_deneb_operations(BeaconState.t(), BeaconBlock.t()) ::
           {:ok, BeaconState.t()} | {:error, term()}
-  def process_deneb_operations(state, block) do
+  def process_deneb_operations(_state, block) do
     if is_deneb_epoch?(get_current_epoch(state)) do
       # Process blob KZG commitments
       state = process_blob_kzg_commitments(state, block)
@@ -121,9 +121,9 @@ defmodule ExWire.Eth2.DenebFork do
       # Update blob gas state
       state = update_blob_gas_state(state, block)
 
-      {:ok, state}
+      {:ok, _state}
     else
-      {:ok, state}
+      {:ok, _state}
     end
   end
 
@@ -243,7 +243,7 @@ defmodule ExWire.Eth2.DenebFork do
     end
   end
 
-  defp process_blob_kzg_commitments(state, block) do
+  defp process_blob_kzg_commitments(_state, block) do
     # Store blob commitments in state for later verification
     commitments = block.body.blob_kzg_commitments
 
@@ -256,7 +256,7 @@ defmodule ExWire.Eth2.DenebFork do
     state
   end
 
-  defp update_blob_gas_state(state, block) do
+  defp update_blob_gas_state(_state, block) do
     if block.body.execution_payload do
       payload = block.body.execution_payload
 
@@ -273,7 +273,7 @@ defmodule ExWire.Eth2.DenebFork do
     end
   end
 
-  defp get_current_epoch(state) do
+  defp get_current_epoch(_state) do
     # 32 slots per epoch
     div(state.slot, 32)
   end

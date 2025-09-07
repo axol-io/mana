@@ -99,7 +99,7 @@ defmodule ExWire.DEVp2pTest do
     end
   end
 
-  def set_older_capability(packet) do
+  def set_older_capability(_packet) do
     %Packet.Protocol.Hello{packet | caps: [Capability.new({"eth", 61})]}
   end
 

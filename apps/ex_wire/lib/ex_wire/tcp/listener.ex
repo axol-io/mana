@@ -37,7 +37,7 @@ defmodule ExWire.TCP.Listener do
   @spec handle_cast(atom(), state()) :: {:noreply, state()}
   def handle_cast(
         :accept_tcp_connection,
-        state = %{listen_socket: listen_socket, connection_observer: connection_observer}
+        _state = %{listen_socket: listen_socket, connection_observer: connection_observer}
       ) do
     {:ok, socket} = TCP.accept_connection(listen_socket)
 

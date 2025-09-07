@@ -717,7 +717,7 @@ defmodule ExWire.Eth2.PruningLargeScaleTest do
     Map.merge(base_config, scale_adjustments)
   end
 
-  defp get_performance_threshold(operation, config) do
+  defp get_performance_threshold(operation, _config) do
     base_thresholds = %{
       # 30 seconds
       fork_choice: 30_000,
@@ -860,7 +860,7 @@ defmodule ExWire.Eth2.PruningLargeScaleTest do
     |> Enum.into(%{})
   end
 
-  defp verify_strategy_results(pruning_results, config) do
+  defp verify_strategy_results(pruning_results, _config) do
     # Verify each strategy produced reasonable results
     for {strategy, result} <- pruning_results do
       case strategy do

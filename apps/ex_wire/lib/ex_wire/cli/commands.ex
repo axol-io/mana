@@ -189,7 +189,7 @@ defmodule ExWire.CLI.Commands.Status do
   defp format_consensus_state(:initializing),
     do: "#{ExWire.CLI.Commands.colors().info}Initializing#{ExWire.CLI.Commands.colors().reset}"
 
-  defp format_consensus_state(state), do: "#{state}"
+  defp format_consensus_state(_state), do: "#{state}"
 end
 
 defmodule ExWire.CLI.Commands.Block do
@@ -519,7 +519,7 @@ defmodule ExWire.CLI.Commands.Consensus do
   defp format_state(:initializing),
     do: "#{ExWire.CLI.Commands.colors().info}Initializing#{ExWire.CLI.Commands.colors().reset}"
 
-  defp format_state(state), do: "#{state}"
+  defp format_state(_state), do: "#{state}"
 end
 
 defmodule ExWire.CLI.Commands.Context do
@@ -545,7 +545,7 @@ defmodule ExWire.CLI.Commands.Context do
     :ok
   end
 
-  def execute([], _input, state) do
+  def execute([], _input, _state) do
     IO.puts(
       "#{ExWire.CLI.Commands.colors().info}Current context: #{state.state.context}#{ExWire.CLI.Commands.colors().reset}"
     )

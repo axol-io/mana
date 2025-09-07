@@ -100,7 +100,7 @@ config :merkle_patricia_tree,
 # AntidoteDB Configuration for 7.45M ops/sec
 config :antidote,
   # Connection settings
-  hostname: 'localhost',
+  hostname: ~c"localhost",
   # Load balanced port
   port: 8086,
 
@@ -137,9 +137,9 @@ config :mana, MerklePatriciaTree.DB,
   # Connection settings
   nodes: [
     # Direct nodes for maximum performance
-    {'localhost', 8087},
-    {'localhost', 8088},
-    {'localhost', 8089}
+    {~c"localhost", 8087},
+    {~c"localhost", 8088},
+    {~c"localhost", 8089}
   ],
 
   # Performance tuning

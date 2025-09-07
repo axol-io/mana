@@ -5,7 +5,7 @@ defmodule JSONRPC2.SpecHandler.GasEstimater do
 
   @max_gas_limit 50_000_000
 
-  def run(state, call_request, block_number, chain) do
+  def run(_state, call_request, block_number, chain) do
     with {:ok, block} <- find_block(state, block_number) do
       transaction = transaction_from_call_request(call_request)
 
@@ -44,7 +44,7 @@ defmodule JSONRPC2.SpecHandler.GasEstimater do
     {:ok, upper_limit}
   end
 
-  defp find_estimate(state, transaction, lower_limit, upper_limit, block_header, chain) do
+  defp find_estimate(_state, transaction, lower_limit, upper_limit, block_header, chain) do
     middle = (upper_limit + lower_limit) / 2
 
     {lower_limit, upper_limit} =
@@ -56,14 +56,14 @@ defmodule JSONRPC2.SpecHandler.GasEstimater do
     find_estimate(state, transaction, lower_limit, upper_limit, block_header, chain)
   end
 
-  defp find_block(state, block_number) do
+  defp find_block(_state, block_number) do
     case Block.get_block(block_number, state) do
       {:ok, block} -> {:ok, block}
       _ -> %{error: "Block is not found"}
     end
   end
 
-  defp estimate_gas(state, transaction, gas, block_header, chain) do
+  defp estimate_gas(_state, transaction, gas, block_header, chain) do
     transaction = %{transaction | gas_limit: gas}
 
     {_repo, gas_used, receipt} =

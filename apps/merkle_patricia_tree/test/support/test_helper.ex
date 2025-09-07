@@ -168,7 +168,7 @@ defmodule MerklePatriciaTree.Test.Helper do
   def assert_trie_contains(trie, key, expected_value) do
     case MerklePatriciaTree.Trie.get(trie, key) do
       {:ok, actual_value} ->
-        unless actual_value == expected_value do
+        if actual_value != expected_value do
           raise "Trie value mismatch. Expected: #{inspect(expected_value)}, Got: #{inspect(actual_value)}"
         end
 

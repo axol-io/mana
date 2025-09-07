@@ -9,7 +9,7 @@ defmodule ExWire.LoadTest.Scenarios.StressTest do
   @doc """
   Test with increasing transaction rate until system fails.
   """
-  def high_transaction_rate(config) do
+  def high_transaction_rate(_config) do
     Logger.info("Testing high transaction rate")
 
     Enum.reduce_while(1..100, %{}, fn multiplier, _acc ->
@@ -30,7 +30,7 @@ defmodule ExWire.LoadTest.Scenarios.StressTest do
   @doc """
   Test with increasingly large blocks.
   """
-  def large_blocks(config) do
+  def large_blocks(_config) do
     Logger.info("Testing large block sizes")
 
     block_sizes = [100, 500, 1000, 2000, 5000]
@@ -58,7 +58,7 @@ defmodule ExWire.LoadTest.Scenarios.StressTest do
   @doc """
   Test state bloat with many accounts and storage.
   """
-  def state_bloat(config) do
+  def state_bloat(_config) do
     Logger.info("Testing state bloat")
 
     account_counts = [1000, 10_000, 100_000]
@@ -85,7 +85,7 @@ defmodule ExWire.LoadTest.Scenarios.StressTest do
   @doc """
   Test concurrent request handling.
   """
-  def concurrent_requests(config) do
+  def concurrent_requests(_config) do
     Logger.info("Testing concurrent requests")
 
     concurrency_levels = [10, 50, 100, 500, 1000]
@@ -116,7 +116,7 @@ defmodule ExWire.LoadTest.Scenarios.StressTest do
   @doc """
   Test memory pressure scenarios.
   """
-  def memory_pressure(config) do
+  def memory_pressure(_config) do
     Logger.info("Testing memory pressure")
 
     initial_memory = :erlang.memory(:total)
@@ -155,7 +155,7 @@ defmodule ExWire.LoadTest.Scenarios.StressTest do
 
   # Private helper functions
 
-  defp test_transaction_rate(config, tps, duration_ms) do
+  defp test_transaction_rate(_config, tps, duration_ms) do
     transactions_per_batch = max(1, round(tps / 10))
     batches = round(duration_ms / 100)
 

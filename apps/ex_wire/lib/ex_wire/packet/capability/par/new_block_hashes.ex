@@ -52,7 +52,7 @@ defmodule ExWire.Packet.Capability.Par.NewBlockHashes do
   """
   @impl true
   @spec serialize(t) :: ExRLP.t()
-  def serialize(packet = %__MODULE__{}) do
+  def serialize(_packet = %__MODULE__{}) do
     for {hash, number} <- packet.hashes, do: [hash, number]
   end
 
@@ -94,7 +94,7 @@ defmodule ExWire.Packet.Capability.Par.NewBlockHashes do
   """
   @impl true
   @spec handle(ExWire.Packet.packet()) :: ExWire.Packet.handle_response()
-  def handle(packet = %__MODULE__{}) do
+  def handle(_packet = %__MODULE__{}) do
     # Process new block hash announcements for Parity protocol
 
     require Logger

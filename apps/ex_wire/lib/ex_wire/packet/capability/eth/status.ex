@@ -33,7 +33,7 @@ defmodule ExWire.Packet.Capability.Eth.Status do
 
   @behaviour ExWire.Packet
 
-  @sync Application.compile_env(:ex_wire, :sync_mock, Sync)
+  # @sync Application.compile_env(:ex_wire, :sync_mock, Sync) # TODO: Unused attribute
   @network_id_to_chain_name %{
     0 => :olympic,
     1 => :foundation,
@@ -98,7 +98,7 @@ defmodule ExWire.Packet.Capability.Eth.Status do
   """
   @impl true
   @spec serialize(t) :: ExRLP.t()
-  def serialize(packet = %__MODULE__{}) do
+  def serialize(_packet = %__MODULE__{}) do
     [
       packet.protocol_version,
       packet.network_id,
@@ -145,7 +145,7 @@ defmodule ExWire.Packet.Capability.Eth.Status do
   """
   @impl true
   @spec handle(ExWire.Packet.packet()) :: ExWire.Packet.handle_response()
-  def handle(packet = %__MODULE__{}) do
+  def handle(_packet = %__MODULE__{}) do
     if packet.protocol_version == ExWire.Config.protocol_version() do
       Exth.trace(fn -> "[Packet] Got Status: #{inspect(packet)}" end)
 
@@ -170,7 +170,7 @@ defmodule ExWire.Packet.Capability.Eth.Status do
     end
   end
 
-  defp get_default_difficulty_genesis_hash_and_best_hash(packet) do
+  defp get_default_difficulty_genesis_hash_and_best_hash(_packet) do
     chain = Chain.load_chain(@network_id_to_chain_name[packet.network_id])
     {0, chain.genesis.parent_hash, chain.genesis.parent_hash}
   rescue

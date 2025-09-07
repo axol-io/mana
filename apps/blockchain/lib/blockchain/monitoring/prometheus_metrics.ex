@@ -116,7 +116,7 @@ defmodule Blockchain.Monitoring.PrometheusMetrics do
 
     Logger.info("[PrometheusMetrics] Initialized metrics registry")
 
-    {:ok, state}
+    {:ok, %{metrics_table: metrics_table, last_update: DateTime.utc_now()}}
   end
 
   @impl true

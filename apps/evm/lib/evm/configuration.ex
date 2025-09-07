@@ -93,4 +93,28 @@ defmodule EVM.Configuration do
         nil
     end
   end
+
+  @doc """
+  Returns the configuration for a given block number based on chain fork rules.
+  """
+  @spec for_block_number(non_neg_integer(), atom()) :: t()
+  def for_block_number(block_number, chain) do
+    # TODO: Implement proper fork logic based on chain and block number
+    # For now, return a default configuration
+    case chain do
+      :mainnet ->
+        cond do
+          block_number < 1_150_000 -> EVM.Configuration.Frontier.new()
+          block_number < 2_463_000 -> EVM.Configuration.Homestead.new()
+          block_number < 2_675_000 -> EVM.Configuration.TangerineWhistle.new()
+          block_number < 4_370_000 -> EVM.Configuration.SpuriousDragon.new()
+          block_number < 7_280_000 -> EVM.Configuration.Byzantium.new()
+          true -> EVM.Configuration.Constantinople.new()
+        end
+      
+      _ ->
+        # Default to latest for other chains
+        EVM.Configuration.Constantinople.new()
+    end
+  end
 end

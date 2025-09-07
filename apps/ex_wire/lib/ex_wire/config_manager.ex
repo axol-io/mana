@@ -159,46 +159,46 @@ defmodule ExWire.ConfigManager do
 
         {:ok, new_state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         {:stop, {:config_load_failed, reason}}
     end
   end
 
   @impl true
-  def handle_call({:get, key_path, default}, _from, state) do
+  def handle_call({:get, key_path, default}, _from, _state) do
     value = get_nested(state.config, key_path, default)
     {:reply, value, state}
   end
 
   @impl true
-  def handle_call({:set, key_path, value}, _from, state) do
+  def handle_call({:set, key_path, value}, _from, _state) do
     case validate_value(key_path, value, state.schema) do
       :ok ->
         new_config = put_nested(state.config, key_path, value)
-        new_state = %{state | config: new_config}
+        new_state = %{_state | _config: new_config}
         notify_watchers(key_path, value, state.watchers)
         {:reply, :ok, new_state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:update, updates}, _from, state) do
+  def handle_call({:update, updates}, _from, _state) do
     case apply_updates(state.config, updates, state.schema) do
       {:ok, new_config} ->
         new_state = %{state | config: new_config}
         notify_updates(updates, state.watchers)
         {:reply, :ok, new_state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:set_reload, enabled}, _from, state) do
+  def handle_call({:set_reload, enabled}, _from, _state) do
     if enabled and not state.reload_enabled do
       schedule_reload_check()
     end
@@ -207,56 +207,56 @@ defmodule ExWire.ConfigManager do
   end
 
   @impl true
-  def handle_call({:watch, key_path, callback}, _from, state) do
+  def handle_call({:watch, key_path, callback}, _from, _state) do
     watcher_id = generate_watcher_id()
     new_watchers = Map.put(state.watchers, watcher_id, {key_path, callback})
     {:reply, {:ok, watcher_id}, %{state | watchers: new_watchers}}
   end
 
   @impl true
-  def handle_call({:unwatch, watcher_id}, _from, state) do
+  def handle_call({:unwatch, watcher_id}, _from, _state) do
     new_watchers = Map.delete(state.watchers, watcher_id)
     {:reply, :ok, %{state | watchers: new_watchers}}
   end
 
   @impl true
-  def handle_call(:validate, _from, state) do
+  def handle_call(:validate, _from, _state) do
     result = validate_config(state.config, state.schema)
     {:reply, result, state}
   end
 
   @impl true
-  def handle_call({:export, file_path}, _from, state) do
+  def handle_call({:export, file_path}, _from, _state) do
     result = export_config(state.config, file_path)
     {:reply, result, state}
   end
 
   @impl true
-  def handle_call({:for_environment, env}, _from, state) do
+  def handle_call({:for_environment, env}, _from, _state) do
     config = apply_environment_overrides(state.config, env)
     {:reply, config, state}
   end
 
   @impl true
-  def handle_call(:current_environment, _from, state) do
+  def handle_call(:current_environment, _from, _state) do
     {:reply, state.environment, state}
   end
 
   @impl true
-  def handle_cast(:reload, state) do
+  def handle_cast(:reload, _state) do
     case load_configuration(state) do
       {:ok, new_state} ->
         Logger.info("Configuration reloaded successfully")
         {:noreply, new_state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Failed to reload configuration: #{inspect(reason)}")
         {:noreply, state}
     end
   end
 
   @impl true
-  def handle_info(:check_reload, state) do
+  def handle_info(:check_reload, _state) do
     if state.reload_enabled do
       case should_reload?(state) do
         true ->
@@ -264,7 +264,7 @@ defmodule ExWire.ConfigManager do
 
         false ->
           schedule_reload_check()
-          {:noreply, state}
+          {:noreply, _state}
       end
     else
       {:noreply, state}
@@ -273,10 +273,10 @@ defmodule ExWire.ConfigManager do
 
   # Private Functions
 
-  defp load_configuration(state) do
+  defp load_configuration(_state) do
     with {:ok, config_data} <- load_config_file(state.config_file),
          {:ok, schema_data} <- load_schema_file(@config_schema_file),
-         {:ok, config} <- parse_config(config_data),
+         {:ok, _config} <- parse_config(config_data),
          {:ok, schema} <- parse_schema(schema_data),
          :ok <- validate_config(config, schema),
          config <- apply_environment_overrides(config, state.environment) do
@@ -290,7 +290,7 @@ defmodule ExWire.ConfigManager do
     case File.read(file_path) do
       {:ok, content} -> {:ok, content}
       {:error, :enoent} -> create_default_config(file_path)
-      {:error, reason} -> {:error, {:file_read_error, reason}}
+      {:error, _reason} -> {:error, {:file_read_error, reason}}
     end
   end
 
@@ -298,14 +298,14 @@ defmodule ExWire.ConfigManager do
     case File.read(file_path) do
       {:ok, content} -> {:ok, content}
       {:error, :enoent} -> {:ok, default_schema()}
-      {:error, reason} -> {:error, {:schema_read_error, reason}}
+      {:error, _reason} -> {:error, {:schema_read_error, reason}}
     end
   end
 
   defp parse_config(data) do
     case YamlElixir.read_from_string(data) do
-      {:ok, config} -> {:ok, atomize_keys(config)}
-      {:error, reason} -> {:error, {:config_parse_error, reason}}
+      {:ok, _config} -> {:ok, atomize_keys(config)}
+      {:error, _reason} -> {:error, {:config_parse_error, reason}}
     end
   end
 
@@ -316,7 +316,7 @@ defmodule ExWire.ConfigManager do
     end
   end
 
-  defp validate_config(config, schema) do
+  defp validate_config(_config, schema) do
     # Implement schema validation
     :ok
   end
@@ -328,7 +328,7 @@ defmodule ExWire.ConfigManager do
     :ok
   end
 
-  defp apply_environment_overrides(config, environment) do
+  defp apply_environment_overrides(_config, environment) do
     env_file = "config/#{environment}.yml"
 
     case File.read(env_file) do
@@ -346,14 +346,14 @@ defmodule ExWire.ConfigManager do
     end
   end
 
-  defp apply_updates(config, updates, schema) do
-    Enum.reduce_while(updates, {:ok, config}, fn {key_path, value}, {:ok, acc} ->
+  defp apply_updates(_config, updates, schema) do
+    Enum.reduce_while(updates, {:ok, _config}, fn {key_path, value}, {:ok, acc} ->
       case validate_value(key_path, value, schema) do
         :ok ->
           {:cont, {:ok, put_nested(acc, key_path, value)}}
 
-        {:error, reason} ->
-          {:halt, {:error, reason}}
+        {:error, _reason} ->
+          {:halt, {:error, _reason}}
       end
     end)
   end
@@ -427,7 +427,7 @@ defmodule ExWire.ConfigManager do
   defp should_reload?(state) do
     case get_file_modified_time(state.config_file) do
       nil -> false
-      modified -> modified > state.last_modified
+      modified -> modified > _state.last_modified
     end
   end
 
@@ -446,7 +446,7 @@ defmodule ExWire.ConfigManager do
     :crypto.strong_rand_bytes(16) |> Base.encode16()
   end
 
-  defp export_config(config, file_path) do
+  defp export_config(_config, file_path) do
     yaml_content = YamlElixir.encode!(config)
     File.write(file_path, yaml_content)
   end

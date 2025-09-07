@@ -184,7 +184,7 @@ defmodule ExWire.Eth2.PruningStrategies do
   3. Archive ancient blocks to cold storage
   4. Remove blocks that are definitely not needed
   """
-  def prune_block_storage(block_store, finalized_slot, config, _opts \\ []) do
+  def prune_block_storage(block_store, finalized_slot, _config, _opts \\ []) do
     Logger.info("Starting block storage pruning for finalized slot #{finalized_slot}")
 
     archive_mode = Map.get(config, :archive_mode, false)
@@ -243,7 +243,7 @@ defmodule ExWire.Eth2.PruningStrategies do
   3. Compressing old logs before archival
   4. Maintaining address-based indexes for queries
   """
-  def prune_execution_logs(log_store, finalized_slot, config, opts \\ []) do
+  def prune_execution_logs(log_store, finalized_slot, _config, opts \\ []) do
     Logger.info("Starting execution layer log pruning")
 
     # ~1 month
@@ -385,7 +385,7 @@ defmodule ExWire.Eth2.PruningStrategies do
     |> Task.async_stream(
       fn slot ->
         case get_state_by_slot(state_store, slot) do
-          {:ok, state} -> extract_trie_nodes(state)
+          {:ok, _state} -> extract_trie_nodes(state)
           _ -> MapSet.new()
         end
       end,
@@ -400,7 +400,7 @@ defmodule ExWire.Eth2.PruningStrategies do
     start_slot..end_slot
     |> Enum.reduce(MapSet.new(), fn slot, acc ->
       case get_state_by_slot(state_store, slot) do
-        {:ok, state} ->
+        {:ok, _state} ->
           nodes = extract_trie_nodes(state)
           MapSet.union(acc, nodes)
 

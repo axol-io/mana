@@ -110,7 +110,7 @@ defmodule ExWire.Layer2.Bridge.MessageQueue do
   Marks a message as failed and potentially retries.
   """
   @spec fail(t(), String.t(), term()) :: {:ok, t()} | {:error, :not_found}
-  def fail(queue, message_id, reason) do
+  def fail(queue, message_id, _reason) do
     case Map.get(queue.processing, message_id) do
       nil ->
         {:error, :not_found}

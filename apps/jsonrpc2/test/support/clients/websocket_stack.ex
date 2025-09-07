@@ -10,7 +10,7 @@ defmodule JSONRPC2.Clients.WebSocketStack do
     GenServer.call(pid, {:batch, methods})
   end
 
-  def init(state = %{port: port}) do
+  def init(_state = %{port: port}) do
     {:ok, connection} = WebSocket.start_link("ws://localhost:#{port}/ws")
     {:ok, Map.put(state, :connection, connection)}
   end
@@ -18,7 +18,7 @@ defmodule JSONRPC2.Clients.WebSocketStack do
   def handle_call(
         {:call, method, args},
         _from,
-        state = %{connection: pid, external_request_id: external_request_id}
+        _state = %{connection: pid, external_request_id: external_request_id}
       ) do
     :ok = WebSocket.call(pid, method, args, external_request_id)
 
@@ -31,7 +31,7 @@ defmodule JSONRPC2.Clients.WebSocketStack do
   def handle_call(
         {:batch, methods},
         _from,
-        state = %{connection: pid, external_request_id: external_request_id}
+        _state = %{connection: pid, external_request_id: external_request_id}
       ) do
     :ok = WebSocket.batch(pid, methods, external_request_id)
 

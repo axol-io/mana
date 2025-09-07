@@ -174,7 +174,7 @@ defmodule ExWire.Handshake do
 
         {:ok, updated_handshake, secrets, frame_rest}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("[Handshake] Failed to read ACK response: #{inspect(reason)}")
         {:invalid, reason}
     end
@@ -222,7 +222,7 @@ defmodule ExWire.Handshake do
 
         {:ok, resp_handshake, secrets}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("[Handshake] Failed to read auth message: #{inspect(reason)}")
         {:invalid, reason}
     end
@@ -327,7 +327,7 @@ defmodule ExWire.Handshake do
           Logger.debug("[Handshake] Successfully decrypted plain auth message")
           {:ok, auth_msg, <<>>}
         else
-          {:error, reason} ->
+          {:error, _reason} ->
             Logger.error("[Handshake] Failed to decrypt plain auth message: #{inspect(reason)}")
             {:error, :invalid_ECIES_encoded_message}
         end
@@ -354,7 +354,7 @@ defmodule ExWire.Handshake do
 
         {:ok, ack_resp, ack_resp_bin, frame_rest}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         # EIP-8 decoding failed, try plain format
         Logger.debug("EIP-8 unwrap failed: #{inspect(reason)}, trying plain format")
 

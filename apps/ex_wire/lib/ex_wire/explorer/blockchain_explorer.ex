@@ -177,37 +177,37 @@ defmodule ExWire.Explorer.BlockchainExplorer do
       "[BlockchainExplorer] Started successfully on http://#{config.interface}:#{config.port}"
     )
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl GenServer
-  def handle_call(:get_config, _from, state) do
+  def handle_call(:get_config, _from, _state) do
     {:reply, state.config, state}
   end
 
   @impl GenServer
-  def handle_call({:get_latest_blocks, count}, _from, state) do
+  def handle_call({:get_latest_blocks, count}, _from, _state) do
     # Generate sample block data (in real implementation, would fetch from blockchain)
     blocks = generate_sample_blocks(count)
     {:reply, blocks, state}
   end
 
   @impl GenServer
-  def handle_call({:get_transaction_details, tx_hash}, _from, state) do
+  def handle_call({:get_transaction_details, tx_hash}, _from, _state) do
     # Generate sample transaction with CRDT operations
     transaction = generate_sample_transaction(tx_hash)
     {:reply, transaction, state}
   end
 
   @impl GenServer
-  def handle_call({:get_account_info, address}, _from, state) do
+  def handle_call({:get_account_info, address}, _from, _state) do
     # Generate sample account info with multi-datacenter data
     account_info = generate_sample_account(address)
     {:reply, account_info, state}
   end
 
   @impl GenServer
-  def handle_call(:get_consensus_visualization, _from, state) do
+  def handle_call(:get_consensus_visualization, _from, _state) do
     try do
       # Get real consensus data
       consensus_status = CRDTConsensusManager.get_consensus_status()
@@ -230,7 +230,7 @@ defmodule ExWire.Explorer.BlockchainExplorer do
   end
 
   @impl GenServer
-  def handle_call(:get_performance_metrics, _from, state) do
+  def handle_call(:get_performance_metrics, _from, _state) do
     metrics = %{
       transactions_per_second: 1250.5,
       block_time: 12.3,
@@ -251,14 +251,14 @@ defmodule ExWire.Explorer.BlockchainExplorer do
   end
 
   @impl GenServer
-  def handle_call({:search, query, filters}, _from, state) do
+  def handle_call({:search, query, filters}, _from, _state) do
     # Implement blockchain search with filters
     results = perform_search(query, filters)
     {:reply, results, state}
   end
 
   @impl GenServer
-  def handle_cast({:update_config, updates}, state) do
+  def handle_cast({:update_config, updates}, _state) do
     new_config = Map.merge(state.config, updates)
     new_state = %{state | config: new_config}
 
@@ -269,7 +269,7 @@ defmodule ExWire.Explorer.BlockchainExplorer do
 
   # Private functions
 
-  defp start_web_server(config) do
+  defp start_web_server(_config) do
     # Start web server (Cowboy/Plug-based)
     web_server_config = [
       port: config.port,
@@ -282,7 +282,7 @@ defmodule ExWire.Explorer.BlockchainExplorer do
     Task.start_link(fn -> web_server_loop(web_server_config) end)
   end
 
-  defp start_api_server(config) do
+  defp start_api_server(_config) do
     # Start REST API server
     api_config = [
       port: config.port + 1,
@@ -293,7 +293,7 @@ defmodule ExWire.Explorer.BlockchainExplorer do
     Task.start_link(fn -> api_server_loop(api_config) end)
   end
 
-  defp start_realtime_server(config) do
+  defp start_realtime_server(_config) do
     # Start WebSocket server for real-time updates
     realtime_config = [
       port: config.port + 2,
@@ -303,45 +303,45 @@ defmodule ExWire.Explorer.BlockchainExplorer do
     Task.start_link(fn -> realtime_server_loop(realtime_config) end)
   end
 
-  defp start_crdt_visualizer(config) do
+  defp start_crdt_visualizer(_config) do
     # Start CRDT visualization engine
     Task.start_link(fn -> crdt_visualizer_loop(config) end)
   end
 
-  defp start_performance_monitor(config) do
+  defp start_performance_monitor(_config) do
     # Start performance monitoring
     Task.start_link(fn -> performance_monitor_loop(config) end)
   end
 
-  defp web_server_loop(config) do
+  defp web_server_loop(_config) do
     Logger.debug("[BlockchainExplorer] Web server running on port #{config[:port]}")
     # Placeholder for actual web server implementation
     Process.sleep(60_000)
     web_server_loop(config)
   end
 
-  defp api_server_loop(config) do
+  defp api_server_loop(_config) do
     Logger.debug("[BlockchainExplorer] API server running on port #{config[:port]}")
     # Placeholder for actual API server implementation
     Process.sleep(60_000)
     api_server_loop(config)
   end
 
-  defp realtime_server_loop(config) do
+  defp realtime_server_loop(_config) do
     Logger.debug("[BlockchainExplorer] Realtime server running on port #{config[:port]}")
     # Placeholder for WebSocket server implementation
     Process.sleep(60_000)
     realtime_server_loop(config)
   end
 
-  defp crdt_visualizer_loop(config) do
+  defp crdt_visualizer_loop(_config) do
     Logger.debug("[BlockchainExplorer] CRDT visualizer active")
     # Placeholder for CRDT visualization engine
     Process.sleep(30_000)
     crdt_visualizer_loop(config)
   end
 
-  defp performance_monitor_loop(config) do
+  defp performance_monitor_loop(_config) do
     Logger.debug("[BlockchainExplorer] Performance monitor active")
     # Placeholder for performance monitoring
     Process.sleep(30_000)

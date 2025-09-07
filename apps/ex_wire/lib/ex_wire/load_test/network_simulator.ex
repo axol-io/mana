@@ -194,25 +194,25 @@ defmodule ExWire.LoadTest.NetworkSimulator do
     {:ok, initial_conditions}
   end
 
-  def handle_call({:add_latency, latency_ms}, _from, state) do
+  def handle_call({:add_latency, latency_ms}, _from, _state) do
     new_state = %{state | latency_ms: state.latency_ms + latency_ms}
     Logger.info("Added #{latency_ms}ms latency. Total: #{new_state.latency_ms}ms")
     {:reply, :ok, new_state}
   end
 
-  def handle_call({:set_packet_loss, rate}, _from, state) do
+  def handle_call({:set_packet_loss, rate}, _from, _state) do
     new_state = %{state | packet_loss_rate: rate}
     Logger.info("Set packet loss rate to #{rate * 100}%")
     {:reply, :ok, new_state}
   end
 
-  def handle_call({:limit_bandwidth, bandwidth_mbps}, _from, state) do
+  def handle_call({:limit_bandwidth, bandwidth_mbps}, _from, _state) do
     new_state = %{state | bandwidth_mbps: bandwidth_mbps}
     Logger.info("Limited bandwidth to #{bandwidth_mbps} Mbps")
     {:reply, :ok, new_state}
   end
 
-  def handle_call({:partition_network, duration_ms}, _from, state) do
+  def handle_call({:partition_network, duration_ms}, _from, _state) do
     new_state = %{state | partition_active: true}
     Logger.info("Network partition activated for #{duration_ms}ms")
 
@@ -234,7 +234,7 @@ defmodule ExWire.LoadTest.NetworkSimulator do
     {:reply, :ok, new_state}
   end
 
-  def handle_call({:geographic_distribution, profile}, _from, state) do
+  def handle_call({:geographic_distribution, profile}, _from, _state) do
     {min_latency, max_latency} = Map.get(@geographic_profiles, profile, {0, 10})
 
     new_state = %{
@@ -247,11 +247,11 @@ defmodule ExWire.LoadTest.NetworkSimulator do
     {:reply, :ok, new_state}
   end
 
-  def handle_call(:get_conditions, _from, state) do
+  def handle_call(:get_conditions, _from, _state) do
     {:reply, state, state}
   end
 
-  def handle_info(:end_partition, state) do
+  def handle_info(:end_partition, _state) do
     Logger.info("Network partition ended")
     {:noreply, %{state | partition_active: false}}
   end
@@ -332,7 +332,7 @@ defmodule ExWire.LoadTest.NetworkSimulator.Middleware do
   @doc """
   Simulate RPC request with network conditions.
   """
-  def rpc_request_with_simulation(endpoint, method, params) do
+  def rpc_request_with_simulation(endpoint, method, _params) do
     NetworkSimulator.simulate_network_operation(fn ->
       # Actual RPC implementation would go here
       {:ok, %{jsonrpc: "2.0", result: :mock_result}}

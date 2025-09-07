@@ -13,13 +13,13 @@ defmodule ExWire.NodeDiscoverySupervisor do
   alias ExWire.Network
   alias ExWire.Struct.Endpoint
 
-  def start_link(params \\ []) do
+  def start_link(_params \\ []) do
     supervisor_name = Keyword.get(params, :supervisor_name, __MODULE__)
 
     Supervisor.start_link(__MODULE__, params, name: supervisor_name)
   end
 
-  def init(params) do
+  def init(_params) do
     {udp_module, udp_process_name} = Config.udp_network_adapter(params)
     port = Config.listen_port(params)
 
@@ -60,7 +60,7 @@ defmodule ExWire.NodeDiscoverySupervisor do
   end
 
   @spec current_node(Keyword.t()) :: ExWire.Kademlia.Node.t()
-  def current_node(params) do
+  def current_node(_params) do
     udp_port = Config.listen_port(params)
     public_ip = Config.public_ip(params)
     public_key = Config.node_id()

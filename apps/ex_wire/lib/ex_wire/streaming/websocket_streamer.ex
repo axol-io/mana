@@ -148,11 +148,11 @@ defmodule ExWire.Streaming.WebSocketStreamer do
 
     Logger.info("[WebSocketStreamer] Started successfully on port #{port}")
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl GenServer
-  def handle_cast({:broadcast_event, event_type, data, datacenter}, state) do
+  def handle_cast({:broadcast_event, event_type, data, datacenter}, _state) do
     # Create stream event
     stream_event = create_stream_event(event_type, data, datacenter)
 
@@ -169,7 +169,7 @@ defmodule ExWire.Streaming.WebSocketStreamer do
         # Broadcast to subscribers
         broadcast_to_subscribers(event_type, stream_event, state)
 
-        new_state = %{state | event_buffer: trimmed_buffer, deduplication_cache: new_cache}
+        new_state = %{_state | event_buffer: trimmed_buffer, deduplication_cache: new_cache}
 
         {:noreply, new_state}
 
@@ -180,7 +180,7 @@ defmodule ExWire.Streaming.WebSocketStreamer do
   end
 
   @impl GenServer
-  def handle_cast({:client_connected, client_id, socket, metadata}, state) do
+  def handle_cast({:client_connected, client_id, socket, metadata}, _state) do
     if map_size(state.active_connections) >= @max_connections do
       # Close connection if at capacity
       Logger.warning("[WebSocketStreamer] Max connections reached, rejecting client #{client_id}")
@@ -209,7 +209,7 @@ defmodule ExWire.Streaming.WebSocketStreamer do
   end
 
   @impl GenServer
-  def handle_cast({:client_subscription, client_id, event_types, filters}, state) do
+  def handle_cast({:client_subscription, client_id, event_types, filters}, _state) do
     case Map.get(state.active_connections, client_id) do
       nil ->
         Logger.warning("[WebSocketStreamer] Subscription from unknown client #{client_id}")
@@ -255,10 +255,10 @@ defmodule ExWire.Streaming.WebSocketStreamer do
   end
 
   @impl GenServer
-  def handle_cast({:disconnect_client, client_id}, state) do
+  def handle_cast({:disconnect_client, client_id}, _state) do
     case Map.get(state.active_connections, client_id) do
       nil ->
-        {:noreply, state}
+        {:noreply, _state}
 
       client_connection ->
         # Remove from event subscribers
@@ -283,7 +283,7 @@ defmodule ExWire.Streaming.WebSocketStreamer do
   end
 
   @impl GenServer
-  def handle_call(:get_statistics, _from, state) do
+  def handle_call(:get_statistics, _from, _state) do
     stats = %{
       active_connections: map_size(state.active_connections),
       total_subscriptions: count_total_subscriptions(state.event_subscribers),
@@ -298,13 +298,13 @@ defmodule ExWire.Streaming.WebSocketStreamer do
   end
 
   @impl GenServer
-  def handle_call(:get_active_connections, _from, state) do
+  def handle_call(:get_active_connections, _from, _state) do
     connections = Map.values(state.active_connections)
     {:reply, connections, state}
   end
 
   @impl GenServer
-  def handle_info(:heartbeat_check, state) do
+  def handle_info(:heartbeat_check, _state) do
     current_time = System.system_time(:millisecond)
     timeout_threshold = current_time - @heartbeat_interval * 2
 
@@ -341,7 +341,7 @@ defmodule ExWire.Streaming.WebSocketStreamer do
   end
 
   @impl GenServer
-  def handle_info(:performance_monitoring, state) do
+  def handle_info(:performance_monitoring, _state) do
     # Collect and log performance metrics
     metrics = %{
       active_connections: map_size(state.active_connections),
@@ -357,7 +357,7 @@ defmodule ExWire.Streaming.WebSocketStreamer do
   end
 
   @impl GenServer
-  def handle_info(:cleanup_deduplication, state) do
+  def handle_info(:cleanup_deduplication, _state) do
     current_time = System.system_time(:millisecond)
     cutoff_time = current_time - @deduplication_window_ms
 
@@ -392,7 +392,7 @@ defmodule ExWire.Streaming.WebSocketStreamer do
     }
   end
 
-  defp should_deduplicate_event(stream_event, state) do
+  defp should_deduplicate_event(stream_event, _state) do
     Map.has_key?(state.deduplication_cache, stream_event.event_id)
   end
 
@@ -409,7 +409,7 @@ defmodule ExWire.Streaming.WebSocketStreamer do
     end
   end
 
-  defp broadcast_to_subscribers(event_type, stream_event, state) do
+  defp broadcast_to_subscribers(event_type, stream_event, _state) do
     case Map.get(state.event_subscribers, event_type, []) do
       [] ->
         :ok
@@ -420,7 +420,7 @@ defmodule ExWire.Streaming.WebSocketStreamer do
 
         # Send event to each subscriber
         Enum.each(filtered_subscribers, fn client_id ->
-          case Map.get(state.active_connections, client_id) do
+          case Map.get(_state.active_connections, client_id) do
             nil ->
               Logger.warning(
                 "[WebSocketStreamer] Subscriber #{client_id} not found in active connections"
@@ -437,7 +437,7 @@ defmodule ExWire.Streaming.WebSocketStreamer do
     end
   end
 
-  defp filter_subscribers_for_event(subscribers, stream_event, state) do
+  defp filter_subscribers_for_event(subscribers, stream_event, _state) do
     Enum.filter(subscribers, fn client_id ->
       case Map.get(state.active_connections, client_id) do
         nil ->

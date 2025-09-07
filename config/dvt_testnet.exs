@@ -7,8 +7,9 @@ import Config
 config :ex_wire, :dvt,
   # Testnet environment settings
   environment: :testnet,
-  network: :hoodi,  # Primary testnet for DVT validation
-  
+  # Primary testnet for DVT validation
+  network: :hoodi,
+
   # DVT Cluster Settings
   cluster_config: %{
     default_threshold: 3,
@@ -18,44 +19,53 @@ config :ex_wire, :dvt,
     auto_recovery_enabled: true,
     max_recovery_attempts: 5
   },
-  
+
   # Communication Settings (Phase 3)
   p2p_config: %{
     listen_port: 9000,
     discovery_enabled: true,
     max_peers: 50,
-    heartbeat_interval: 5_000,  # 5 seconds
-    message_timeout: 30_000     # 30 seconds
+    # 5 seconds
+    heartbeat_interval: 5_000,
+    # 30 seconds
+    message_timeout: 30_000
   },
-  
+
   # Authentication Settings
   auth_config: %{
     key_type: :ed25519,
-    replay_window_seconds: 300,  # 5 minutes
+    # 5 minutes
+    replay_window_seconds: 300,
     max_clock_skew_seconds: 30,
     sequence_gap_threshold: 100
   },
-  
+
   # Partition Detection Settings
   partition_config: %{
-    heartbeat_timeout: 15_000,      # 15 seconds
-    consensus_timeout: 30_000,      # 30 seconds
-    partition_threshold: 0.33,      # 33% unreachable = partition
-    recovery_probe_interval: 5_000, # 5 seconds
+    # 15 seconds
+    heartbeat_timeout: 15_000,
+    # 30 seconds
+    consensus_timeout: 30_000,
+    # 33% unreachable = partition
+    partition_threshold: 0.33,
+    # 5 seconds
+    recovery_probe_interval: 5_000,
     auto_recovery: true
   },
-  
+
   # GossipSub Optimization
   gossipsub_config: %{
     mesh_degree: 6,
     mesh_degree_low: 4,
     mesh_degree_high: 8,
     gossip_lazy: 3,
-    heartbeat_interval: 500,        # 500ms for low latency
-    fanout_ttl: 30_000,            # 30 seconds
+    # 500ms for low latency
+    heartbeat_interval: 500,
+    # 30 seconds
+    fanout_ttl: 30_000,
     message_cache_size: 1000
   },
-  
+
   # Performance Monitoring
   monitoring_config: %{
     metrics_enabled: true,
@@ -69,7 +79,7 @@ config :ex_wire, :dvt,
 config :blockchain,
   # Multi-testnet configuration - supports hoodi, ephemery, kurtosis
   network: :hoodi,
-  
+
   # Network-specific configurations
   networks: %{
     hoodi: %{
@@ -81,7 +91,8 @@ config :blockchain,
       ]
     },
     ephemery: %{
-      chain_id: 39438000,  # Ephemery chain ID
+      # Ephemery chain ID
+      chain_id: 39_438_000,
       genesis_hash: "0x4b363db94e286120d76eb905340fdd4e54bfe9f06bf33ff6cf5ad27f511bfe95",
       beacon_nodes: [
         "https://ephemery-beacon.pk910.de",
@@ -89,30 +100,37 @@ config :blockchain,
       ]
     },
     kurtosis: %{
-      chain_id: 3151908,  # Local kurtosis network
+      # Local kurtosis network
+      chain_id: 3_151_908,
       genesis_hash: "0x83c7e1b0a85065c0f3c2f7c0e8e0c7e0f3c2f7c0e8e0c7e0f3c2f7c0e8e0c7e0",
       beacon_nodes: [
-        "http://localhost:4000",  # Local kurtosis beacon node
+        # Local kurtosis beacon node
+        "http://localhost:4000",
         "http://localhost:4001"
       ]
     }
   },
-  
+
   # Validator settings for DVT
   validator_config: %{
     # DVT-specific validator settings
     distributed_validation: true,
     threshold_signatures: true,
     slashing_protection: :enhanced,
-    
+
     # Beacon chain endpoints - dynamically selected based on network
-    beacon_nodes: :dynamic,  # Will be set based on networks config above
-    
+    # Will be set based on networks config above
+    beacon_nodes: :dynamic,
+
     # DVT coordination settings
-    duty_lookahead: 2,  # slots
-    attestation_deadline: 4000,  # ms
-    proposal_deadline: 1000,     # ms
-    sync_committee_deadline: 500 # ms
+    # slots
+    duty_lookahead: 2,
+    # ms
+    attestation_deadline: 4000,
+    # ms
+    proposal_deadline: 1000,
+    # ms
+    sync_committee_deadline: 500
   }
 
 # Database Configuration for DVT State
@@ -141,9 +159,10 @@ config :ex_wire, :enterprise,
       aggregator: [:attest, :sync_committee, :aggregate],
       proposer: [:attest, :sync_committee, :aggregate, :propose]
     },
-    session_timeout: 3600  # 1 hour
+    # 1 hour
+    session_timeout: 3600
   },
-  
+
   # Audit logging for testnet operations
   audit_config: %{
     enabled: true,
@@ -152,10 +171,11 @@ config :ex_wire, :enterprise,
     retention_days: 30,
     sensitive_data_masking: true
   },
-  
+
   # HSM integration (testnet uses software HSM)
   hsm_config: %{
-    provider: :software_hsm,  # For testnet - production would use hardware
+    # For testnet - production would use hardware
+    provider: :software_hsm,
     key_derivation: :bip32,
     backup_enabled: true,
     backup_locations: [
@@ -172,17 +192,17 @@ config :ex_wire,
       "/ip4/0.0.0.0/tcp/9000",
       "/ip6/::/tcp/9000"
     ],
-    
+
     # Testnet bootstrap nodes
     bootstrap_nodes: [
       "/ip4/18.138.108.67/tcp/9000/p2p/16Uiu2HAm7Qwe19vz9WzD2Mxn7fXd1vgHHp4iccuyq7TxwRXoAGfc",
       "/ip4/18.218.102.47/tcp/9000/p2p/16Uiu2HAmA9xa5e_Sfqy7xHqB7se8a7uqvpZqwmcDOKJMXhRf1YwM"
     ],
-    
+
     # Discovery settings
     mdns_enabled: true,
     dht_enabled: true,
-    
+
     # Security settings
     noise_handshake: true,
     yamux_multiplexing: true
@@ -210,7 +230,7 @@ config :jsonrpc2,
     {"dvt_joinCluster", ExWire.DVT.API.JoinCluster},
     {"dvt_leaveCluster", ExWire.DVT.API.LeaveCluster}
   ],
-  
+
   # Security settings for API
   cors_enabled: true,
   rate_limiting: %{
@@ -227,7 +247,7 @@ config :telemetry_poller,
     {ExWire.DVT.Telemetry, :consensus_latency, []},
     {ExWire.DVT.Telemetry, :partition_events, []},
     {ExWire.DVT.Telemetry, :message_throughput, []},
-    
+
     # System metrics
     {:process_info, event: [:memory, :message_queue_len]},
     {__MODULE__, :dispatch_system_metrics, []}
@@ -235,8 +255,7 @@ config :telemetry_poller,
   period: :timer.seconds(10)
 
 # Prometheus metrics export
-config :prometheus, :instrumenters,
-  [ExWire.DVT.PrometheusInstrumenter]
+config :prometheus, :instrumenters, [ExWire.DVT.PrometheusInstrumenter]
 
 # Development/Testing Overrides
 if Mix.env() == :dev do
@@ -257,7 +276,7 @@ if Mix.env() == :test do
       consensus_timeout: 2_000,
       recovery_probe_interval: 500
     },
-    
+
     # Disable external dependencies
     p2p_config: %{
       discovery_enabled: false,

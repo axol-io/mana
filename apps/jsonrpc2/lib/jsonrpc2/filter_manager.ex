@@ -73,11 +73,11 @@ defmodule JSONRPC2.FilterManager do
     # Schedule periodic cleanup
     schedule_cleanup()
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:new_filter, type, params}, _from, state) do
+  def handle_call({:new_filter, type, _params}, _from, _state) do
     filter_id = generate_filter_id(state.next_id)
 
     filter = %{
@@ -97,10 +97,10 @@ defmodule JSONRPC2.FilterManager do
   end
 
   @impl true
-  def handle_call({:uninstall_filter, filter_id}, _from, state) do
+  def handle_call({:uninstall_filter, filter_id}, _from, _state) do
     case Map.get(state.filters, filter_id) do
       nil ->
-        {:reply, false, state}
+        {:reply, false, _state}
 
       _filter ->
         new_filters = Map.delete(state.filters, filter_id)
@@ -109,7 +109,7 @@ defmodule JSONRPC2.FilterManager do
   end
 
   @impl true
-  def handle_call({:get_filter_changes, filter_id}, _from, state) do
+  def handle_call({:get_filter_changes, filter_id}, _from, _state) do
     case Map.get(state.filters, filter_id) do
       nil ->
         {:reply, {:error, :filter_not_found}, state}
@@ -133,7 +133,7 @@ defmodule JSONRPC2.FilterManager do
   end
 
   @impl true
-  def handle_call({:get_filter_logs, filter_id}, _from, state) do
+  def handle_call({:get_filter_logs, filter_id}, _from, _state) do
     case Map.get(state.filters, filter_id) do
       nil ->
         {:reply, {:error, :filter_not_found}, state}
@@ -155,7 +155,7 @@ defmodule JSONRPC2.FilterManager do
   end
 
   @impl true
-  def handle_info(:cleanup, state) do
+  def handle_info(:cleanup, _state) do
     # Remove expired filters
     current_time = System.system_time(:second)
     timeout_seconds = div(state.timeout_ms, 1000)
@@ -219,7 +219,7 @@ defmodule JSONRPC2.FilterManager do
     []
   end
 
-  defp get_changes_for_filter(%{type: :log, params: params} = filter) do
+  defp get_changes_for_filter(%{type: :log, params: _params} = filter) do
     # Get logs that match the filter since last poll
     sync_data = JSONRPC2.Bridge.Sync.last_sync_state()
 
@@ -236,7 +236,7 @@ defmodule JSONRPC2.FilterManager do
     end
   end
 
-  defp get_all_logs_for_filter(params) do
+  defp get_all_logs_for_filter(_params) do
     sync_data = JSONRPC2.Bridge.Sync.last_sync_state()
 
     case JSONRPC2.SpecHandler.LogsFilter.filter_logs(params, sync_data.trie) do

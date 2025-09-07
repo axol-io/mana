@@ -147,43 +147,6 @@ defmodule ExWire.Eth2.AttestationData do
   ]
 end
 
-defmodule ExWire.Eth2.Checkpoint do
-  @moduledoc """
-  Checkpoint for finality.
-  """
-
-  defstruct [
-    :epoch,
-    :root
-  ]
-end
-
-defmodule ExWire.Eth2.ExecutionPayload do
-  @moduledoc """
-  Execution layer payload in a beacon block.
-  """
-
-  defstruct [
-    :parent_hash,
-    :fee_recipient,
-    :state_root,
-    :receipts_root,
-    :logs_bloom,
-    :prev_randao,
-    :block_number,
-    :gas_limit,
-    :gas_used,
-    :timestamp,
-    :extra_data,
-    :base_fee_per_gas,
-    :block_hash,
-    :transactions,
-    :withdrawals,
-    :blob_gas_used,
-    :excess_blob_gas
-  ]
-end
-
 defmodule ExWire.Eth2.ExecutionPayloadHeader do
   @moduledoc """
   Header of an execution payload for light clients.
@@ -231,17 +194,6 @@ defmodule ExWire.Eth2.SyncAggregate do
   defstruct [
     :sync_committee_bits,
     :sync_committee_signature
-  ]
-end
-
-defmodule ExWire.Eth2.SyncCommittee do
-  @moduledoc """
-  Sync committee for light client support.
-  """
-
-  defstruct [
-    :pubkeys,
-    :aggregate_pubkey
   ]
 end
 
@@ -502,21 +454,6 @@ defmodule ExWire.Eth2.SignedContributionAndProof do
   defstruct [
     :message,
     :signature
-  ]
-end
-
-defmodule ExWire.Eth2.BlobSidecar do
-  @moduledoc """
-  Blob sidecar for EIP-4844.
-  """
-
-  defstruct [
-    :index,
-    :blob,
-    :kzg_commitment,
-    :kzg_proof,
-    :signed_block_header,
-    :kzg_commitment_inclusion_proof
   ]
 end
 

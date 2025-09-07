@@ -51,7 +51,7 @@ defmodule ExWire.Packet.Capability.Eth.Transactions do
   """
   @impl true
   @spec serialize(t) :: ExRLP.t()
-  def serialize(packet = %__MODULE__{}) do
+  def serialize(_packet = %__MODULE__{}) do
     Enum.map(packet.transactions, &Blockchain.Transaction.serialize/1)
   end
 
@@ -91,7 +91,7 @@ defmodule ExWire.Packet.Capability.Eth.Transactions do
   """
   @impl true
   @spec handle(ExWire.Packet.packet()) :: :ok
-  def handle(packet = %__MODULE__{}) do
+  def handle(_packet = %__MODULE__{}) do
     _ =
       Logger.debug(fn ->
         "[Packet] Peer sent #{Enum.count(packet.transactions)} transaction(s)."

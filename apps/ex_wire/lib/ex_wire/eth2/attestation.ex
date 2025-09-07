@@ -51,7 +51,7 @@ defmodule ExWire.Eth2.Attestation.Operations do
   Validates an attestation against the beacon state.
   """
   @spec validate_attestation(BeaconState.t(), Attestation.t()) :: :ok | {:error, term()}
-  def validate_attestation(state, attestation) do
+  def validate_attestation(_state, attestation) do
     with :ok <- validate_structure(attestation),
          :ok <- validate_attestation_slot(state, attestation),
          :ok <- validate_committee_index(state, attestation),
@@ -65,10 +65,10 @@ defmodule ExWire.Eth2.Attestation.Operations do
   """
   @spec process_attestation(BeaconState.t(), Attestation.t()) ::
           {:ok, BeaconState.t()} | {:error, term()}
-  def process_attestation(state, attestation) do
+  def process_attestation(_state, attestation) do
     case validate_attestation(state, attestation) do
       :ok ->
-        new_state = update_participation(state, attestation)
+        new_state = update_participation(_state, attestation)
         {:ok, new_state}
 
       error ->
@@ -104,7 +104,7 @@ defmodule ExWire.Eth2.Attestation.Operations do
   @spec get_beacon_committee(BeaconState.t(), non_neg_integer(), non_neg_integer()) :: [
           non_neg_integer()
         ]
-  def get_beacon_committee(state, slot, committee_index) do
+  def get_beacon_committee(_state, slot, committee_index) do
     epoch = div(slot, @slots_per_epoch)
 
     committees_per_slot =
@@ -195,7 +195,7 @@ defmodule ExWire.Eth2.Attestation.Operations do
 
   defp validate_checkpoint(_), do: {:error, :invalid_checkpoint}
 
-  defp validate_attestation_slot(state, %{data: %{slot: slot}}) do
+  defp validate_attestation_slot(_state, %{data: %{slot: slot}}) do
     current_slot = state.slot
 
     if slot <= current_slot and slot + @slots_per_epoch >= current_slot do
@@ -205,7 +205,7 @@ defmodule ExWire.Eth2.Attestation.Operations do
     end
   end
 
-  defp validate_committee_index(state, %{data: %{slot: slot, index: index}}) do
+  defp validate_committee_index(_state, %{data: %{slot: slot, index: index}}) do
     epoch = div(slot, @slots_per_epoch)
 
     active_count =
@@ -220,7 +220,7 @@ defmodule ExWire.Eth2.Attestation.Operations do
     end
   end
 
-  defp validate_checkpoints(state, %{data: %{source: source, target: target}}) do
+  defp validate_checkpoints(_state, %{data: %{source: source, target: target}}) do
     cond do
       source.epoch >= target.epoch ->
         {:error, :source_epoch_not_before_target}
@@ -234,7 +234,7 @@ defmodule ExWire.Eth2.Attestation.Operations do
     end
   end
 
-  defp update_participation(state, attestation) do
+  defp update_participation(_state, attestation) do
     # Update participation flags for validators in the committee
     epoch = ExWire.Eth2.BeaconState.Operations.get_current_epoch(state)
     committee = get_beacon_committee(state, attestation.data.slot, attestation.data.index)

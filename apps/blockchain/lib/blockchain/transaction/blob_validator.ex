@@ -13,7 +13,7 @@ defmodule Blockchain.Transaction.BlobValidator do
 
   alias Blockchain.Transaction.Blob
   alias Blockchain.BlobGasMarket
-  alias ExWire.Crypto.KZG
+  alias ExthCrypto.KZG
 
   # EIP-4844 constants
   @blob_tx_type 0x03
@@ -148,7 +148,7 @@ defmodule Blockchain.Transaction.BlobValidator do
       {:ok, false} ->
         {:error, :kzg_proof_verification_failed}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         {:error, {:kzg_error, reason}}
     end
   end
@@ -178,7 +178,7 @@ defmodule Blockchain.Transaction.BlobValidator do
       {:ok, _sender} ->
         :ok
 
-      {:error, reason} ->
+      {:error, _reason} ->
         {:error, {:invalid_signature, reason}}
     end
   end

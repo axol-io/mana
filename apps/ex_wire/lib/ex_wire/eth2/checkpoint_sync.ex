@@ -113,28 +113,28 @@ defmodule ExWire.Eth2.CheckpointSync do
          }}
 
       :error ->
-        {:ok, state}
+        {:ok, _state}
     end
   end
 
   @impl true
-  def handle_call({:start_sync, checkpoint_root, checkpoint_epoch}, _from, state) do
+  def handle_call({:start_sync, checkpoint_root, checkpoint_epoch}, _from, _state) do
     Logger.info("Starting checkpoint sync from epoch #{checkpoint_epoch}")
 
     # Validate checkpoint is within weak subjectivity period
     case validate_checkpoint_age(checkpoint_epoch) do
       :ok ->
         # Start sync process
-        new_state = initiate_checkpoint_sync(checkpoint_root, checkpoint_epoch, state)
+        new_state = initiate_checkpoint_sync(checkpoint_root, checkpoint_epoch, _state)
         {:reply, :ok, new_state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Invalid checkpoint: #{inspect(reason)}")
         {:reply, error, state}
     end
   end
 
-  def handle_call(:get_status, _from, state) do
+  def handle_call(:get_status, _from, _state) do
     status = %{
       status: state.sync_status,
       checkpoint_root: state.checkpoint_root,
@@ -147,19 +147,19 @@ defmodule ExWire.Eth2.CheckpointSync do
     {:reply, status, state}
   end
 
-  def handle_call({:verify_checkpoint, state_root, block_root}, _from, state) do
+  def handle_call({:verify_checkpoint, state_root, block_root}, _from, _state) do
     result = verify_checkpoint_internal(state_root, block_root, state)
 
     new_state =
       case result do
-        :ok -> %{state | verified: true}
+        :ok -> %{_state | verified: true}
         _ -> state
       end
 
     {:reply, result, new_state}
   end
 
-  def handle_call(:resume_sync, _from, state) do
+  def handle_call(:resume_sync, _from, _state) do
     if state.checkpoint_root do
       new_state = resume_sync_internal(state)
       {:reply, :ok, new_state}
@@ -169,7 +169,7 @@ defmodule ExWire.Eth2.CheckpointSync do
   end
 
   @impl true
-  def handle_info({:checkpoint_state_downloaded, checkpoint_state}, state) do
+  def handle_info({:checkpoint_state_downloaded, checkpoint_state}, _state) do
     Logger.info("Checkpoint state downloaded successfully")
 
     # Validate state root matches
@@ -195,7 +195,7 @@ defmodule ExWire.Eth2.CheckpointSync do
     end
   end
 
-  def handle_info({:blocks_downloaded, blocks}, state) do
+  def handle_info({:blocks_downloaded, blocks}, _state) do
     # Process downloaded blocks
     new_state = process_backfill_blocks(blocks, state)
 
@@ -211,7 +211,7 @@ defmodule ExWire.Eth2.CheckpointSync do
     end
   end
 
-  def handle_info({:download_failed, reason}, state) do
+  def handle_info({:download_failed, _reason}, _state) do
     Logger.error("Download failed: #{inspect(reason)}")
 
     # Retry with different peer
@@ -219,14 +219,14 @@ defmodule ExWire.Eth2.CheckpointSync do
     {:noreply, new_state}
   end
 
-  def handle_info(:verify_checkpoint_blocks, state) do
+  def handle_info(:verify_checkpoint_blocks, _state) do
     # Verify blocks after checkpoint for security
     case verify_post_checkpoint_blocks(state) do
       :ok ->
         Logger.info("Checkpoint verification successful")
-        {:noreply, %{state | verified: true}}
+        {:noreply, %{_state | verified: true}}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Checkpoint verification failed: #{inspect(reason)}")
         {:noreply, %{state | sync_status: :failed}}
     end
@@ -234,7 +234,7 @@ defmodule ExWire.Eth2.CheckpointSync do
 
   # Private Functions - Sync Initialization
 
-  defp initiate_checkpoint_sync(checkpoint_root, checkpoint_epoch, state) do
+  defp initiate_checkpoint_sync(checkpoint_root, checkpoint_epoch, _state) do
     # Get suitable peers
     peers =
       LibP2P.get_peers()
@@ -284,10 +284,10 @@ defmodule ExWire.Eth2.CheckpointSync do
     # Request state via LibP2P
     Task.start(fn ->
       case download_state(peer, state_root) do
-        {:ok, state} ->
+        {:ok, _state} ->
           send(self(), {:checkpoint_state_downloaded, state})
 
-        {:error, reason} ->
+        {:error, _reason} ->
           send(self(), {:download_failed, reason})
       end
     end)
@@ -308,7 +308,7 @@ defmodule ExWire.Eth2.CheckpointSync do
 
   # Private Functions - Backfilling
 
-  defp start_backfill(checkpoint_state, state) do
+  defp start_backfill(checkpoint_state, _state) do
     Logger.info("Starting backfill from slot #{checkpoint_state.slot} to genesis")
 
     # Request first batch of blocks
@@ -326,7 +326,7 @@ defmodule ExWire.Eth2.CheckpointSync do
     }
   end
 
-  defp request_blocks_batch(start_slot, count, state) do
+  defp request_blocks_batch(start_slot, count, _state) do
     peer = select_best_peer(state.peers)
 
     Task.start(fn ->
@@ -334,13 +334,13 @@ defmodule ExWire.Eth2.CheckpointSync do
         {:ok, blocks} ->
           send(self(), {:blocks_downloaded, blocks})
 
-        {:error, reason} ->
+        {:error, _reason} ->
           send(self(), {:download_failed, reason})
       end
     end)
   end
 
-  defp process_backfill_blocks(blocks, state) do
+  defp process_backfill_blocks(blocks, _state) do
     # Process blocks in reverse order (newest to oldest)
     processed =
       Enum.reduce(blocks, state, fn block, acc_state ->
@@ -348,7 +348,7 @@ defmodule ExWire.Eth2.CheckpointSync do
           {:ok, new_state} ->
             new_state
 
-          {:error, reason} ->
+          {:error, _reason} ->
             Logger.error("Failed to process block: #{inspect(reason)}")
             acc_state
         end
@@ -358,7 +358,7 @@ defmodule ExWire.Eth2.CheckpointSync do
     update_backfill_progress(processed, length(blocks))
   end
 
-  defp process_backfill_block(block, state) do
+  defp process_backfill_block(block, _state) do
     # Verify block signatures
     case verify_block_signatures(block) do
       :ok ->
@@ -368,7 +368,7 @@ defmodule ExWire.Eth2.CheckpointSync do
         # Update fork choice
         ForkChoice.on_block(block)
 
-        {:ok, state}
+        {:ok, _state}
 
       error ->
         error
@@ -379,12 +379,12 @@ defmodule ExWire.Eth2.CheckpointSync do
     state.backfill_progress.current_slot > state.backfill_target
   end
 
-  defp request_next_batch(state) do
+  defp request_next_batch(_state) do
     next_start = state.backfill_progress.current_slot - @backfill_batch_size
     request_blocks_batch(next_start, @backfill_batch_size, state)
   end
 
-  defp update_backfill_progress(state, blocks_count) do
+  defp update_backfill_progress(_state, blocks_count) do
     progress = state.backfill_progress
 
     new_progress = %{
@@ -399,7 +399,7 @@ defmodule ExWire.Eth2.CheckpointSync do
 
   # Private Functions - Verification
 
-  defp verify_checkpoint_internal(state_root, block_root, state) do
+  defp verify_checkpoint_internal(state_root, block_root, _state) do
     # Verify the checkpoint against trusted sources
     cond do
       state.checkpoint_root != state_root ->
@@ -414,7 +414,7 @@ defmodule ExWire.Eth2.CheckpointSync do
     end
   end
 
-  defp verify_checkpoint_consistency(state) do
+  defp verify_checkpoint_consistency(_state) do
     # Verify checkpoint state is consistent
     if state.checkpoint_state do
       # Check state transition validity
@@ -427,7 +427,7 @@ defmodule ExWire.Eth2.CheckpointSync do
     end
   end
 
-  defp verify_post_checkpoint_blocks(state) do
+  defp verify_post_checkpoint_blocks(_state) do
     # Verify a number of blocks after checkpoint
     # This ensures the checkpoint leads to valid chain
 
@@ -481,7 +481,7 @@ defmodule ExWire.Eth2.CheckpointSync do
 
   # Private Functions - State Management
 
-  defp initialize_from_checkpoint(checkpoint_state, state) do
+  defp initialize_from_checkpoint(checkpoint_state, _state) do
     # Initialize beacon chain from checkpoint
     BeaconChain.initialize_from_checkpoint(
       state.beacon_chain,
@@ -495,7 +495,7 @@ defmodule ExWire.Eth2.CheckpointSync do
     schedule_post_checkpoint_verification()
   end
 
-  defp finalize_sync(state) do
+  defp finalize_sync(_state) do
     # Mark sync as complete
     save_sync_progress(state)
 
@@ -506,7 +506,7 @@ defmodule ExWire.Eth2.CheckpointSync do
     BeaconChain.start_sync(state.beacon_chain)
   end
 
-  defp resume_sync_internal(state) do
+  defp resume_sync_internal(_state) do
     if state.checkpoint_state do
       # Resume from saved state
       initialize_from_checkpoint(state.checkpoint_state, state)
@@ -556,7 +556,7 @@ defmodule ExWire.Eth2.CheckpointSync do
     )
   end
 
-  defp save_sync_progress(state) do
+  defp save_sync_progress(_state) do
     progress = %{
       checkpoint_root: state.checkpoint_root,
       checkpoint_epoch: state.checkpoint_epoch,
@@ -598,12 +598,12 @@ defmodule ExWire.Eth2.CheckpointSync do
     |> List.first()
   end
 
-  defp retry_download(state) do
+  defp retry_download(_state) do
     # Remove failed peer and try another
     case state.peers -- [List.first(state.peers)] do
       [] ->
         Logger.error("No more peers available for download")
-        %{state | sync_status: :failed}
+        %{_state | sync_status: :failed}
 
       remaining_peers ->
         request_checkpoint_state(state.checkpoint_root, remaining_peers)
@@ -611,7 +611,7 @@ defmodule ExWire.Eth2.CheckpointSync do
     end
   end
 
-  defp calculate_progress(state) do
+  defp calculate_progress(_state) do
     if state.backfill_progress.start_time do
       elapsed = System.system_time(:second) - state.backfill_progress.start_time
 

@@ -231,11 +231,11 @@ defmodule ExWire.Debugger.TransactionDebugger do
       "[TransactionDebugger] Started with support for #{@max_active_sessions} concurrent sessions"
     )
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl GenServer
-  def handle_call({:start_debug_session, tx_hash, opts}, _from, state) do
+  def handle_call({:start_debug_session, tx_hash, opts}, _from, _state) do
     if map_size(state.active_sessions) >= @max_active_sessions do
       {:reply, {:error, :too_many_sessions}, state}
     else
@@ -251,15 +251,15 @@ defmodule ExWire.Debugger.TransactionDebugger do
 
           {:reply, {:ok, session_id}, new_state}
 
-        {:error, reason} ->
+        {:error, _reason} ->
           Logger.error("[TransactionDebugger] Failed to start session: #{inspect(reason)}")
-          {:reply, {:error, reason}, state}
+          {:reply, {:error, _reason}, state}
       end
     end
   end
 
   @impl GenServer
-  def handle_call({:step, session_id}, _from, state) do
+  def handle_call({:step, session_id}, _from, _state) do
     case Map.get(state.active_sessions, session_id) do
       nil ->
         {:reply, {:error, :session_not_found}, state}
@@ -276,18 +276,18 @@ defmodule ExWire.Debugger.TransactionDebugger do
 
             {:reply, {:ok, execution_step}, new_state}
 
-          {:error, reason} ->
+          {:error, _reason} ->
             Logger.error(
               "[TransactionDebugger] Step failed for session #{session_id}: #{inspect(reason)}"
             )
 
-            {:reply, {:error, reason}, state}
+            {:reply, {:error, _reason}, state}
         end
     end
   end
 
   @impl GenServer
-  def handle_call({:step_over, session_id}, _from, state) do
+  def handle_call({:step_over, session_id}, _from, _state) do
     case Map.get(state.active_sessions, session_id) do
       nil ->
         {:reply, {:error, :session_not_found}, state}
@@ -300,14 +300,14 @@ defmodule ExWire.Debugger.TransactionDebugger do
 
             {:reply, {:ok, execution_step}, new_state}
 
-          {:error, reason} ->
-            {:reply, {:error, reason}, state}
+          {:error, _reason} ->
+            {:reply, {:error, _reason}, state}
         end
     end
   end
 
   @impl GenServer
-  def handle_call({:continue, session_id}, _from, state) do
+  def handle_call({:continue, session_id}, _from, _state) do
     case Map.get(state.active_sessions, session_id) do
       nil ->
         {:reply, {:error, :session_not_found}, state}
@@ -320,14 +320,14 @@ defmodule ExWire.Debugger.TransactionDebugger do
 
             {:reply, {:ok, execution_step}, new_state}
 
-          {:error, reason} ->
-            {:reply, {:error, reason}, state}
+          {:error, _reason} ->
+            {:reply, {:error, _reason}, state}
         end
     end
   end
 
   @impl GenServer
-  def handle_call({:get_execution_state, session_id}, _from, state) do
+  def handle_call({:get_execution_state, session_id}, _from, _state) do
     case Map.get(state.active_sessions, session_id) do
       nil ->
         {:reply, {:error, :session_not_found}, state}
@@ -339,7 +339,7 @@ defmodule ExWire.Debugger.TransactionDebugger do
   end
 
   @impl GenServer
-  def handle_call({:profile_gas_usage, session_id}, _from, state) do
+  def handle_call({:profile_gas_usage, session_id}, _from, _state) do
     case Map.get(state.active_sessions, session_id) do
       nil ->
         {:reply, {:error, :session_not_found}, state}
@@ -351,7 +351,7 @@ defmodule ExWire.Debugger.TransactionDebugger do
   end
 
   @impl GenServer
-  def handle_call({:get_crdt_operations, session_id}, _from, state) do
+  def handle_call({:get_crdt_operations, session_id}, _from, _state) do
     case Map.get(state.active_sessions, session_id) do
       nil ->
         {:reply, {:error, :session_not_found}, state}
@@ -362,7 +362,7 @@ defmodule ExWire.Debugger.TransactionDebugger do
   end
 
   @impl GenServer
-  def handle_call({:get_state_diff, session_id}, _from, state) do
+  def handle_call({:get_state_diff, session_id}, _from, _state) do
     case Map.get(state.active_sessions, session_id) do
       nil ->
         {:reply, {:error, :session_not_found}, state}
@@ -374,7 +374,7 @@ defmodule ExWire.Debugger.TransactionDebugger do
   end
 
   @impl GenServer
-  def handle_cast({:end_debug_session, session_id}, state) do
+  def handle_cast({:end_debug_session, session_id}, _state) do
     case Map.get(state.active_sessions, session_id) do
       nil ->
         Logger.warning(
@@ -396,10 +396,10 @@ defmodule ExWire.Debugger.TransactionDebugger do
   end
 
   @impl GenServer
-  def handle_cast({:set_breakpoint, session_id, pc}, state) do
+  def handle_cast({:set_breakpoint, session_id, pc}, _state) do
     case Map.get(state.active_sessions, session_id) do
       nil ->
-        {:noreply, state}
+        {:noreply, _state}
 
       session ->
         updated_session = %{session | breakpoints: [pc | session.breakpoints]}
@@ -413,7 +413,7 @@ defmodule ExWire.Debugger.TransactionDebugger do
   end
 
   @impl GenServer
-  def handle_info(:cleanup_sessions, state) do
+  def handle_info(:cleanup_sessions, _state) do
     current_time = System.system_time(:millisecond)
 
     # Remove expired sessions
@@ -508,8 +508,8 @@ defmodule ExWire.Debugger.TransactionDebugger do
 
           {:ok, updated_session, execution_step}
 
-        {:error, reason} ->
-          {:error, reason}
+        {:error, _reason} ->
+          {:error, _reason}
       end
     rescue
       e ->
@@ -535,8 +535,8 @@ defmodule ExWire.Debugger.TransactionDebugger do
           step_over_loop(updated_session, target_depth)
         end
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -555,8 +555,8 @@ defmodule ExWire.Debugger.TransactionDebugger do
           execute_until_breakpoint_loop(updated_session)
         end
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 

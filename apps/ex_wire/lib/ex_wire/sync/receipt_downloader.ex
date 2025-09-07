@@ -146,11 +146,11 @@ defmodule ExWire.Sync.ReceiptDownloader do
     # Start the download process
     send(self(), :process_queue)
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call(:get_progress, _from, state) do
+  def handle_call(:get_progress, _from, _state) do
     progress = %{
       total_blocks: state.blocks_to_download,
       blocks_downloaded: state.blocks_downloaded,
@@ -170,22 +170,22 @@ defmodule ExWire.Sync.ReceiptDownloader do
   end
 
   @impl true
-  def handle_call({:get_receipts, block_number}, _from, state) do
+  def handle_call({:get_receipts, block_number}, _from, _state) do
     receipts = Map.get(state.downloaded_receipts, block_number)
     {:reply, receipts, state}
   end
 
   @impl true
-  def handle_call(:get_all_receipts, _from, state) do
+  def handle_call(:get_all_receipts, _from, _state) do
     {:reply, state.downloaded_receipts, state}
   end
 
   @impl true
-  def handle_info(:process_queue, state) do
+  def handle_info(:process_queue, _state) do
     new_state = process_download_queue(state)
 
     # Continue processing if not complete
-    unless state.sync_complete do
+    if !state.sync_complete do
       Process.send_after(self(), :process_queue, 100)
     end
 
@@ -193,20 +193,20 @@ defmodule ExWire.Sync.ReceiptDownloader do
   end
 
   @impl true
-  def handle_info({:packet, %Receipts{receipts: receipts_data}, peer}, state) do
+  def handle_info({:_packet, %Receipts{receipts: receipts_data}, peer}, _state) do
     new_state = handle_receipts(receipts_data, peer, state)
     {:noreply, new_state}
   end
 
   @impl true
-  def handle_info({:request_timeout, request_ref}, state) do
+  def handle_info({:request_timeout, request_ref}, _state) do
     new_state = handle_request_timeout(request_ref, state)
     {:noreply, new_state}
   end
 
   # Private Functions
 
-  defp process_download_queue(state) do
+  defp process_download_queue(_state) do
     # Calculate how many requests we can make
     available_slots = @max_concurrent_requests - map_size(state.active_requests)
 
@@ -251,7 +251,7 @@ defmodule ExWire.Sync.ReceiptDownloader do
     end
   end
 
-  defp send_receipt_request(state, blocks) do
+  defp send_receipt_request(_state, blocks) do
     # Get available peer
     peers = PeerSupervisor.connected_peers()
 
@@ -276,7 +276,7 @@ defmodule ExWire.Sync.ReceiptDownloader do
 
       if length(block_hashes) > 0 do
         # Create GetReceipts packet
-        packet = %GetReceipts{hashes: block_hashes}
+        _packet = %GetReceipts{hashes: block_hashes}
 
         # Send to peer
         send_packet_to_peer(peer, packet)
@@ -303,7 +303,7 @@ defmodule ExWire.Sync.ReceiptDownloader do
     end
   end
 
-  defp handle_receipts(receipts_data, _peer, state) do
+  defp handle_receipts(receipts_data, _peer, _state) do
     Logger.debug("Received receipts for #{length(receipts_data)} blocks")
 
     # Process each set of receipts
@@ -313,14 +313,14 @@ defmodule ExWire.Sync.ReceiptDownloader do
         {:ok, block_number} ->
           process_block_receipts(block_number, receipts, acc_state)
 
-        {:error, reason} ->
+        {:error, _reason} ->
           Logger.warning("Could not match receipts to block: #{inspect(reason)}")
           acc_state
       end
     end)
   end
 
-  defp find_matching_block(receipts, state) do
+  defp find_matching_block(receipts, _state) do
     # Calculate receipts root for these receipts
     receipts_root = calculate_receipts_root(receipts)
 
@@ -350,7 +350,7 @@ defmodule ExWire.Sync.ReceiptDownloader do
     :erlang.term_to_binary(receipt)
   end
 
-  defp process_block_receipts(block_number, receipts, state) do
+  defp process_block_receipts(block_number, receipts, _state) do
     # Validate receipts against block header
     case validate_receipts(block_number, receipts, state) do
       :ok ->
@@ -361,7 +361,7 @@ defmodule ExWire.Sync.ReceiptDownloader do
         |> put_in([:receipt_status, block_number], :complete)
         |> update_in([:blocks_downloaded], &(&1 + 1))
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.warning("Receipt validation failed for block #{block_number}: #{inspect(reason)}")
 
         # Re-queue the block for retry
@@ -373,7 +373,7 @@ defmodule ExWire.Sync.ReceiptDownloader do
     end
   end
 
-  defp validate_receipts(block_number, receipts, state) do
+  defp validate_receipts(block_number, receipts, _state) do
     case Map.get(state.headers, block_number) do
       nil ->
         {:error, :no_header}
@@ -406,10 +406,10 @@ defmodule ExWire.Sync.ReceiptDownloader do
     end
   end
 
-  defp handle_request_timeout(request_ref, state) do
+  defp handle_request_timeout(request_ref, _state) do
     case Map.get(state.active_requests, request_ref) do
       nil ->
-        state
+        _state
 
       {blocks, _peer} ->
         Logger.debug("Request timeout for receipts of blocks: #{inspect(blocks)}")
@@ -450,7 +450,7 @@ defmodule ExWire.Sync.ReceiptDownloader do
     end
   end
 
-  defp check_sync_complete(state) do
+  defp check_sync_complete(_state) do
     queue_empty = :queue.is_empty(state.receipt_queue)
     no_active_requests = map_size(state.active_requests) == 0
 

@@ -15,7 +15,7 @@ defmodule Blockchain do
 
   @doc """
   Gets the latest block number from the blockchain.
-  
+
   Returns the block number of the current chain head.
   For testing, returns a mock block number.
   """
@@ -26,8 +26,10 @@ defmodule Blockchain do
     case Application.get_env(:blockchain, :environment, :dev) do
       :test ->
         {:ok, 18_000_000 + :rand.uniform(1000)}
-      :dev -> 
+
+      :dev ->
         {:ok, 18_500_000}
+
       :prod ->
         # Would implement actual blockchain query here
         {:ok, get_chain_head_block_number()}

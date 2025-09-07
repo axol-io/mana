@@ -14,12 +14,13 @@ modules_to_test = [
 IO.puts("\n1. Module Compilation Check:")
 IO.puts("-" <> String.duplicate("-", 30))
 
-compiled_modules = 
+compiled_modules =
   Enum.map(modules_to_test, fn module ->
     case Code.ensure_compiled(module) do
-      {:module, _} -> 
+      {:module, _} ->
         IO.puts("✅ #{inspect(module)} compiled successfully")
         {module, :ok}
+
       {:error, reason} ->
         IO.puts("❌ #{inspect(module)} failed: #{inspect(reason)}")
         {module, {:error, reason}}
@@ -32,7 +33,7 @@ all_compiled = Enum.all?(compiled_modules, fn {_, status} -> status == :ok end)
 if all_compiled do
   IO.puts("\n2. Function Availability Check:")
   IO.puts("-" <> String.duplicate("-", 30))
-  
+
   # Test Protocol functions
   protocol_functions = [
     {:submit_l2_output, 2},
@@ -43,8 +44,9 @@ if all_compiled do
     {:send_message, 4},
     {:create_dispute_game, 2}
   ]
-  
+
   IO.puts("\nOptimism.Protocol functions:")
+
   Enum.each(protocol_functions, fn {func, arity} ->
     if function_exported?(ExWire.Layer2.Optimism.Protocol, func, arity) do
       IO.puts("  ✅ #{func}/#{arity}")
@@ -52,7 +54,7 @@ if all_compiled do
       IO.puts("  ❌ #{func}/#{arity} not found")
     end
   end)
-  
+
   # Test FaultDisputeGame functions
   dispute_functions = [
     {:create_game, 1},
@@ -63,8 +65,9 @@ if all_compiled do
     {:resolve, 1},
     {:get_state, 1}
   ]
-  
+
   IO.puts("\nFaultDisputeGame functions:")
+
   Enum.each(dispute_functions, fn {func, arity} ->
     if function_exported?(ExWire.Layer2.Optimism.FaultDisputeGame, func, arity) do
       IO.puts("  ✅ #{func}/#{arity}")
@@ -72,15 +75,15 @@ if all_compiled do
       IO.puts("  ❌ #{func}/#{arity} not found")
     end
   end)
-  
+
   IO.puts("\n3. Module Structure Check:")
   IO.puts("-" <> String.duplicate("-", 30))
-  
+
   # Check Protocol module constants
   protocol_attrs = ExWire.Layer2.Optimism.Protocol.__info__(:attributes)
   IO.puts("\nProtocol module attributes:")
   IO.puts("  Module doc: #{if protocol_attrs[:moduledoc], do: "✅", else: "❌"}")
-  
+
   # Check struct definitions
   try do
     %ExWire.Layer2.Optimism.Protocol{}
@@ -88,21 +91,21 @@ if all_compiled do
   rescue
     _ -> IO.puts("  Protocol struct: ❌")
   end
-  
+
   try do
     %ExWire.Layer2.Optimism.FaultDisputeGame{}
     IO.puts("  FaultDisputeGame struct: ✅")
   rescue
     _ -> IO.puts("  FaultDisputeGame struct: ❌")
   end
-  
+
   IO.puts("\n4. Integration Summary:")
   IO.puts("-" <> String.duplicate("-", 30))
-  
+
   IO.puts("""
-  
+
   The Optimism L2 integration includes:
-  
+
   ✅ Full Optimism Protocol implementation
      - L2OutputOracle integration
      - OptimismPortal for deposits/withdrawals
@@ -126,7 +129,7 @@ if all_compiled do
      • Mainnet contract addresses included
      • Production-ready architecture
   """)
-  
+
   IO.puts("\n✅ All Optimism modules are properly integrated!")
 else
   IO.puts("\n❌ Some modules failed to compile. Check the errors above.")
