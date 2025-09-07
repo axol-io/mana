@@ -149,43 +149,30 @@ defmodule Blockchain.Security.AuditFramework do
   # Private functions
 
   defp maybe_audit_layer2(findings, true) do
-    case Layer2Auditor.audit_all() do
-      {:ok, l2_findings} -> findings ++ l2_findings
-      {:error, _} -> findings
-    end
+    {:ok, l2_findings} = Layer2Auditor.audit_all()
+    findings ++ l2_findings
   end
 
   defp maybe_audit_layer2(findings, false), do: findings
 
   defp maybe_audit_verkle(findings, true) do
-    case VerkleAuditor.audit_all() do
-      {:ok, verkle_findings} -> findings ++ verkle_findings
-      {:error, _} -> findings
-    end
+    {:ok, verkle_findings} = VerkleAuditor.audit_all()
+    findings ++ verkle_findings
   end
 
   defp maybe_audit_verkle(findings, false), do: findings
 
   defp maybe_audit_enterprise(findings, true) do
-    case EnterpriseAuditor.audit_all() do
-      {:ok, enterprise_findings} -> findings ++ enterprise_findings
-      {:error, _} -> findings
-    end
+    {:ok, enterprise_findings} = EnterpriseAuditor.audit_all()
+    findings ++ enterprise_findings
   end
 
   defp maybe_audit_enterprise(findings, false), do: findings
 
   defp maybe_audit_core(findings, true) do
     Logger.info("Auditing core blockchain functionality...")
-
-    case audit_core_components() do
-      {:ok, core_findings} ->
-        findings ++ core_findings
-
-      {:error, reason} ->
-        Logger.error("Core audit failed: #{inspect(reason)}")
-        findings
-    end
+    {:ok, core_findings} = audit_core_components()
+    findings ++ core_findings
   end
 
   defp maybe_audit_core(findings, false), do: findings

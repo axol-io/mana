@@ -563,14 +563,12 @@ defmodule Blockchain.Compliance.DataRetention do
           }
 
           # Store in hot storage initially
-          storage_result = store_in_tier(data_record, :hot, state.config)
+          :ok = store_in_tier(data_record, :hot, state.config)
 
-          case storage_result do
-            :ok ->
-              new_active_records = Map.put(state.active_records, record_id, data_record)
+          new_active_records = Map.put(state.active_records, record_id, data_record)
 
-              updated_stats =
-                update_storage_stats(
+          updated_stats =
+            update_storage_stats(
                   state.storage_stats,
                   :hot,
                   byte_size(encrypted_content),
@@ -597,10 +595,6 @@ defmodule Blockchain.Compliance.DataRetention do
               })
 
               {:ok, record_id, new_state}
-
-            {:error, reason} ->
-              {:error, "Failed to store in hot storage: #{reason}"}
-          end
       end
     rescue
       error ->
@@ -612,10 +606,8 @@ defmodule Blockchain.Compliance.DataRetention do
     case Map.get(state.active_records, record_id) do
       nil ->
         # Try to find in archive
-        case retrieve_from_archive(record_id, state.config) do
-          {:ok, archived_record} -> {:ok, archived_record}
-          {:error, _} -> {:error, "Record not found: #{record_id}"}
-        end
+        {:error, _} = retrieve_from_archive(record_id, state.config)
+        {:error, "Record not found: #{record_id}"}
 
       data_record ->
         # Decrypt content if encrypted
