@@ -20,7 +20,7 @@ defmodule JSONRPC2.Servers.TCP.Protocol do
     :gen_server.enter_loop(__MODULE__, [], state, timeout)
   end
 
-  def handle_info({:tcp, socket, data}, state) do
+  def handle_info({:tcp, socket, data}, _state) do
     {_ref, _socket, transport, jsonrpc2_handler, timeout} = state
     transport.setopts(socket, active: :once)
 
@@ -35,16 +35,16 @@ defmodule JSONRPC2.Servers.TCP.Protocol do
     {:noreply, state, timeout}
   end
 
-  def handle_info({:tcp_closed, _socket}, state),
+  def handle_info({:tcp_closed, _socket}, _state),
     do: {:stop, :normal, state}
 
-  def handle_info({:tcp_error, _, reason}, state),
+  def handle_info({:tcp_error, _, _reason}, _state),
     do: {:stop, reason, state}
 
-  def handle_info(:timeout, state),
+  def handle_info(:timeout, _state),
     do: {:stop, :normal, state}
 
-  def handle_info(message, state) do
+  def handle_info(message, _state) do
     _ =
       Logger.info([
         inspect(__MODULE__),

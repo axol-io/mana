@@ -42,7 +42,7 @@ defmodule ExWire.Config.Adapter do
   def migrate_application_config do
     config = build_config_from_env()
 
-    # Write to temporary config for ConfigManager to load
+    # Write to temporary _config for ConfigManager to load
     temp_config = %{
       blockchain: %{
         network: get_chain_network(),
@@ -272,7 +272,7 @@ defmodule ExWire.Config.Adapter do
         result = get_env(given_params, key)
 
         if is_nil(result) do
-          raise ArgumentError, message: "Please set config variable: config :ex_wire, #{key}, ..."
+          raise ArgumentError, message: "Please set config variable: _config :ex_wire, #{key}, ..."
         else
           result
         end

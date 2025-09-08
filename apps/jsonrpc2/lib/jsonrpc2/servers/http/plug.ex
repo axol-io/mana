@@ -55,11 +55,12 @@ defmodule JSONRPC2.Servers.HTTP.Plug do
     init(handler: handler)
   end
 
-  plug(:wrap_plug_parsers, builder_opts())
-  plug(:handle_jsonrpc2, builder_opts())
+  plug(:wrap_plug_parsers)
+  plug(:handle_jsonrpc2)
 
   @doc false
-  def wrap_plug_parsers(conn, %{plug_parsers_opts: plug_parsers_opts}) do
+  def wrap_plug_parsers(conn, opts) do
+    plug_parsers_opts = Map.get(opts, :plug_parsers_opts, [])
     Plug.Parsers.call(conn, Plug.Parsers.init(plug_parsers_opts))
   end
 
@@ -102,7 +103,7 @@ defmodule JSONRPC2.Servers.HTTP.Plug do
       {:more, partial_body, conn} ->
         get_body([so_far | partial_body], conn)
 
-      {:error, reason} ->
+      {:error, _reason} ->
         raise Plug.Parsers.ParseError, exception: Exception.normalize(:error, reason)
     end
   end

@@ -234,7 +234,7 @@ defmodule ExWire.Layer2.Optimistic.FraudProof do
     {:ok, final_state}
   end
 
-  defp apply_transaction(tx, state) do
+  defp apply_transaction(tx, _state) do
     # Apply a single transaction to the state
     tx_data = :erlang.term_to_binary(tx)
     :crypto.hash(:sha256, state <> tx_data)

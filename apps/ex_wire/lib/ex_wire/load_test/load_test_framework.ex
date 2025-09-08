@@ -53,7 +53,7 @@ defmodule ExWire.LoadTest.Framework do
   @doc """
   Run baseline performance test to establish metrics.
   """
-  def run_baseline_test(config) do
+  def run_baseline_test(_config) do
     Logger.info("Running baseline performance test")
 
     MetricsCollector.start_collection("baseline")
@@ -83,7 +83,7 @@ defmodule ExWire.LoadTest.Framework do
   @doc """
   Simulate mainnet conditions with realistic workload.
   """
-  def run_mainnet_simulation(config) do
+  def run_mainnet_simulation(_config) do
     Logger.info("Running mainnet simulation")
 
     MetricsCollector.start_collection("mainnet")
@@ -118,7 +118,7 @@ defmodule ExWire.LoadTest.Framework do
   @doc """
   Run stress tests to find breaking points.
   """
-  def run_stress_test(config) do
+  def run_stress_test(_config) do
     Logger.info("Running stress tests")
 
     MetricsCollector.start_collection("stress")
@@ -156,7 +156,7 @@ defmodule ExWire.LoadTest.Framework do
   @doc """
   Test edge cases and error conditions.
   """
-  def run_edge_case_tests(config) do
+  def run_edge_case_tests(_config) do
     Logger.info("Running edge case tests")
 
     edge_cases = [
@@ -190,7 +190,7 @@ defmodule ExWire.LoadTest.Framework do
   @doc """
   Test network resilience and partition tolerance.
   """
-  def run_network_resilience_test(config) do
+  def run_network_resilience_test(_config) do
     Logger.info("Testing network resilience")
 
     scenarios = [
@@ -222,7 +222,7 @@ defmodule ExWire.LoadTest.Framework do
   @doc """
   Test Layer 2 systems under load.
   """
-  def run_layer2_load_test(config) do
+  def run_layer2_load_test(_config) do
     Logger.info("Testing Layer 2 systems under load")
 
     l2_systems = [:optimism, :arbitrum, :zksync]
@@ -235,7 +235,7 @@ defmodule ExWire.LoadTest.Framework do
           case l2_type do
             :optimism -> test_optimism_load(config)
             :arbitrum -> test_arbitrum_load(config)
-            :zksync -> test_zksync_load(config)
+            :zksync -> test_zksync_load(_config)
           end
 
         {l2_type, result}
@@ -260,7 +260,7 @@ defmodule ExWire.LoadTest.Framework do
     })
   end
 
-  defp setup_test_environment(config) do
+  defp setup_test_environment(_config) do
     # Initialize test database
     {:ok, _} = Application.ensure_all_started(:ex_wire)
 
@@ -280,7 +280,7 @@ defmodule ExWire.LoadTest.Framework do
     Logger.info("Test environment cleaned up")
   end
 
-  defp run_mainnet_workload(config, end_time) do
+  defp run_mainnet_workload(_config, end_time) do
     accumulator = %{blocks: 0, transactions: 0, state_size: 0}
 
     run_until(end_time, accumulator, fn acc ->
@@ -299,7 +299,7 @@ defmodule ExWire.LoadTest.Framework do
     end)
   end
 
-  defp generate_mainnet_like_transactions(config) do
+  defp generate_mainnet_like_transactions(_config) do
     # 60% simple transfers
     simple =
       TransactionGenerator.generate_simple_transfers(
@@ -324,7 +324,7 @@ defmodule ExWire.LoadTest.Framework do
     Enum.shuffle(simple ++ contracts ++ complex)
   end
 
-  defp start_block_producer(config) do
+  defp start_block_producer(_config) do
     spawn_link(fn ->
       produce_blocks(config.block_time_seconds * 1000)
     end)
@@ -375,19 +375,19 @@ defmodule ExWire.LoadTest.Framework do
     end
   end
 
-  defp test_optimism_load(config) do
+  defp test_optimism_load(_config) do
     # Generate Optimism-specific workload
     batches = generate_optimism_batches(config)
     process_l2_batches(batches, :optimism)
   end
 
-  defp test_arbitrum_load(config) do
+  defp test_arbitrum_load(_config) do
     # Generate Arbitrum-specific workload  
     batches = generate_arbitrum_batches(config)
     process_l2_batches(batches, :arbitrum)
   end
 
-  defp test_zksync_load(config) do
+  defp test_zksync_load(_config) do
     # Generate zkSync-specific workload
     batches = generate_zksync_batches(config)
     process_l2_batches(batches, :zksync)

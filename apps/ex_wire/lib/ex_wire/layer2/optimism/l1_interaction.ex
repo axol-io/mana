@@ -96,7 +96,7 @@ defmodule ExWire.Layer2.Optimism.L1Interaction do
   Deposits ETH or tokens from L1 to L2.
   """
   @spec deposit(map()) :: {:ok, String.t()} | {:error, term()}
-  def deposit(params) do
+  def deposit(_params) do
     GenServer.call(__MODULE__, {:deposit, params})
   end
 
@@ -174,11 +174,11 @@ defmodule ExWire.Layer2.Optimism.L1Interaction do
 
     Logger.info("Optimism L1 Interaction initialized for #{state.network} with Web3 client")
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:deposit, params}, _from, state) do
+  def handle_call({:deposit, _params}, _from, _state) do
     tx_data = encode_deposit_transaction(params)
 
     case send_l1_transaction(
@@ -191,14 +191,14 @@ defmodule ExWire.Layer2.Optimism.L1Interaction do
         Logger.info("Deposit transaction sent: #{tx_hash}")
         {:reply, {:ok, tx_hash}, state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Failed to send deposit: #{inspect(reason)}")
         {:reply, error, state}
     end
   end
 
   @impl true
-  def handle_call({:propose_l2_output, output_root, l2_block_number}, _from, state) do
+  def handle_call({:propose_l2_output, output_root, l2_block_number}, _from, _state) do
     # Get current L1 block info
     {:ok, l1_block} = get_current_l1_block(state)
 
@@ -220,14 +220,14 @@ defmodule ExWire.Layer2.Optimism.L1Interaction do
         Logger.info("L2 output proposed: block #{l2_block_number}, tx: #{tx_hash}")
         {:reply, {:ok, tx_hash}, state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Failed to propose output: #{inspect(reason)}")
         {:reply, error, state}
     end
   end
 
   @impl true
-  def handle_call({:prove_withdrawal, withdrawal_tx, proof_data}, _from, state) do
+  def handle_call({:prove_withdrawal, withdrawal_tx, proof_data}, _from, _state) do
     tx_data = encode_prove_withdrawal(withdrawal_tx, proof_data)
 
     case send_l1_transaction(
@@ -255,14 +255,14 @@ defmodule ExWire.Layer2.Optimism.L1Interaction do
 
         {:reply, {:ok, tx_hash}, new_state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Failed to prove withdrawal: #{inspect(reason)}")
         {:reply, error, state}
     end
   end
 
   @impl true
-  def handle_call({:finalize_withdrawal, withdrawal_tx}, _from, state) do
+  def handle_call({:finalize_withdrawal, withdrawal_tx}, _from, _state) do
     withdrawal_id = compute_withdrawal_hash(withdrawal_tx)
 
     case Map.get(state.pending_transactions, withdrawal_id) do
@@ -295,7 +295,7 @@ defmodule ExWire.Layer2.Optimism.L1Interaction do
 
               {:reply, {:ok, tx_hash}, new_state}
 
-            {:error, reason} = error ->
+            {:error, _reason} = error ->
               Logger.error("Failed to finalize withdrawal: #{inspect(reason)}")
               {:reply, error, state}
           end
@@ -304,7 +304,7 @@ defmodule ExWire.Layer2.Optimism.L1Interaction do
   end
 
   @impl true
-  def handle_call({:get_l2_output, output_index}, _from, state) do
+  def handle_call({:get_l2_output, output_index}, _from, _state) do
     case call_l1_view_function(
            state.contracts.l2_output_oracle,
            "getL2Output",
@@ -320,20 +320,20 @@ defmodule ExWire.Layer2.Optimism.L1Interaction do
 
         {:reply, {:ok, output}, state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         {:reply, error, state}
     end
   end
 
   @impl true
-  def handle_cast(:monitor_deposits, state) do
+  def handle_cast(:monitor_deposits, _state) do
     # Start monitoring deposit events
     spawn_link(fn -> monitor_deposit_events(state) end)
     {:noreply, state}
   end
 
   @impl true
-  def handle_info(:check_l1_events, state) do
+  def handle_info(:check_l1_events, _state) do
     # Check for new L1 events (deposits, challenges, etc.)
     check_and_process_events(state)
 
@@ -367,7 +367,7 @@ defmodule ExWire.Layer2.Optimism.L1Interaction do
     get_contract_addresses(:mainnet)
   end
 
-  defp encode_deposit_transaction(params) do
+  defp encode_deposit_transaction(_params) do
     # Encode the deposit transaction calldata
     # In production, use ABI encoding library
     ABI.encode("depositTransaction", [
@@ -401,7 +401,7 @@ defmodule ExWire.Layer2.Optimism.L1Interaction do
     ABI.encode("finalizeWithdrawalTransaction", [withdrawal_tx])
   end
 
-  defp send_l1_transaction(to, data, value, state) do
+  defp send_l1_transaction(to, data, value, _state) do
     # Build transaction parameters
     tx_params = %{
       to: to,
@@ -419,13 +419,13 @@ defmodule ExWire.Layer2.Optimism.L1Interaction do
 
         {:ok, tx_hash}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Failed to send L1 transaction: #{inspect(reason)}")
-        {:error, reason}
+        {:error, _reason}
     end
   end
 
-  defp call_l1_view_function(contract, function_name, args, state) do
+  defp call_l1_view_function(contract, function_name, args, _state) do
     # Encode the function call
     call_data = ABI.encode(function_name, args)
 
@@ -436,13 +436,13 @@ defmodule ExWire.Layer2.Optimism.L1Interaction do
         decoded = ABI.decode(function_name, result)
         {:ok, decoded}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("L1 view function call failed: #{inspect(reason)}")
-        {:error, reason}
+        {:error, _reason}
     end
   end
 
-  defp get_current_l1_block(state) do
+  defp get_current_l1_block(_state) do
     case Web3Client.get_block(state.web3_client, "latest") do
       {:ok, block} ->
         {:ok,
@@ -452,9 +452,9 @@ defmodule ExWire.Layer2.Optimism.L1Interaction do
            timestamp: block.timestamp
          }}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Failed to get current L1 block: #{inspect(reason)}")
-        {:error, reason}
+        {:error, _reason}
     end
   end
 
@@ -493,7 +493,7 @@ defmodule ExWire.Layer2.Optimism.L1Interaction do
     end
   end
 
-  defp monitor_deposit_events(state) do
+  defp monitor_deposit_events(_state) do
     # Monitor L1 for TransactionDeposited events
     # In production, use WebSocket subscription or polling
 
@@ -503,7 +503,7 @@ defmodule ExWire.Layer2.Optimism.L1Interaction do
     :ok
   end
 
-  defp check_and_process_events(state) do
+  defp check_and_process_events(_state) do
     # Check for various L1 events and process them
 
     # Check for deposits
@@ -513,7 +513,7 @@ defmodule ExWire.Layer2.Optimism.L1Interaction do
     check_output_proposals(state)
 
     # Check for challenges
-    check_challenge_events(state)
+    check_challenge_events(_state)
   end
 
   defp check_deposit_events(_state) do

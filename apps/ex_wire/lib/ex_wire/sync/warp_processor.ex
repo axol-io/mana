@@ -98,13 +98,13 @@ defmodule ExWire.Sync.WarpProcessor do
   @impl true
   # Called when a task completes successfully with the return
   # value of that task.
-  def handle_info({ref, msg}, state) do
+  def handle_info({ref, msg}, _state) do
     {:noreply, handle_task_complete(ref, {:ok, msg}, state)}
   end
 
   # Called when a task completes informing the supervisor that a child
   # has terminated normally.
-  def handle_info({:DOWN, ref, :process, _pid, :normal}, state) do
+  def handle_info({:DOWN, ref, :process, _pid, :normal}, _state) do
     {:noreply, handle_task_complete(ref, :down, state)}
   end
 
@@ -114,7 +114,7 @@ defmodule ExWire.Sync.WarpProcessor do
   # parallelism.
   def handle_cast(
         :spawn_new_tasks,
-        state = %{
+        _state = %{
           sup: sup,
           trie: trie,
           processor_mod: processor_mod,
@@ -146,7 +146,7 @@ defmodule ExWire.Sync.WarpProcessor do
   # processing or enqueues the task for later processing.
   def handle_cast(
         {:new_block_chunk, chunk_hash, block_chunk, pid},
-        state = %{sup: sup, trie: trie}
+        _state = %{sup: sup, trie: trie}
       ) do
     new_state = maybe_new_block_chunk_task(state, sup, chunk_hash, block_chunk, trie, pid)
 
@@ -157,7 +157,7 @@ defmodule ExWire.Sync.WarpProcessor do
   # processing or enqueues the task for later processing.
   def handle_cast(
         {:new_state_chunk, chunk_hash, state_chunk, pid},
-        state = %{sup: sup, trie: trie}
+        _state = %{sup: sup, trie: trie}
       ) do
     new_state = maybe_new_state_chunk_task(state, sup, chunk_hash, state_chunk, trie, pid)
 
@@ -170,7 +170,7 @@ defmodule ExWire.Sync.WarpProcessor do
   # the current process.
   def handle_cast(
         {:new_account_states, chunk_hash, account_states, pid},
-        state = %{
+        _state = %{
           sup: sup,
           trie: trie,
           state_root: state_root,
@@ -194,7 +194,7 @@ defmodule ExWire.Sync.WarpProcessor do
 
   def handle_cast(
         el = {:new_account_states, _chunk_hash, _account_states, _pid},
-        state = %{queue_state_processing_tasks: queue_state_processing_tasks}
+        _state = %{queue_state_processing_tasks: queue_state_processing_tasks}
       ) do
     {:noreply,
      %{
@@ -212,7 +212,7 @@ defmodule ExWire.Sync.WarpProcessor do
   defp handle_task_complete(
          ref,
          status,
-         state = %{
+         _state = %{
            sup: sup,
            trie: trie,
            state_root: state_root,
@@ -257,10 +257,10 @@ defmodule ExWire.Sync.WarpProcessor do
   end
 
   # An block or state chunk task completed successfully, ignore the result
-  defp handle_task_complete(_ref, {:ok, _msg}, state), do: state
+  defp handle_task_complete(_ref, {:ok, _msg}, _state), do: state
 
   # A block or state chunk task has terminated, try to spawn a new one
-  defp handle_task_complete(_ref, :down, state) do
+  defp handle_task_complete(_ref, :down, _state) do
     GenServer.cast(self(), :spawn_new_tasks)
 
     state
@@ -343,7 +343,7 @@ defmodule ExWire.Sync.WarpProcessor do
   @spec maybe_new_block_chunk_task(state(), pid(), EVM.hash(), BlockChunk.t(), Trie.t(), pid()) ::
           state()
   def maybe_new_block_chunk_task(
-        state = %{parallelism: parallelism, processor_mod: processor_mod},
+        _state = %{parallelism: parallelism, processor_mod: processor_mod},
         sup,
         chunk_hash,
         block_chunk,
@@ -414,7 +414,7 @@ defmodule ExWire.Sync.WarpProcessor do
   @spec maybe_new_state_chunk_task(state(), pid(), EVM.hash(), StateChunk.t(), Trie.t(), pid()) ::
           state()
   defp maybe_new_state_chunk_task(
-         state = %{parallelism: parallelism, processor_mod: processor_mod},
+         _state = %{parallelism: parallelism, processor_mod: processor_mod},
          sup,
          chunk_hash,
          state_chunk,

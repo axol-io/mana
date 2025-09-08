@@ -70,6 +70,7 @@ defmodule Blockchain.Transaction.HSMSignature do
   @spec sign_hash(Keccak.keccak_hash(), private_key | key_id, integer() | nil) ::
           {hash_v, hash_r, hash_s}
   def sign_hash(hash, key, chain_id \\ nil)
+
   def sign_hash(hash, <<_::256>> = private_key, chain_id) do
     # Raw private key - use enhanced signing service for consistency
     case hsm_available?() do
@@ -119,7 +120,7 @@ defmodule Blockchain.Transaction.HSMSignature do
           {:ok, result} ->
             {result.v, result.r, result.s}
 
-          {:error, reason} ->
+          {:error, _reason} ->
             Logger.error("HSM signing failed for key #{key_id}: #{reason}")
             throw({:hsm_signing_error, reason})
         end
@@ -173,6 +174,7 @@ defmodule Blockchain.Transaction.HSMSignature do
   @spec sign_transaction(Transaction.t(), private_key | key_id, non_neg_integer() | nil) ::
           Transaction.t()
   def sign_transaction(tx, key, chain_id \\ nil)
+
   def sign_transaction(tx, <<_::256>> = private_key, chain_id) do
     # Raw private key - use enhanced signing service
     case hsm_available?() do
@@ -181,7 +183,7 @@ defmodule Blockchain.Transaction.HSMSignature do
           {:ok, signed_tx} ->
             signed_tx
 
-          {:error, reason} ->
+          {:error, _reason} ->
             Logger.warning("HSM transaction signing failed, falling back to software: #{reason}")
             Signature.sign_transaction(tx, private_key, chain_id)
         end
@@ -200,7 +202,7 @@ defmodule Blockchain.Transaction.HSMSignature do
           {:ok, signed_tx} ->
             signed_tx
 
-          {:error, reason} ->
+          {:error, _reason} ->
             Logger.error("HSM transaction signing failed for key #{key_id}: #{reason}")
             throw({:hsm_signing_error, reason, key_id})
         end
@@ -226,7 +228,7 @@ defmodule Blockchain.Transaction.HSMSignature do
       {:ok, address} ->
         address
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Failed to get address for key #{key_id}: #{reason}")
         throw({:address_derivation_failed, key_id, reason})
     end
@@ -263,7 +265,7 @@ defmodule Blockchain.Transaction.HSMSignature do
   def generate_hsm_key(label, role \\ :transaction_signer) do
     case hsm_available?() do
       true ->
-        params = %{
+        _params = %{
           backend: :hsm,
           label: label,
           role: role,
@@ -272,7 +274,7 @@ defmodule Blockchain.Transaction.HSMSignature do
 
         case KeyManager.generate_key(params) do
           {:ok, key_descriptor} -> {:ok, key_descriptor.id}
-          {:error, reason} -> {:error, reason}
+          {:error, _reason} -> {:error, _reason}
         end
 
       false ->
@@ -325,7 +327,7 @@ defmodule Blockchain.Transaction.HSMSignature do
              timestamp: DateTime.utc_now()
            }}
         else
-          {:error, reason} -> {:error, reason}
+          {:error, _reason} -> {:error, _reason}
         end
 
       false ->
@@ -354,11 +356,11 @@ defmodule Blockchain.Transaction.HSMSignature do
           {:ok, [key | _]} ->
             case SigningService.sign_transaction_with_key(tx, key.id, chain_id) do
               {:ok, signed_tx} -> {:ok, signed_tx}
-              {:error, reason} -> {:error, reason}
+              {:error, _reason} -> {:error, _reason}
             end
 
-          {:error, reason} ->
-            {:error, reason}
+          {:error, _reason} ->
+            {:error, _reason}
         end
 
       false ->
@@ -379,14 +381,14 @@ defmodule Blockchain.Transaction.HSMSignature do
           Enum.map(transactions, fn tx ->
             case SigningService.sign_transaction_with_key(tx, key_id, chain_id) do
               {:ok, signed_tx} -> signed_tx
-              {:error, reason} -> {:error, reason}
+              {:error, _reason} -> {:error, _reason}
             end
           end)
 
         # Check if any failed
         case Enum.find(results, fn result -> match?({:error, _}, result) end) do
           nil -> {:ok, results}
-          {:error, reason} -> {:error, "Batch signing failed: #{reason}"}
+          {:error, _reason} -> {:error, "Batch signing failed: #{reason}"}
         end
 
       false ->
@@ -442,8 +444,8 @@ defmodule Blockchain.Transaction.HSMSignature do
             Logger.warning("New HSM key ID: #{key_id}")
             {:ok, key_id}
 
-          {:error, reason} ->
-            {:error, reason}
+          {:error, _reason} ->
+            {:error, _reason}
         end
 
       false ->

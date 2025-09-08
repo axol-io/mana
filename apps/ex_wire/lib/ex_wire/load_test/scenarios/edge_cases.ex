@@ -9,7 +9,7 @@ defmodule ExWire.LoadTest.Scenarios.EdgeCases do
   @doc """
   Test handling of zero gas price transactions.
   """
-  def zero_gas_price_transactions(config) do
+  def zero_gas_price_transactions(_config) do
     Logger.info("Testing zero gas price transactions")
 
     transactions =
@@ -40,7 +40,7 @@ defmodule ExWire.LoadTest.Scenarios.EdgeCases do
   @doc """
   Test transactions at maximum gas limit.
   """
-  def max_gas_limit_transactions(config) do
+  def max_gas_limit_transactions(_config) do
     Logger.info("Testing max gas limit transactions")
 
     max_gas_limit = 30_000_000
@@ -74,7 +74,7 @@ defmodule ExWire.LoadTest.Scenarios.EdgeCases do
   @doc """
   Test chain reorganization handling.
   """
-  def chain_reorganization(config) do
+  def chain_reorganization(_config) do
     Logger.info("Testing chain reorganization")
 
     # Create two competing chains
@@ -105,7 +105,7 @@ defmodule ExWire.LoadTest.Scenarios.EdgeCases do
   @doc """
   Test flooding with invalid transactions.
   """
-  def invalid_transaction_flood(config) do
+  def invalid_transaction_flood(_config) do
     Logger.info("Testing invalid transaction flood")
 
     invalid_txs =
@@ -121,7 +121,7 @@ defmodule ExWire.LoadTest.Scenarios.EdgeCases do
         MetricsCollector.record_transaction_sent("invalid_flood", tx_hash(tx))
 
         case validate_transaction(tx) do
-          {:error, reason} ->
+          {:error, _reason} ->
             MetricsCollector.record_transaction_failed("invalid_flood", tx_hash(tx), reason)
             {:rejected, reason}
 
@@ -145,7 +145,7 @@ defmodule ExWire.LoadTest.Scenarios.EdgeCases do
   @doc """
   Test duplicate nonce handling.
   """
-  def duplicate_nonce_handling(config) do
+  def duplicate_nonce_handling(_config) do
     Logger.info("Testing duplicate nonce handling")
 
     from_account = Enum.random(config.test_accounts)
@@ -223,7 +223,7 @@ defmodule ExWire.LoadTest.Scenarios.EdgeCases do
     :crypto.strong_rand_bytes(size)
   end
 
-  defp generate_block_chain(config, length, chain_id) do
+  defp generate_block_chain(_config, length, chain_id) do
     Enum.map(1..length, fn height ->
       transactions =
         TransactionGenerator.generate_simple_transfers(

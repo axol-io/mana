@@ -252,7 +252,7 @@ defmodule Blockchain.Account do
 
   ## Examples
 
-      iex> state = MerklePatriciaTree.Trie.new(MerklePatriciaTree.Test.random_ets_db())
+      iex> _state = MerklePatriciaTree.Trie.new(MerklePatriciaTree.Test.random_ets_db())
       ...>   |> Blockchain.Account.put_account(<<0x01::160>>, %Blockchain.Account{balance: 10})
       iex> Blockchain.Account.update_account(state, <<0x01::160>>, fn (acc) -> {%{acc | balance: acc.balance + 5}, state} end)
       ...>   |> Blockchain.Account.get_account(<<0x01::160>>)
@@ -425,13 +425,13 @@ defmodule Blockchain.Account do
       iex> state = MerklePatriciaTree.Trie.new(MerklePatriciaTree.Test.random_ets_db())
       ...>   |> Blockchain.Account.put_account(<<0x01::160>>, %Blockchain.Account{balance: 10})
       ...>   |> Blockchain.Account.put_account(<<0x02::160>>, %Blockchain.Account{balance: 5})
-      iex> {:ok, state} = Blockchain.Account.transfer(state, <<0x01::160>>, <<0x02::160>>, 3)
+      iex> {:ok, _state} = Blockchain.Account.transfer(state, <<0x01::160>>, <<0x02::160>>, 3)
       iex> {Blockchain.Account.get_account(state, <<0x01::160>>), Blockchain.Account.get_account(state, <<0x02::160>>)}
       {%Blockchain.Account{balance: 7}, %Blockchain.Account{balance: 8}}
 
       iex> state = MerklePatriciaTree.Trie.new(MerklePatriciaTree.Test.random_ets_db())
       ...>   |> Blockchain.Account.put_account(<<0x01::160>>, %Blockchain.Account{balance: 10})
-      iex> {:ok, state} = Blockchain.Account.transfer(state, <<0x01::160>>, <<0x02::160>>, 3)
+      iex> {:ok, _state} = Blockchain.Account.transfer(state, <<0x01::160>>, <<0x02::160>>, 3)
       iex> {Blockchain.Account.get_account(state, <<0x01::160>>), Blockchain.Account.get_account(state, <<0x02::160>>)}
       {%Blockchain.Account{balance: 7}, %Blockchain.Account{balance: 3}}
 
@@ -483,7 +483,7 @@ defmodule Blockchain.Account do
   @spec transfer!(TrieStorage.t(), Address.t(), Address.t(), EVM.Wei.t()) :: TrieStorage.t()
   def transfer!(state, from, to, wei) do
     case transfer(state, from, to, wei) do
-      {:ok, state} -> state
+      {:ok, new_state} -> new_state
       {:error, reason} -> raise reason
     end
   end
@@ -629,7 +629,7 @@ defmodule Blockchain.Account do
           integer(),
           true
         ) :: {t(), TrieStorage.t()}
-  def remove_storage(state, address, key, return_account \\ false)
+  def remove_storage(_state, address, key, return_account \\ false)
 
   def remove_storage(state, address, key, return_account) when is_binary(address) do
     account = get_account(state, address) || not_persistent_account()

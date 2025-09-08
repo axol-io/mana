@@ -118,54 +118,54 @@ defmodule ExWire.Layer2.GasManager do
     }
 
     # Initialize gas data
-    {:ok, state} = refresh_gas_data(state)
+    {:ok, _state} = refresh_gas_data(state)
 
     # Schedule periodic updates
     schedule_update()
 
     Logger.info("Gas manager initialized")
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:get_gas_prices, strategy}, _from, state) do
+  def handle_call({:get_gas_prices, strategy}, _from, _state) do
     recommendation = calculate_gas_recommendation(strategy, state)
     {:reply, {:ok, recommendation}, state}
   end
 
   @impl true
-  def handle_call({:estimate_gas_limit, tx_params}, _from, state) do
+  def handle_call({:estimate_gas_limit, tx_params}, _from, _state) do
     case estimate_transaction_gas(tx_params, state) do
       {:ok, gas_limit} ->
         # Apply safety buffer
         safe_limit = trunc(gas_limit * @gas_limit_buffer)
         {:reply, {:ok, safe_limit}, state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Gas estimation failed: #{inspect(reason)}")
         {:reply, error, state}
     end
   end
 
   @impl true
-  def handle_call({:optimize_batch, transactions}, _from, state) do
+  def handle_call({:optimize_batch, transactions}, _from, _state) do
     optimized = optimize_transaction_batch(transactions, state)
     {:reply, {:ok, optimized}, state}
   end
 
   @impl true
-  def handle_call(:get_congestion_level, _from, state) do
+  def handle_call(:get_congestion_level, _from, _state) do
     {:reply, {:ok, state.network_congestion}, state}
   end
 
   @impl true
-  def handle_call({:predict_gas_prices, blocks_ahead}, _from, state) do
+  def handle_call({:predict_gas_prices, blocks_ahead}, _from, _state) do
     prediction = predict_future_gas(blocks_ahead, state)
     {:reply, {:ok, prediction}, state}
   end
 
   @impl true
-  def handle_info(:update_gas_data, state) do
+  def handle_info(:update_gas_data, _state) do
     {:ok, new_state} = refresh_gas_data(state)
     schedule_update()
     {:noreply, new_state}
@@ -173,7 +173,7 @@ defmodule ExWire.Layer2.GasManager do
 
   # Private Functions
 
-  defp refresh_gas_data(state) do
+  defp refresh_gas_data(_state) do
     with {:ok, fee_history} <- fetch_fee_history(state),
          {:ok, current_base_fee} <- get_current_base_fee(state),
          priority_fees <- analyze_priority_fees(fee_history),
@@ -191,13 +191,13 @@ defmodule ExWire.Layer2.GasManager do
 
       {:ok, new_state}
     else
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Failed to refresh gas data: #{inspect(reason)}")
-        {:ok, state}
+        {:ok, _state}
     end
   end
 
-  defp fetch_fee_history(state) do
+  defp fetch_fee_history(_state) do
     case Web3Client.make_rpc_request(
            %{
              method: "eth_feeHistory",
@@ -208,8 +208,8 @@ defmodule ExWire.Layer2.GasManager do
       {:ok, history} ->
         {:ok, parse_fee_history(history)}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   rescue
     _ ->
@@ -217,13 +217,13 @@ defmodule ExWire.Layer2.GasManager do
       fetch_legacy_gas_price(state)
   end
 
-  defp fetch_legacy_gas_price(state) do
+  defp fetch_legacy_gas_price(_state) do
     case Web3Client.get_gas_price(state.web3_client) do
       {:ok, %{legacy_gas_price: price}} ->
         {:ok, %{base_fee: price, rewards: []}}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -235,7 +235,7 @@ defmodule ExWire.Layer2.GasManager do
     }
   end
 
-  defp get_current_base_fee(state) do
+  defp get_current_base_fee(_state) do
     case Web3Client.get_block("latest") do
       {:ok, block} ->
         {:ok, block.base_fee_per_gas || estimate_base_fee(state)}
@@ -245,7 +245,7 @@ defmodule ExWire.Layer2.GasManager do
     end
   end
 
-  defp estimate_base_fee(state) do
+  defp estimate_base_fee(_state) do
     if state.gas_history[:base_fees] && length(state.gas_history[:base_fees]) > 0 do
       List.last(state.gas_history[:base_fees])
     else
@@ -318,7 +318,7 @@ defmodule ExWire.Layer2.GasManager do
     end
   end
 
-  defp calculate_gas_recommendation(strategy, state) do
+  defp calculate_gas_recommendation(strategy, _state) do
     strategy_config = Map.get(@gas_strategies, strategy, @gas_strategies.standard)
 
     base_fee = state.current_base_fee || 20_000_000_000
@@ -345,7 +345,7 @@ defmodule ExWire.Layer2.GasManager do
     }
   end
 
-  defp get_priority_fee_for_percentile(percentile, state) do
+  defp get_priority_fee_for_percentile(percentile, _state) do
     case percentile do
       10 -> state.priority_fees[:p10] || 1_000_000_000
       25 -> state.priority_fees[:p25] || 1_500_000_000
@@ -372,26 +372,26 @@ defmodule ExWire.Layer2.GasManager do
     end
   end
 
-  defp estimate_transaction_gas(tx_params, state) do
+  defp estimate_transaction_gas(tx_params, _state) do
     # Check cache first
     cache_key = hash_tx_params(tx_params)
 
     case Map.get(state.cached_estimates, cache_key) do
       nil ->
         # Make actual estimation call
-        Web3Client.estimate_gas(state.web3_client, tx_params)
+        Web3Client.estimate_gas(_state.web3_client, tx_params)
 
       cached_value ->
         {:ok, cached_value}
     end
   end
 
-  defp hash_tx_params(params) do
+  defp hash_tx_params(_params) do
     :crypto.hash(:sha256, :erlang.term_to_binary(params))
     |> Base.encode16(case: :lower)
   end
 
-  defp optimize_transaction_batch(transactions, state) do
+  defp optimize_transaction_batch(transactions, _state) do
     # Get current gas recommendation
     {:ok, gas_rec} = calculate_gas_recommendation(state.strategy, state)
 
@@ -414,7 +414,7 @@ defmodule ExWire.Layer2.GasManager do
     end)
   end
 
-  defp predict_future_gas(blocks_ahead, state) do
+  defp predict_future_gas(blocks_ahead, _state) do
     # Simple linear prediction based on recent trend
     base_fees = state.gas_history[:base_fees] || []
 
@@ -442,7 +442,7 @@ defmodule ExWire.Layer2.GasManager do
         base_fee: trunc(predicted_base_fee),
         priority_fee: trunc(state.priority_fees[:p50] * priority_multiplier),
         max_fee: trunc(predicted_base_fee * 2),
-        legacy_gas_price: trunc(predicted_base_fee + state.priority_fees[:p50]),
+        legacy_gas_price: trunc(predicted_base_fee + _state.priority_fees[:p50]),
         estimated_wait: 60
       }
     else
@@ -461,7 +461,7 @@ defmodule ExWire.Layer2.GasManager do
     |> Kernel./(length(fees) - 1)
   end
 
-  defp predict_congestion(_blocks_ahead, state) do
+  defp predict_congestion(_blocks_ahead, _state) do
     # Simple prediction - assumes congestion remains similar
     state.network_congestion
   end

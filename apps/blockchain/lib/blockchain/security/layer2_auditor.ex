@@ -12,7 +12,6 @@ defmodule Blockchain.Security.Layer2Auditor do
 
   require Logger
 
-
   @type audit_finding :: Blockchain.Security.AuditFramework.audit_finding()
 
   @doc """

@@ -39,15 +39,15 @@ defmodule ExWire.Eth2.BeaconChainFlowIntegration do
   Add this to the BeaconChain module:
 
       @impl true
-      def handle_call({:process_attestations_parallel, attestations_list}, _from, state) do
+      def handle_call({:process_attestations_parallel, attestations_list}, _from, _state) do
         case ExWire.Eth2.BeaconChainFlowIntegration.process_attestation_batch(state, attestations_list) do
           {:ok, new_state, results} ->
             Logger.info("Processed \#{length(attestations_list)} attestations: \#{results.valid}/\#{results.total} valid")
             {:reply, {:ok, results}, new_state}
           
-          {:error, reason} ->
+          {:error, _reason} ->
             Logger.error("Failed to process attestation batch: \#{inspect(reason)}")
-            {:reply, {:error, reason}, state}
+            {:reply, {:error, _reason}, state}
         end
       end
   """
@@ -169,30 +169,30 @@ defmodule ExWire.Eth2.BeaconChainFlowIntegration do
 
   Replace this pattern in BeaconChain:
 
-      def handle_call({:process_attestation, attestation}, _from, state) do
+      def handle_call({:process_attestation, attestation}, _from, _state) do
         case validate_attestation(state, attestation) do
           :ok ->
             # Update attestation pool
             new_pool = Map.update(state.attestation_pool, slot, [attestation], &[attestation | &1])
-            state = %{state | attestation_pool: new_pool}
+            state = %{_state | attestation_pool: new_pool}
             
             # Update fork choice
             state = process_attestation_for_fork_choice(state, attestation)
             {:reply, :ok, state}
           
-          {:error, reason} ->
-            {:reply, {:error, reason}, state}
+          {:error, _reason} ->
+            {:reply, {:error, _reason}, state}
         end
       end
 
   With this enhanced version:
 
-      def handle_call({:process_attestations_batch, attestations}, _from, state) do
+      def handle_call({:process_attestations_batch, attestations}, _from, _state) do
         case ExWire.Eth2.BeaconChainFlowIntegration.process_attestation_batch(state, attestations) do
           {:ok, new_state, results} ->
             {:reply, {:ok, results}, new_state}
-          {:error, reason} ->
-            {:reply, {:error, reason}, state}
+          {:error, _reason} ->
+            {:reply, {:error, _reason}, state}
         end
       end
 

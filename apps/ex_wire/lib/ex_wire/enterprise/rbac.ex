@@ -178,7 +178,7 @@ defmodule ExWire.Enterprise.RBAC do
   @doc """
   Authorize an operation
   """
-  def authorize(user_id, operation, params \\ %{}) do
+  def authorize(user_id, operation, _params \\ %{}) do
     GenServer.call(__MODULE__, {:authorize, user_id, operation, params})
   end
 
@@ -262,11 +262,11 @@ defmodule ExWire.Enterprise.RBAC do
       end
 
     schedule_session_cleanup()
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:create_user, username, roles, attributes}, _from, state) do
+  def handle_call({:create_user, username, roles, attributes}, _from, _state) do
     user_id = generate_user_id()
 
     user = %{
@@ -293,7 +293,7 @@ defmodule ExWire.Enterprise.RBAC do
   end
 
   @impl true
-  def handle_call({:update_user_roles, user_id, new_roles}, _from, state) do
+  def handle_call({:update_user_roles, user_id, new_roles}, _from, _state) do
     case Map.get(state.users, user_id) do
       nil ->
         {:reply, {:error, :user_not_found}, state}
@@ -314,7 +314,7 @@ defmodule ExWire.Enterprise.RBAC do
   end
 
   @impl true
-  def handle_call({:create_role, name, description, permissions, opts}, _from, state) do
+  def handle_call({:create_role, name, description, permissions, opts}, _from, _state) do
     role_id = generate_role_id()
 
     role = %{
@@ -339,10 +339,10 @@ defmodule ExWire.Enterprise.RBAC do
   end
 
   @impl true
-  def handle_call({:check_permission, user_id, resource, action, context}, _from, state) do
+  def handle_call({:check_permission, user_id, resource, action, context}, _from, _state) do
     case Map.get(state.users, user_id) do
       nil ->
-        {:reply, false, state}
+        {:reply, false, _state}
 
       user ->
         has_permission = check_user_permission(user, resource, action, context, state)
@@ -366,7 +366,7 @@ defmodule ExWire.Enterprise.RBAC do
   end
 
   @impl true
-  def handle_call({:authorize, user_id, operation, params}, _from, state) do
+  def handle_call({:authorize, user_id, operation, _params}, _from, _state) do
     case Map.get(state.users, user_id) do
       nil ->
         {:reply, {:error, :unauthorized}, state}
@@ -377,25 +377,25 @@ defmodule ExWire.Enterprise.RBAC do
             AuditLogger.log(:operation_authorized, %{
               user_id: user_id,
               operation: operation,
-              params: sanitize_params(params)
+              params: sanitize_params(_params)
             })
 
             {:reply, :ok, state}
 
-          {:error, reason} ->
+          {:error, _reason} ->
             AuditLogger.log(:operation_denied, %{
               user_id: user_id,
               operation: operation,
               reason: reason
             })
 
-            {:reply, {:error, reason}, state}
+            {:reply, {:error, _reason}, state}
         end
     end
   end
 
   @impl true
-  def handle_call({:create_session, user_id, metadata}, _from, state) do
+  def handle_call({:create_session, user_id, metadata}, _from, _state) do
     case Map.get(state.users, user_id) do
       nil ->
         {:reply, {:error, :user_not_found}, state}
@@ -432,7 +432,7 @@ defmodule ExWire.Enterprise.RBAC do
   end
 
   @impl true
-  def handle_call({:revoke_session, session_id}, _from, state) do
+  def handle_call({:revoke_session, session_id}, _from, _state) do
     case Map.get(state.sessions, session_id) do
       nil ->
         {:reply, {:error, :session_not_found}, state}
@@ -450,7 +450,7 @@ defmodule ExWire.Enterprise.RBAC do
   end
 
   @impl true
-  def handle_call({:get_user, user_id}, _from, state) do
+  def handle_call({:get_user, user_id}, _from, _state) do
     case Map.get(state.users, user_id) do
       nil -> {:reply, {:error, :user_not_found}, state}
       user -> {:reply, {:ok, sanitize_user(user)}, state}
@@ -458,19 +458,19 @@ defmodule ExWire.Enterprise.RBAC do
   end
 
   @impl true
-  def handle_call(:list_users, _from, state) do
+  def handle_call(:list_users, _from, _state) do
     users = Enum.map(state.users, fn {_id, user} -> sanitize_user(user) end)
     {:reply, {:ok, users}, state}
   end
 
   @impl true
-  def handle_call(:list_roles, _from, state) do
+  def handle_call(:list_roles, _from, _state) do
     roles = Map.values(state.roles)
     {:reply, {:ok, roles}, state}
   end
 
   @impl true
-  def handle_call({:add_policy, policy}, _from, state) do
+  def handle_call({:add_policy, policy}, _from, _state) do
     policy = Map.put(policy, :id, generate_policy_id())
     state = update_in(state.policies, &[policy | &1])
 
@@ -484,7 +484,7 @@ defmodule ExWire.Enterprise.RBAC do
   end
 
   @impl true
-  def handle_call({:enable_mfa, user_id, secret}, _from, state) do
+  def handle_call({:enable_mfa, user_id, secret}, _from, _state) do
     case Map.get(state.users, user_id) do
       nil ->
         {:reply, {:error, :user_not_found}, state}
@@ -505,7 +505,7 @@ defmodule ExWire.Enterprise.RBAC do
   end
 
   @impl true
-  def handle_call({:verify_mfa, user_id, token}, _from, state) do
+  def handle_call({:verify_mfa, user_id, token}, _from, _state) do
     case Map.get(state.users, user_id) do
       nil ->
         {:reply, {:error, :user_not_found}, state}
@@ -529,7 +529,7 @@ defmodule ExWire.Enterprise.RBAC do
   end
 
   @impl true
-  def handle_info(:cleanup_sessions, state) do
+  def handle_info(:cleanup_sessions, _state) do
     now = DateTime.utc_now()
 
     active_sessions =
@@ -550,7 +550,7 @@ defmodule ExWire.Enterprise.RBAC do
 
   # Private Functions
 
-  defp check_user_permission(user, resource, action, context, state) do
+  defp check_user_permission(user, resource, action, context, _state) do
     # Check if user is suspended or locked
     if user.status != :active do
       false
@@ -626,11 +626,11 @@ defmodule ExWire.Enterprise.RBAC do
     end)
   end
 
-  defp authorize_operation(user, operation, params, state) do
+  defp authorize_operation(user, operation, _params, _state) do
     case operation do
       :send_transaction ->
-        if check_user_permission(user, "blockchain", :send_transaction, params, state) do
-          check_transaction_limits(user, params)
+        if check_user_permission(user, "blockchain", :send_transaction, params, _state) do
+          check_transaction_limits(user, _params)
         else
           {:error, :insufficient_permissions}
         end
@@ -647,7 +647,7 @@ defmodule ExWire.Enterprise.RBAC do
     end
   end
 
-  defp check_transaction_limits(user, params) do
+  defp check_transaction_limits(user, _params) do
     # Check daily limits, value thresholds, etc.
     max_value = get_user_limit(user, :max_transaction_value)
 
@@ -667,8 +667,8 @@ defmodule ExWire.Enterprise.RBAC do
     end
   end
 
-  defp compute_user_permissions(user, state) do
-    role_permissions = collect_role_permissions(user.roles, state.roles)
+  defp compute_user_permissions(user, _state) do
+    role_permissions = collect_role_permissions(user.roles, _state.roles)
     (role_permissions ++ user.direct_permissions) |> Enum.uniq()
   end
 
@@ -705,7 +705,7 @@ defmodule ExWire.Enterprise.RBAC do
     end)
   end
 
-  defp create_default_admin(state, admin_config) do
+  defp create_default_admin(_state, admin_config) do
     user_id = "admin"
 
     user = %{
@@ -728,7 +728,7 @@ defmodule ExWire.Enterprise.RBAC do
     |> Map.put(:permissions_count, length(user.direct_permissions))
   end
 
-  defp sanitize_params(params) do
+  defp sanitize_params(_params) do
     Map.drop(params, [:private_key, :password, :secret])
   end
 

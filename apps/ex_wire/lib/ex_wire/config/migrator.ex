@@ -24,7 +24,7 @@ defmodule ExWire.Config.Migrator do
   @doc """
   Runs all pending migrations on a configuration.
   """
-  def migrate(config, opts \\ []) do
+  def migrate(_config, opts \\ []) do
     target_version = Keyword.get(opts, :to, :latest)
     current_version = get_config_version(config)
 
@@ -44,7 +44,7 @@ defmodule ExWire.Config.Migrator do
   @doc """
   Rolls back migrations to a specific version.
   """
-  def rollback(config, to_version) do
+  def rollback(_config, to_version) do
     current_version = get_config_version(config)
     migrations = load_migrations()
 
@@ -104,7 +104,7 @@ defmodule ExWire.Config.Migrator do
   @doc """
   Validates that migrations can be applied cleanly.
   """
-  def validate_migrations(config, from_version \\ nil, to_version \\ :latest) do
+  def validate_migrations(_config, from_version \\ nil, to_version \\ :latest) do
     from = from_version || get_config_version(config)
     migrations = load_migrations()
     pending = get_pending_migrations(migrations, from, to_version)
@@ -162,23 +162,23 @@ defmodule ExWire.Config.Migrator do
     |> Enum.reverse()
   end
 
-  defp apply_migrations(config, migrations) do
-    Enum.reduce_while(migrations, {:ok, config}, fn migration, {:ok, current_config} ->
+  defp apply_migrations(_config, migrations) do
+    Enum.reduce_while(migrations, {:ok, _config}, fn migration, {:ok, current_config} ->
       Logger.info("Applying migration #{migration.version}: #{migration.description}")
 
       case apply_migration_up(current_config, migration) do
         {:ok, new_config} ->
           {:cont, {:ok, new_config}}
 
-        {:error, reason} = error ->
+        {:error, _reason} = error ->
           Logger.error("Migration #{migration.version} failed: #{inspect(reason)}")
           {:halt, error}
       end
     end)
   end
 
-  defp apply_rollbacks(config, migrations) do
-    Enum.reduce_while(migrations, {:ok, config}, fn migration, {:ok, current_config} ->
+  defp apply_rollbacks(_config, migrations) do
+    Enum.reduce_while(migrations, {:ok, _config}, fn migration, {:ok, current_config} ->
       Logger.info("Rolling back migration #{migration.version}")
 
       case apply_migration_down(current_config, migration) do
@@ -192,7 +192,7 @@ defmodule ExWire.Config.Migrator do
     end)
   end
 
-  defp apply_migration_up(config, migration) do
+  defp apply_migration_up(_config, migration) do
     if is_function(migration.up, 1) do
       try do
         migration.up.(config)
@@ -200,11 +200,11 @@ defmodule ExWire.Config.Migrator do
         error -> {:error, error}
       end
     else
-      {:ok, config}
+      {:ok, _config}
     end
   end
 
-  defp apply_migration_down(config, migration) do
+  defp apply_migration_down(_config, migration) do
     if is_function(migration.down, 1) do
       try do
         migration.down.(config)
@@ -212,15 +212,15 @@ defmodule ExWire.Config.Migrator do
         error -> {:error, error}
       end
     else
-      {:ok, config}
+      {:ok, _config}
     end
   end
 
-  defp get_config_version(config) do
+  defp get_config_version(_config) do
     Map.get(config, :__version__, "0.0.0")
   end
 
-  defp set_config_version(config, version) do
+  defp set_config_version(_config, version) do
     Map.put(config, :__version__, version)
   end
 
@@ -261,14 +261,14 @@ defmodule ExWire.Config.Migrator do
         # |> Map.put(:new_field, "default_value")
         # |> Map.update(:existing_field, nil, fn old -> transform(old) end)
         
-        {:ok, config}
+        {:ok, _config}
       end,
       
       down: fn config ->
         # Add your rollback logic here
         # This should reverse the changes made in 'up'
         
-        {:ok, config}
+        {:ok, _config}
       end
     }
     """
@@ -287,7 +287,7 @@ defmodule ExWire.Config.Migrator do
     """
 
     @doc "Renames a configuration key"
-    def rename_key(config, old_key, new_key) do
+    def rename_key(_config, old_key, new_key) do
       if Map.has_key?(config, old_key) do
         config
         |> Map.put(new_key, Map.get(config, old_key))
@@ -298,7 +298,7 @@ defmodule ExWire.Config.Migrator do
     end
 
     @doc "Moves a value to a nested location"
-    def nest_value(config, key, path) when is_list(path) do
+    def nest_value(_config, key, path) when is_list(path) do
       if Map.has_key?(config, key) do
         value = Map.get(config, key)
 
@@ -311,7 +311,7 @@ defmodule ExWire.Config.Migrator do
     end
 
     @doc "Flattens a nested value"
-    def flatten_value(config, path, key) when is_list(path) do
+    def flatten_value(_config, path, key) when is_list(path) do
       case get_in(config, path) do
         nil ->
           config
@@ -324,7 +324,7 @@ defmodule ExWire.Config.Migrator do
     end
 
     @doc "Transforms values matching a pattern"
-    def transform_values(config, pattern, transformer) when is_function(transformer, 1) do
+    def transform_values(_config, pattern, transformer) when is_function(transformer, 1) do
       deep_transform(config, fn key, value ->
         if matches_pattern?(key, pattern) do
           transformer.(value)
@@ -334,8 +334,8 @@ defmodule ExWire.Config.Migrator do
       end)
     end
 
-    defp deep_transform(config, transformer) when is_map(config) do
-      Map.new(config, fn {key, value} ->
+    defp deep_transform(_config, transformer) when is_map(config) do
+      Map.new(_config, fn {key, value} ->
         new_value =
           if is_map(value) do
             deep_transform(value, transformer)

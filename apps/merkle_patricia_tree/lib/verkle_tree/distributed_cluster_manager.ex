@@ -1,7 +1,7 @@
 defmodule VerkleTree.DistributedClusterManager do
   @moduledoc """
   Distributed computing architecture for massive parallel Verkle tree processing.
-  
+
   This module implements a distributed cluster management system that coordinates
   Verkle tree operations across multiple nodes to achieve linear scalability
   and contribute to the 35x performance target through massive parallelization.
@@ -33,6 +33,7 @@ defmodule VerkleTree.DistributedClusterManager do
   require Logger
 
   alias VerkleTree.{NativeCore, GPUAccelerator}
+  alias ExWire.Performance.TaskPoolSupervisor
 
   # Cluster configuration
   @default_max_nodes 16
@@ -56,23 +57,23 @@ defmodule VerkleTree.DistributedClusterManager do
   ]
 
   @type node_info :: %{
-    node_id: atom(),
-    node_type: :coordinator | :compute | :storage,
-    capabilities: map(),
-    status: :active | :inactive | :failed,
-    load: float(),
-    resources: map(),
-    last_heartbeat: integer()
-  }
+          node_id: atom(),
+          node_type: :coordinator | :compute | :storage,
+          capabilities: map(),
+          status: :active | :inactive | :failed,
+          load: float(),
+          resources: map(),
+          last_heartbeat: integer()
+        }
 
   @type cluster_config :: %{
-    max_nodes: pos_integer(),
-    replication_factor: pos_integer(),
-    auto_scaling: boolean(),
-    fault_tolerance: boolean(),
-    network_optimization: boolean(),
-    resource_sharing: boolean()
-  }
+          max_nodes: pos_integer(),
+          replication_factor: pos_integer(),
+          auto_scaling: boolean(),
+          fault_tolerance: boolean(),
+          network_optimization: boolean(),
+          resource_sharing: boolean()
+        }
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -80,9 +81,9 @@ defmodule VerkleTree.DistributedClusterManager do
 
   def init(opts) do
     Logger.info("Initializing Distributed Cluster Manager for 35x performance")
-    
+
     cluster_id = Keyword.get(opts, :cluster_id, generate_cluster_id())
-    
+
     config = %{
       max_nodes: Keyword.get(opts, :max_nodes, @default_max_nodes),
       replication_factor: Keyword.get(opts, :replication_factor, @default_replication_factor),
@@ -91,13 +92,13 @@ defmodule VerkleTree.DistributedClusterManager do
       network_optimization: Keyword.get(opts, :network_optimization, true),
       resource_sharing: Keyword.get(opts, :resource_sharing, true)
     }
-    
+
     # Initialize cluster components
     {:ok, load_balancer} = __MODULE__.LoadBalancer.start_link()
     {:ok, fault_detector} = __MODULE__.FaultDetector.start_link()
     {:ok, resource_manager} = __MODULE__.ResourceManager.start_link()
     {:ok, network_optimizer} = __MODULE__.NetworkOptimizer.start_link()
-    
+
     # Initialize as coordinator node
     coordinator_node = %{
       node_id: Node.self(),
@@ -108,7 +109,7 @@ defmodule VerkleTree.DistributedClusterManager do
       resources: get_local_resources(),
       last_heartbeat: System.system_time(:millisecond)
     }
-    
+
     state = %__MODULE__{
       cluster_id: cluster_id,
       coordinator_node: coordinator_node,
@@ -121,18 +122,18 @@ defmodule VerkleTree.DistributedClusterManager do
       cluster_stats: initialize_cluster_stats(),
       cluster_config: config
     }
-    
+
     # Start cluster services
     start_cluster_services()
-    
+
     Logger.info("Cluster #{cluster_id} initialized as coordinator node")
-    
+
     {:ok, state}
   end
 
   @doc """
   Distribute Verkle tree operations across the cluster for massive parallel processing.
-  
+
   Automatically partitions workload based on:
   - Node capabilities (GPU, FPGA, CPU)
   - Current load distribution
@@ -145,7 +146,7 @@ defmodule VerkleTree.DistributedClusterManager do
 
   @doc """
   Add a compute node to the cluster.
-  
+
   Automatically detects node capabilities and integrates into cluster workload distribution.
   """
   def join_cluster(node_id, capabilities \\ %{}) do
@@ -154,7 +155,7 @@ defmodule VerkleTree.DistributedClusterManager do
 
   @doc """
   Remove a node from the cluster gracefully.
-  
+
   Redistributes workload and ensures no data loss.
   """
   def leave_cluster(node_id) do
@@ -170,7 +171,7 @@ defmodule VerkleTree.DistributedClusterManager do
 
   @doc """
   Perform distributed witness generation across the cluster.
-  
+
   Distributes witness generation workload to achieve maximum parallel throughput.
   Target: 200k+ witnesses/sec with 4-node cluster.
   """
@@ -203,22 +204,21 @@ defmodule VerkleTree.DistributedClusterManager do
 
   def handle_call({:distribute_operations, operations, opts}, _from, state) do
     start_time = System.monotonic_time(:microsecond)
-    
+
     try do
       # Analyze operations for optimal distribution
       distribution_plan = create_distribution_plan(operations, state, opts)
-      
+
       # Execute distributed operations
       results = execute_distributed_operations(distribution_plan, state)
-      
+
       # Update cluster statistics
       elapsed = System.monotonic_time(:microsecond) - start_time
       new_stats = update_operation_stats(state.cluster_stats, length(operations), elapsed)
-      
+
       state = %{state | cluster_stats: new_stats}
-      
+
       {:reply, {:ok, results}, state}
-      
     rescue
       error ->
         Logger.error("Distributed operation failed: #{inspect(error)}")
@@ -229,25 +229,24 @@ defmodule VerkleTree.DistributedClusterManager do
   def handle_call({:join_cluster, node_id, capabilities}, _from, state) do
     try do
       Logger.info("Node #{node_id} requesting to join cluster #{state.cluster_id}")
-      
+
       # Validate node can join cluster
       case validate_node_join(node_id, capabilities, state) do
         :ok ->
           # Add node to appropriate category
           node_info = create_node_info(node_id, capabilities)
           state = add_node_to_cluster(node_info, state)
-          
+
           # Rebalance cluster workload
           state = rebalance_cluster_load(state)
-          
+
           Logger.info("Node #{node_id} successfully joined cluster")
           {:reply, {:ok, :joined}, state}
-          
+
         {:error, reason} ->
           Logger.warning("Node #{node_id} join rejected: #{reason}")
           {:reply, {:error, reason}, state}
       end
-      
     rescue
       error ->
         Logger.error("Error adding node #{node_id}: #{inspect(error)}")
@@ -258,15 +257,14 @@ defmodule VerkleTree.DistributedClusterManager do
   def handle_call({:leave_cluster, node_id}, _from, state) do
     try do
       Logger.info("Node #{node_id} leaving cluster #{state.cluster_id}")
-      
+
       # Graceful node removal
       state = remove_node_from_cluster(node_id, state)
-      
+
       # Redistribute workload
       state = rebalance_cluster_load(state)
-      
+
       {:reply, :ok, state}
-      
     rescue
       error ->
         Logger.error("Error removing node #{node_id}: #{inspect(error)}")
@@ -276,29 +274,31 @@ defmodule VerkleTree.DistributedClusterManager do
 
   def handle_call({:distributed_witness_generation, keys, opts}, _from, state) do
     start_time = System.monotonic_time(:microsecond)
-    
+
     try do
       # Determine optimal witness generation strategy
       batch_size = calculate_optimal_witness_batch_size(length(keys), state)
-      
+
       # Distribute witness generation across cluster
       witness_plan = create_witness_distribution_plan(keys, batch_size, state)
-      
+
       # Execute distributed witness generation
       witnesses = execute_distributed_witness_generation(witness_plan, state, opts)
-      
+
       # Update performance statistics
       elapsed = System.monotonic_time(:microsecond) - start_time
       witnesses_per_sec = length(keys) / (elapsed / 1_000_000)
-      
-      new_stats = update_witness_stats(state.cluster_stats, length(keys), elapsed, witnesses_per_sec)
-      
+
+      new_stats =
+        update_witness_stats(state.cluster_stats, length(keys), elapsed, witnesses_per_sec)
+
       state = %{state | cluster_stats: new_stats}
-      
-      Logger.info("Distributed witness generation: #{length(keys)} witnesses in #{elapsed / 1000}ms (#{Float.round(witnesses_per_sec, 2)} witnesses/sec)")
-      
+
+      Logger.info(
+        "Distributed witness generation: #{length(keys)} witnesses in #{elapsed / 1000}ms (#{Float.round(witnesses_per_sec, 2)} witnesses/sec)"
+      )
+
       {:reply, {:ok, witnesses}, state}
-      
     rescue
       error ->
         Logger.error("Distributed witness generation failed: #{inspect(error)}")
@@ -308,23 +308,23 @@ defmodule VerkleTree.DistributedClusterManager do
 
   def handle_call({:distributed_tree_operations, operations, opts}, _from, state) do
     start_time = System.monotonic_time(:microsecond)
-    
+
     try do
       # Create operation distribution plan
       operation_plan = create_operation_distribution_plan(operations, state, opts)
-      
+
       # Execute operations across cluster
       results = execute_distributed_tree_operations(operation_plan, state)
-      
+
       elapsed = System.monotonic_time(:microsecond) - start_time
       ops_per_sec = length(operations) / (elapsed / 1_000_000)
-      
-      new_stats = update_tree_operation_stats(state.cluster_stats, length(operations), elapsed, ops_per_sec)
-      
+
+      new_stats =
+        update_tree_operation_stats(state.cluster_stats, length(operations), elapsed, ops_per_sec)
+
       state = %{state | cluster_stats: new_stats}
-      
+
       {:reply, {:ok, results}, state}
-      
     rescue
       error ->
         Logger.error("Distributed tree operations failed: #{inspect(error)}")
@@ -335,24 +335,23 @@ defmodule VerkleTree.DistributedClusterManager do
   def handle_call({:scale_cluster, target_nodes}, _from, state) do
     try do
       current_nodes = count_active_nodes(state)
-      
+
       cond do
         target_nodes > current_nodes ->
           # Scale up - request additional nodes
           scale_up_result = request_additional_nodes(target_nodes - current_nodes, state)
           {:reply, scale_up_result, state}
-          
+
         target_nodes < current_nodes ->
           # Scale down - gracefully remove nodes
           nodes_to_remove = current_nodes - target_nodes
           new_state = scale_down_cluster(nodes_to_remove, state)
           {:reply, {:ok, :scaled_down}, new_state}
-          
+
         true ->
           # No scaling needed
           {:reply, {:ok, :no_change}, state}
       end
-      
     rescue
       error ->
         Logger.error("Cluster scaling failed: #{inspect(error)}")
@@ -368,24 +367,23 @@ defmodule VerkleTree.DistributedClusterManager do
   def handle_call(:optimize_cluster_performance, _from, state) do
     try do
       Logger.info("Optimizing cluster performance")
-      
+
       # Analyze current performance bottlenecks
       bottlenecks = analyze_cluster_bottlenecks(state)
-      
+
       # Apply optimizations
       optimized_state = apply_cluster_optimizations(bottlenecks, state)
-      
+
       # Update load balancing
       final_state = rebalance_cluster_load(optimized_state)
-      
+
       optimization_summary = %{
         bottlenecks_identified: length(bottlenecks),
         optimizations_applied: count_optimizations_applied(bottlenecks),
         performance_improvement: calculate_performance_improvement(state, final_state)
       }
-      
+
       {:reply, {:ok, optimization_summary}, final_state}
-      
     rescue
       error ->
         Logger.error("Cluster optimization failed: #{inspect(error)}")
@@ -425,7 +423,7 @@ defmodule VerkleTree.DistributedClusterManager do
   defp create_distribution_plan(operations, state, opts) do
     # Create optimal distribution plan based on cluster state
     available_nodes = get_available_compute_nodes(state)
-    
+
     %{
       operations: operations,
       nodes: available_nodes,
@@ -437,28 +435,39 @@ defmodule VerkleTree.DistributedClusterManager do
   end
 
   defp execute_distributed_operations(plan, state) do
-    # Execute operations according to distribution plan
-    plan.nodes
-    |> Enum.map(fn node ->
-      node_operations = get_operations_for_node(node, plan)
-      
-      Task.async(fn ->
+    # Execute operations according to distribution plan with optimized task pooling
+    
+    # Use optimized task pool for node operations
+    TaskPoolSupervisor.async_batch(
+      :consensus_operations,
+      plan.nodes,
+      fn node ->
+        node_operations = get_operations_for_node(node, plan)
         execute_operations_on_node(node, node_operations, state)
-      end)
+      end,
+      timeout: @network_timeout,
+      concurrency: length(plan.nodes),
+      ordered: false
+    )
+    |> Enum.map(fn
+      {:ok, result} -> result
+      {:exit, reason} -> 
+        Logger.warning("Node operation failed: #{inspect(reason)}")
+        []
     end)
-    |> Task.await_many(@network_timeout)
     |> List.flatten()
   end
 
   defp create_witness_distribution_plan(keys, batch_size, state) do
     # Create optimal witness generation distribution
     available_nodes = get_nodes_with_capability(state, :witness_generation)
-    
+
     # Prioritize GPU and FPGA nodes for witness generation
-    prioritized_nodes = prioritize_nodes_by_capability(available_nodes, [:gpu, :fpga, :native_core])
-    
+    prioritized_nodes =
+      prioritize_nodes_by_capability(available_nodes, [:gpu, :fpga, :native_core])
+
     key_batches = Enum.chunk_every(keys, batch_size)
-    
+
     %{
       key_batches: key_batches,
       nodes: prioritized_nodes,
@@ -468,17 +477,35 @@ defmodule VerkleTree.DistributedClusterManager do
   end
 
   defp execute_distributed_witness_generation(plan, state, opts) do
-    # Execute witness generation across cluster nodes
-    plan.key_batches
-    |> Enum.with_index()
-    |> Enum.map(fn {batch, index} ->
-      node = Enum.at(plan.nodes, rem(index, length(plan.nodes)))
-      
-      Task.async(fn ->
-        generate_witnesses_on_node(node, batch, state, opts)
+    # Execute witness generation across cluster nodes with optimized task pooling
+    alias ExWire.Performance.TaskPoolSupervisor
+    
+    # Prepare work items for optimized batch processing
+    work_items = 
+      plan.key_batches
+      |> Enum.with_index()
+      |> Enum.map(fn {batch, index} ->
+        node = Enum.at(plan.nodes, rem(index, length(plan.nodes)))
+        {node, batch}
       end)
+    
+    # Use optimized witness generation task pool
+    TaskPoolSupervisor.async_batch(
+      :witness_generation,
+      work_items,
+      fn {node, batch} ->
+        generate_witnesses_on_node(node, batch, state, opts)
+      end,
+      timeout: @network_timeout,
+      concurrency: min(length(plan.nodes), System.schedulers_online() * 2),
+      ordered: false
+    )
+    |> Enum.map(fn
+      {:ok, result} -> result
+      {:exit, reason} -> 
+        Logger.warning("Witness generation failed: #{inspect(reason)}")
+        []
     end)
-    |> Task.await_many(@network_timeout)
     |> List.flatten()
   end
 
@@ -491,21 +518,21 @@ defmodule VerkleTree.DistributedClusterManager do
           {:ok, witnesses} -> witnesses
           _ -> fallback_witness_generation(keys, node, state)
         end
-        
+
       :fpga ->
         # Use FPGA acceleration if available  
         case :rpc.call(node.node_id, FPGAAccelerator, :fpga_generate_witnesses, [keys, []]) do
           {:ok, witnesses} -> witnesses
           _ -> fallback_witness_generation(keys, node, state)
         end
-        
+
       :native_core ->
         # Use native core optimization
         case :rpc.call(node.node_id, NativeCore, :generate_witnesses, [keys, opts]) do
           {:ok, witnesses} -> witnesses
           _ -> fallback_witness_generation(keys, node, state)
         end
-        
+
       _ ->
         # Fallback to standard witness generation
         fallback_witness_generation(keys, node, state)
@@ -515,7 +542,9 @@ defmodule VerkleTree.DistributedClusterManager do
   defp fallback_witness_generation(keys, node, _state) do
     # Fallback witness generation when specialized hardware unavailable
     case :rpc.call(node.node_id, VerkleTree, :generate_witnesses, [keys]) do
-      {:ok, witnesses} -> witnesses
+      {:ok, witnesses} ->
+        witnesses
+
       _ ->
         Logger.warning("Witness generation failed on node #{node.node_id}")
         []
@@ -525,16 +554,17 @@ defmodule VerkleTree.DistributedClusterManager do
   defp create_operation_distribution_plan(operations, state, _opts) do
     # Create distribution plan for general tree operations
     available_nodes = get_available_compute_nodes(state)
-    
+
     # Group operations by type for better batching
-    operations_by_type = Enum.group_by(operations, fn
-      {:insert, _, _} -> :insert
-      {:read, _} -> :read
-      {:update, _, _} -> :update
-      {:delete, _} -> :delete
-      _ -> :other
-    end)
-    
+    operations_by_type =
+      Enum.group_by(operations, fn
+        {:insert, _, _} -> :insert
+        {:read, _} -> :read
+        {:update, _, _} -> :update
+        {:delete, _} -> :delete
+        _ -> :other
+      end)
+
     %{
       operations_by_type: operations_by_type,
       nodes: available_nodes,
@@ -544,29 +574,48 @@ defmodule VerkleTree.DistributedClusterManager do
   end
 
   defp execute_distributed_tree_operations(plan, state) do
-    # Execute tree operations across cluster
+    # Execute tree operations across cluster with optimized task pooling
+    alias ExWire.Performance.TaskPoolSupervisor
+    
     plan.operations_by_type
     |> Enum.flat_map(fn {operation_type, ops} ->
-      # Distribute operations of same type across nodes
-      ops
-      |> Enum.chunk_every(div(length(ops), length(plan.nodes)) + 1)
-      |> Enum.with_index()
-      |> Enum.map(fn {batch, index} ->
-        node = Enum.at(plan.nodes, rem(index, length(plan.nodes)))
-        
-        Task.async(fn ->
-          execute_operation_batch_on_node(node, batch, operation_type, state)
+      # Distribute operations of same type across nodes using optimized task pool
+      work_batches = 
+        ops
+        |> Enum.chunk_every(div(length(ops), length(plan.nodes)) + 1)
+        |> Enum.with_index()
+        |> Enum.map(fn {batch, index} ->
+          node = Enum.at(plan.nodes, rem(index, length(plan.nodes)))
+          {node, batch, operation_type}
         end)
-      end)
+      
+      # Use optimized supervised task execution instead of direct Task.async
+      TaskPoolSupervisor.async_batch(
+        :data_processing,
+        work_batches,
+        fn {node, batch, op_type} ->
+          execute_operation_batch_on_node(node, batch, op_type, state)
+        end,
+        timeout: @network_timeout,
+        concurrency: length(plan.nodes) * 2,
+        ordered: false  # Performance optimization - don't preserve order
+      )
     end)
-    |> Task.await_many(@network_timeout)
+    |> Enum.map(fn
+      {:ok, result} -> result
+      {:exit, reason} -> 
+        Logger.warning("Distributed operation failed: #{inspect(reason)}")
+        []
+    end)
     |> List.flatten()
   end
 
   defp execute_operation_batch_on_node(node, operations, operation_type, _state) do
     # Execute batch of operations on specific node
     case :rpc.call(node.node_id, VerkleTree, :batch_execute, [operations, operation_type]) do
-      {:ok, results} -> results
+      {:ok, results} ->
+        results
+
       error ->
         Logger.error("Batch execution failed on node #{node.node_id}: #{inspect(error)}")
         Enum.map(operations, fn _ -> {:error, :node_execution_failed} end)
@@ -579,16 +628,16 @@ defmodule VerkleTree.DistributedClusterManager do
     cond do
       node_id == state.coordinator_node.node_id ->
         {:error, :coordinator_cannot_rejoin}
-        
+
       node_already_in_cluster?(node_id, state) ->
         {:error, :node_already_exists}
-        
+
       cluster_at_capacity?(state) ->
         {:error, :cluster_at_capacity}
-        
+
       not valid_capabilities?(capabilities) ->
         {:error, :invalid_capabilities}
-        
+
       true ->
         :ok
     end
@@ -611,11 +660,11 @@ defmodule VerkleTree.DistributedClusterManager do
       :compute ->
         compute_nodes = Map.put(state.compute_nodes, node_info.node_id, node_info)
         %{state | compute_nodes: compute_nodes}
-        
+
       :storage ->
         storage_nodes = Map.put(state.storage_nodes, node_info.node_id, node_info)
         %{state | storage_nodes: storage_nodes}
-        
+
       _ ->
         Logger.warning("Unknown node type: #{node_info.node_type}")
         state
@@ -626,11 +675,8 @@ defmodule VerkleTree.DistributedClusterManager do
     # Remove node from appropriate collection
     compute_nodes = Map.delete(state.compute_nodes, node_id)
     storage_nodes = Map.delete(state.storage_nodes, node_id)
-    
-    %{state | 
-      compute_nodes: compute_nodes,
-      storage_nodes: storage_nodes
-    }
+
+    %{state | compute_nodes: compute_nodes, storage_nodes: storage_nodes}
   end
 
   defp rebalance_cluster_load(state) do
@@ -641,17 +687,18 @@ defmodule VerkleTree.DistributedClusterManager do
 
   defp handle_node_failure(node_id, state) do
     Logger.warning("Handling failure of node #{node_id}")
-    
+
     # Remove failed node
     state = remove_node_from_cluster(node_id, state)
-    
+
     # Redistribute workload if fault tolerance enabled
-    state = if state.cluster_config.fault_tolerance do
-      redistribute_failed_node_workload(node_id, state)
-    else
-      state
-    end
-    
+    state =
+      if state.cluster_config.fault_tolerance do
+        redistribute_failed_node_workload(node_id, state)
+      else
+        state
+      end
+
     # Update cluster statistics
     new_stats = update_failure_stats(state.cluster_stats, node_id)
     %{state | cluster_stats: new_stats}
@@ -662,16 +709,16 @@ defmodule VerkleTree.DistributedClusterManager do
   defp analyze_cluster_bottlenecks(state) do
     # Identify performance bottlenecks in cluster
     bottlenecks = []
-    
+
     # Check network bottlenecks
     network_bottlenecks = analyze_network_performance(state)
-    
+
     # Check compute bottlenecks  
     compute_bottlenecks = analyze_compute_performance(state)
-    
+
     # Check storage bottlenecks
     storage_bottlenecks = analyze_storage_performance(state)
-    
+
     bottlenecks ++ network_bottlenecks ++ compute_bottlenecks ++ storage_bottlenecks
   end
 
@@ -687,7 +734,7 @@ defmodule VerkleTree.DistributedClusterManager do
       :network_latency ->
         __MODULE__.NetworkOptimizer.optimize_routing(state.network_optimizer, bottleneck.details)
         state
-        
+
       :compute_overload ->
         # Request additional compute nodes if auto-scaling enabled
         if state.cluster_config.auto_scaling do
@@ -695,11 +742,15 @@ defmodule VerkleTree.DistributedClusterManager do
         else
           state
         end
-        
+
       :memory_pressure ->
-        __MODULE__.ResourceManager.optimize_memory_allocation(state.resource_manager, bottleneck.details)
+        __MODULE__.ResourceManager.optimize_memory_allocation(
+          state.resource_manager,
+          bottleneck.details
+        )
+
         state
-        
+
       _ ->
         Logger.warning("Unknown bottleneck type: #{bottleneck.type}")
         state
@@ -740,7 +791,8 @@ defmodule VerkleTree.DistributedClusterManager do
     #     Float.round(total_memory / (1024 * 1024 * 1024), 2)
     #   _ -> 8.0 # Default fallback
     # end
-    8.0 # Default fallback when memsup not available
+    # Default fallback when memsup not available
+    8.0
   end
 
   defp gpu_available?() do
@@ -758,10 +810,14 @@ defmodule VerkleTree.DistributedClusterManager do
     File.exists?("/dev/fpga0") or File.exists?("/sys/class/fpga_manager")
   end
 
-  defp get_cpu_usage(), do: 0.0 # Placeholder
-  defp get_memory_usage(), do: 0.0 # Placeholder  
-  defp get_disk_usage(), do: 0.0 # Placeholder
-  defp get_network_usage(), do: 0.0 # Placeholder
+  # Placeholder
+  defp get_cpu_usage(), do: 0.0
+  # Placeholder  
+  defp get_memory_usage(), do: 0.0
+  # Placeholder
+  defp get_disk_usage(), do: 0.0
+  # Placeholder
+  defp get_network_usage(), do: 0.0
 
   defp start_cluster_services() do
     # Start periodic cluster maintenance tasks
@@ -794,38 +850,41 @@ defmodule VerkleTree.DistributedClusterManager do
   defp update_operation_stats(stats, operation_count, elapsed_us) do
     new_ops = stats.operations_distributed + operation_count
     new_time = stats.total_processing_time_us + elapsed_us
-    
-    %{stats |
-      operations_distributed: new_ops,
-      total_processing_time_us: new_time,
-      average_operations_per_sec: calculate_average_ops_per_sec(new_ops, new_time)
+
+    %{
+      stats
+      | operations_distributed: new_ops,
+        total_processing_time_us: new_time,
+        average_operations_per_sec: calculate_average_ops_per_sec(new_ops, new_time)
     }
   end
 
   defp update_witness_stats(stats, witness_count, elapsed_us, witnesses_per_sec) do
     new_witnesses = stats.witnesses_generated + witness_count
     new_time = stats.total_processing_time_us + elapsed_us
-    
+
     # Calculate running average
     current_avg = stats.average_witnesses_per_sec
     count = if new_witnesses > witness_count, do: 2, else: 1
     new_avg = (current_avg + witnesses_per_sec) / count
-    
-    %{stats |
-      witnesses_generated: new_witnesses,
-      total_processing_time_us: new_time,
-      average_witnesses_per_sec: new_avg
+
+    %{
+      stats
+      | witnesses_generated: new_witnesses,
+        total_processing_time_us: new_time,
+        average_witnesses_per_sec: new_avg
     }
   end
 
   defp update_tree_operation_stats(stats, operation_count, elapsed_us, _ops_per_sec) do
     new_ops = stats.tree_operations_executed + operation_count
     new_time = stats.total_processing_time_us + elapsed_us
-    
-    %{stats |
-      tree_operations_executed: new_ops,
-      total_processing_time_us: new_time,
-      average_operations_per_sec: calculate_average_ops_per_sec(new_ops, new_time)
+
+    %{
+      stats
+      | tree_operations_executed: new_ops,
+        total_processing_time_us: new_time,
+        average_operations_per_sec: calculate_average_ops_per_sec(new_ops, new_time)
     }
   end
 
@@ -843,12 +902,13 @@ defmodule VerkleTree.DistributedClusterManager do
 
   # Helper functions (simplified implementations)
   defp node_already_in_cluster?(node_id, state) do
-    Map.has_key?(state.compute_nodes, node_id) or 
-    Map.has_key?(state.storage_nodes, node_id)
+    Map.has_key?(state.compute_nodes, node_id) or
+      Map.has_key?(state.storage_nodes, node_id)
   end
 
   defp cluster_at_capacity?(state) do
-    total_nodes = map_size(state.compute_nodes) + map_size(state.storage_nodes) + 1 # +1 for coordinator
+    # +1 for coordinator
+    total_nodes = map_size(state.compute_nodes) + map_size(state.storage_nodes) + 1
     total_nodes >= state.cluster_config.max_nodes
   end
 
@@ -891,9 +951,9 @@ defmodule VerkleTree.DistributedClusterManager do
   end
 
   defp get_all_nodes(state) do
-    [state.coordinator_node] ++ 
-    Map.values(state.compute_nodes) ++ 
-    Map.values(state.storage_nodes)
+    [state.coordinator_node] ++
+      Map.values(state.compute_nodes) ++
+      Map.values(state.storage_nodes)
   end
 
   defp count_active_nodes(state) do
@@ -916,14 +976,17 @@ defmodule VerkleTree.DistributedClusterManager do
   defp analyze_operation_dependencies(_operations), do: []
   defp get_operations_for_node(_node, plan), do: Enum.take(plan.operations, 10)
   defp execute_operations_on_node(_node, operations, _state), do: operations
+
   defp calculate_optimal_witness_batch_size(key_count, state) do
     node_count = count_active_nodes(state)
     max(div(key_count, node_count), 10)
   end
+
   defp check_node_heartbeats(state), do: state
   defp update_node_heartbeat(_node_id, _node_info, state), do: state
   defp request_additional_nodes(_count, _state), do: {:ok, :scaling_requested}
   defp scale_down_cluster(_count, state), do: state
+
   defp compile_cluster_status(state) do
     %{
       cluster_id: state.cluster_id,
@@ -933,6 +996,7 @@ defmodule VerkleTree.DistributedClusterManager do
       cluster_stats: state.cluster_stats
     }
   end
+
   defp analyze_network_performance(_state), do: []
   defp analyze_compute_performance(_state), do: []
   defp analyze_storage_performance(_state), do: []

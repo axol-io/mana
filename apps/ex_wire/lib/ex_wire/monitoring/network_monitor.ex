@@ -214,40 +214,40 @@ defmodule ExWire.Monitoring.NetworkMonitor do
       "[NetworkMonitor] Started with collection interval: #{config.collection_interval}ms"
     )
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call(:get_network_metrics, _from, state) do
+  def handle_call(:get_network_metrics, _from, _state) do
     {:reply, state.metrics, state}
   end
 
-  def handle_call({:get_peer_stats, peer}, _from, state) do
+  def handle_call({:get_peer_stats, peer}, _from, _state) do
     stats = Map.get(state.peer_stats, peer)
     {:reply, stats, state}
   end
 
-  def handle_call(:get_topology_info, _from, state) do
+  def handle_call(:get_topology_info, _from, _state) do
     {:reply, state.topology_info, state}
   end
 
-  def handle_call(:get_active_alerts, _from, state) do
+  def handle_call(:get_active_alerts, _from, _state) do
     active_alerts = Enum.filter(state.alerts, &(not &1.acknowledged))
     {:reply, active_alerts, state}
   end
 
   @impl true
-  def handle_cast({:record_peer_message, peer, direction, message_type, size}, state) do
+  def handle_cast({:record_peer_message, peer, direction, message_type, size}, _state) do
     new_state = update_peer_message_stats(state, peer, direction, message_type, size)
     {:noreply, new_state}
   end
 
-  def handle_cast({:record_performance_metric, peer, metric_name, value}, state) do
+  def handle_cast({:record_performance_metric, peer, metric_name, value}, _state) do
     new_state = update_peer_performance_stats(state, peer, metric_name, value)
     {:noreply, new_state}
   end
 
-  def handle_cast({:acknowledge_alert, alert_id}, state) do
+  def handle_cast({:acknowledge_alert, alert_id}, _state) do
     new_alerts =
       Enum.map(state.alerts, fn alert ->
         if alert.id == alert_id do
@@ -261,19 +261,19 @@ defmodule ExWire.Monitoring.NetworkMonitor do
   end
 
   @impl true
-  def handle_info(:collect_metrics, state) do
+  def handle_info(:collect_metrics, _state) do
     new_state = collect_network_metrics(state)
     schedule_metrics_collection(state.config.collection_interval)
     {:noreply, new_state}
   end
 
-  def handle_info(:performance_check, state) do
+  def handle_info(:performance_check, _state) do
     new_state = perform_performance_checks(state)
     schedule_performance_check(state.config.performance_check_interval)
     {:noreply, new_state}
   end
 
-  def handle_info(:topology_analysis, state) do
+  def handle_info(:topology_analysis, _state) do
     new_state = analyze_network_topology(state)
     schedule_topology_analysis(state.config.topology_analysis_interval)
     {:noreply, new_state}
@@ -311,7 +311,7 @@ defmodule ExWire.Monitoring.NetworkMonitor do
     }
   end
 
-  defp collect_network_metrics(state) do
+  defp collect_network_metrics(_state) do
     # Get current connection pool stats
     pool_stats = ConnectionPool.get_pool_stats()
 
@@ -332,7 +332,7 @@ defmodule ExWire.Monitoring.NetworkMonitor do
     %{state | metrics: updated_metrics, alerts: new_alerts}
   end
 
-  defp update_peer_message_stats(state, peer, direction, message_type, size) do
+  defp update_peer_message_stats(_state, peer, direction, message_type, size) do
     now = DateTime.utc_now()
 
     # Get or create peer stats
@@ -400,7 +400,7 @@ defmodule ExWire.Monitoring.NetworkMonitor do
     new_metrics =
       case direction do
         :sent ->
-          %{state.metrics | total_messages_sent: state.metrics.total_messages_sent + 1}
+          %{state.metrics | total_messages_sent: _state.metrics.total_messages_sent + 1}
 
         :received ->
           %{state.metrics | total_messages_received: state.metrics.total_messages_received + 1}
@@ -413,13 +413,13 @@ defmodule ExWire.Monitoring.NetworkMonitor do
     }
   end
 
-  defp update_peer_performance_stats(state, peer, metric_name, value) do
+  defp update_peer_performance_stats(_state, peer, metric_name, value) do
     now = DateTime.utc_now()
 
     case Map.get(state.peer_stats, peer) do
       # Ignore metrics for unknown peers
       nil ->
-        state
+        _state
 
       peer_stats ->
         performance_stats = peer_stats.performance_stats
@@ -452,7 +452,7 @@ defmodule ExWire.Monitoring.NetworkMonitor do
     end
   end
 
-  defp perform_performance_checks(state) do
+  defp perform_performance_checks(_state) do
     Logger.debug(
       "[NetworkMonitor] Performing performance checks on #{map_size(state.peer_stats)} peers"
     )
@@ -468,7 +468,7 @@ defmodule ExWire.Monitoring.NetworkMonitor do
     %{state | metrics: new_metrics, alerts: new_alerts}
   end
 
-  defp analyze_network_topology(state) do
+  defp analyze_network_topology(_state) do
     Logger.debug("[NetworkMonitor] Analyzing network topology")
 
     connected_peers = ConnectionPool.get_connected_peers()

@@ -8,7 +8,6 @@ defmodule VerkleTree.NodeCache do
 
   use GenServer
 
-
   @type key :: binary()
   @type node_data :: binary()
   @type cache_entry :: {node_data(), non_neg_integer(), non_neg_integer()}

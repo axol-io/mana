@@ -114,11 +114,11 @@ defmodule ExWire.Eth2.SlashingProtection do
     # Schedule periodic saves
     schedule_save()
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:init_validator, pubkey}, _from, state) do
+  def handle_call({:init_validator, pubkey}, _from, _state) do
     state =
       state
       |> put_in([:attestations, pubkey], [])
@@ -128,7 +128,7 @@ defmodule ExWire.Eth2.SlashingProtection do
   end
 
   @impl true
-  def handle_call({:check_block, pubkey, slot}, _from, state) do
+  def handle_call({:check_block, pubkey, slot}, _from, _state) do
     blocks = Map.get(state.blocks, pubkey, [])
 
     # Check for double block proposal
@@ -152,7 +152,7 @@ defmodule ExWire.Eth2.SlashingProtection do
   end
 
   @impl true
-  def handle_call({:record_block, pubkey, slot, signing_root}, _from, state) do
+  def handle_call({:record_block, pubkey, slot, signing_root}, _from, _state) do
     record = %{
       slot: slot,
       signing_root: signing_root || <<0::256>>,
@@ -174,7 +174,7 @@ defmodule ExWire.Eth2.SlashingProtection do
   end
 
   @impl true
-  def handle_call({:check_attestation, pubkey, attestation_data}, _from, state) do
+  def handle_call({:check_attestation, pubkey, attestation_data}, _from, _state) do
     attestations = Map.get(state.attestations, pubkey, [])
 
     source_epoch = attestation_data.source.epoch
@@ -206,7 +206,7 @@ defmodule ExWire.Eth2.SlashingProtection do
   end
 
   @impl true
-  def handle_call({:record_attestation, pubkey, attestation_data, signing_root}, _from, state) do
+  def handle_call({:record_attestation, pubkey, attestation_data, signing_root}, _from, _state) do
     record = %{
       source_epoch: attestation_data.source.epoch,
       target_epoch: attestation_data.target.epoch,
@@ -231,7 +231,7 @@ defmodule ExWire.Eth2.SlashingProtection do
   end
 
   @impl true
-  def handle_call({:export_interchange, pubkeys}, _from, state) do
+  def handle_call({:export_interchange, pubkeys}, _from, _state) do
     pubkeys = pubkeys || (Map.keys(state.attestations) ++ Map.keys(state.blocks)) |> Enum.uniq()
 
     data = %{
@@ -253,7 +253,7 @@ defmodule ExWire.Eth2.SlashingProtection do
   end
 
   @impl true
-  def handle_call({:import_interchange, data}, _from, state) do
+  def handle_call({:import_interchange, data}, _from, _state) do
     # Validate format version
     if data.metadata.interchange_format_version != "5" do
       {:reply, {:error, :unsupported_version}, state}
@@ -284,7 +284,7 @@ defmodule ExWire.Eth2.SlashingProtection do
   end
 
   @impl true
-  def handle_call({:prune, before_epoch}, _from, state) do
+  def handle_call({:prune, before_epoch}, _from, _state) do
     # Prune old attestations
     attestations =
       Enum.map(state.attestations, fn {pubkey, records} ->
@@ -320,7 +320,7 @@ defmodule ExWire.Eth2.SlashingProtection do
   end
 
   @impl true
-  def handle_info(:save_db, state) do
+  def handle_info(:save_db, _state) do
     save_to_disk(state)
     schedule_save()
     {:noreply, state}
@@ -420,7 +420,7 @@ defmodule ExWire.Eth2.SlashingProtection do
     end
   end
 
-  defp save_to_disk(state) do
+  defp save_to_disk(_state) do
     # Save attestations
     File.write!(
       state.db_path <> ".attestations",

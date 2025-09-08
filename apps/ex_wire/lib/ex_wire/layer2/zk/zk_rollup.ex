@@ -139,11 +139,11 @@ defmodule ExWire.Layer2.ZK.ZKRollup do
     # Initialize proof verifier
     ProofVerifier.init(state.proof_system, state.circuit_config)
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:submit_proof, batch_number, proof, public_inputs}, _from, state) do
+  def handle_call({:submit_proof, batch_number, proof, public_inputs}, _from, _state) do
     proof_id = generate_proof_id()
 
     proof_data = %{
@@ -169,7 +169,7 @@ defmodule ExWire.Layer2.ZK.ZKRollup do
   end
 
   @impl true
-  def handle_call({:verify_and_update, proof_id}, _from, state) do
+  def handle_call({:verify_and_update, proof_id}, _from, _state) do
     case Map.get(state.pending_proofs, proof_id) do
       nil ->
         {:reply, {:error, :proof_not_found}, state}
@@ -216,7 +216,7 @@ defmodule ExWire.Layer2.ZK.ZKRollup do
   end
 
   @impl true
-  def handle_call({:aggregate_proofs, proof_ids}, _from, state) do
+  def handle_call({:aggregate_proofs, proof_ids}, _from, _state) do
     proofs =
       Enum.map(proof_ids, fn id ->
         Map.get(state.pending_proofs, id)
@@ -237,13 +237,13 @@ defmodule ExWire.Layer2.ZK.ZKRollup do
   end
 
   @impl true
-  def handle_call(:get_state_tree_root, _from, state) do
+  def handle_call(:get_state_tree_root, _from, _state) do
     root = StateTree.get_root(state.state_tree)
     {:reply, {:ok, root}, state}
   end
 
   @impl true
-  def handle_call({:update_account_state, account_address, new_state}, _from, state) do
+  def handle_call({:update_account_state, account_address, new_state}, _from, _state) do
     case StateTree.update_account(state.state_tree, account_address, new_state) do
       {:ok, new_state_tree} ->
         Logger.debug("Updated account state for #{Base.encode16(account_address)}")
@@ -255,7 +255,7 @@ defmodule ExWire.Layer2.ZK.ZKRollup do
   end
 
   @impl true
-  def handle_call({:get_proof_status, proof_id}, _from, state) do
+  def handle_call({:get_proof_status, proof_id}, _from, _state) do
     case Map.get(state.pending_proofs, proof_id) do
       nil ->
         {:reply, {:error, :not_found}, state}
@@ -266,11 +266,11 @@ defmodule ExWire.Layer2.ZK.ZKRollup do
   end
 
   @impl true
-  def handle_info({:proof_verified, proof_id, result}, state) do
+  def handle_info({:proof_verified, proof_id, result}, _state) do
     # Handle async proof verification result
     case Map.get(state.pending_proofs, proof_id) do
       nil ->
-        {:noreply, state}
+        {:noreply, _state}
 
       proof_data ->
         updated_proof = %{proof_data | status: if(result, do: :verified, else: :rejected)}
@@ -346,7 +346,7 @@ defmodule ExWire.Layer2.ZK.ZKRollup do
 
   defp load_circuit_config(_), do: %{}
 
-  defp verify_proof(proof_data, state) do
+  defp verify_proof(proof_data, _state) do
     case state.proof_system do
       :groth16 ->
         ProofVerifier.verify_groth16(
@@ -380,7 +380,7 @@ defmodule ExWire.Layer2.ZK.ZKRollup do
         ProofVerifier.verify_halo2(
           proof_data.proof,
           proof_data.public_inputs,
-          state.circuit_config
+          _state.circuit_config
         )
 
       _ ->

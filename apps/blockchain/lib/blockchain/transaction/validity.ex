@@ -16,7 +16,7 @@ defmodule Blockchain.Transaction.Validity do
   """
   @spec validate(Trie.t(), Transaction.t(), Block.Header.t(), Chain.t()) ::
           :valid | {:invalid, atom()}
-  def validate(state, trx, block_header, chain) do
+  def validate(_state, trx, block_header, chain) do
     evm_config = Chain.evm_config(chain, block_header.number)
 
     with :ok <- validate_signature(trx, chain, evm_config),
@@ -39,7 +39,7 @@ defmodule Blockchain.Transaction.Validity do
     end
   end
 
-  defp check_account_validity(errors, trx, state, sender_address) do
+  defp check_account_validity(errors, trx, _state, sender_address) do
     sender_account = Account.get_account(state, sender_address)
 
     if sender_account do
@@ -84,7 +84,7 @@ defmodule Blockchain.Transaction.Validity do
 
   @spec check_intristic_gas([], Transaction.t(), Configuration.t()) ::
           [] | [:insufficient_intrinsic_gas]
-  defp check_intristic_gas(errors, transaction, config) do
+  defp check_intristic_gas(errors, transaction, _config) do
     intrinsic_gas_cost = Transaction.intrinsic_gas_cost(transaction, config)
 
     if intrinsic_gas_cost > transaction.gas_limit do

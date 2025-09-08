@@ -72,7 +72,7 @@ defmodule ExWire.DEVp2p do
   """
   @spec handle_message(Session.t(), struct()) ::
           {:error, :handshake_incomplete} | {:ok, Session.t()}
-  def handle_message(session, packet = %Hello{}) do
+  def handle_message(session, _packet = %Hello{}) do
     {:ok, Session.hello_received(session, packet)}
   end
 

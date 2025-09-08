@@ -21,7 +21,7 @@ defmodule JSONRPC2.SpecHandler.EthCall do
     
   ## Returns
     - {:ok, binary} - The return value of the executed call
-    - {:error, reason} - Error if the call fails
+    - {:error, _reason} - Error if the call fails
   """
   @spec run(
           TrieStorage.t(),
@@ -29,7 +29,7 @@ defmodule JSONRPC2.SpecHandler.EthCall do
           non_neg_integer(),
           Blockchain.Chain.t()
         ) :: {:ok, binary()} | {:error, any()}
-  def run(state, call_request, block_number, chain) do
+  def run(_state, call_request, block_number, chain) do
     with {:ok, block} <- Blockchain.Block.get_block(block_number, state),
          {:ok, result} <- execute_call(state, call_request, block, chain) do
       {:ok, result}
@@ -38,7 +38,7 @@ defmodule JSONRPC2.SpecHandler.EthCall do
     end
   end
 
-  defp execute_call(state, call_request, block, chain) do
+  defp execute_call(_state, call_request, block, chain) do
     # Get the block state
     block_state = TrieStorage.set_root_hash(state, block.header.state_root)
 
@@ -79,17 +79,5 @@ defmodule JSONRPC2.SpecHandler.EthCall do
       _ ->
         {:error, :execution_failed}
     end
-  end
-
-  defp build_transaction(call_request) do
-    %Transaction{
-      nonce: 0,
-      gas_price: call_request.gas_price || 0,
-      gas_limit: call_request.gas || 3_000_000,
-      to: call_request.to,
-      value: call_request.value || 0,
-      init: if(call_request.to == nil, do: call_request.data, else: <<>>),
-      data: if(call_request.to != nil, do: call_request.data, else: <<>>)
-    }
   end
 end

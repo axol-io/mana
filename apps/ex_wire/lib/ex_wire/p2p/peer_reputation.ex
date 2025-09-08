@@ -149,7 +149,7 @@ defmodule ExWire.P2P.PeerReputation do
   Update peer reputation based on a failed connection.
   """
   @spec update_for_failed_connection(reputation(), atom()) :: reputation()
-  def update_for_failed_connection(reputation, reason) do
+  def update_for_failed_connection(reputation, _reason) do
     now = DateTime.utc_now()
 
     # Update metrics
@@ -177,7 +177,7 @@ defmodule ExWire.P2P.PeerReputation do
       | score: new_score,
         last_updated: now,
         metrics: updated_metrics,
-        tags: update_tags_for_failed_connection(reputation.tags, reason)
+        tags: update_tags_for_failed_connection(reputation.tags, _reason)
     }
   end
 
@@ -387,7 +387,7 @@ defmodule ExWire.P2P.PeerReputation do
     end
   end
 
-  defp update_tags_for_failed_connection(tags, reason) do
+  defp update_tags_for_failed_connection(tags, _reason) do
     case reason do
       :timeout -> [:unstable | tags] |> Enum.uniq()
       :protocol_error -> [:suspicious | tags] |> Enum.uniq()

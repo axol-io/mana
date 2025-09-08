@@ -39,7 +39,7 @@ defmodule Common.Production.ValidationMiddleware do
               execute_with_protection(
                 handler,
                 validated_request["method"],
-                validated_request["params"],
+                validated_request["_params"],
                 start_time,
                 opts
               )

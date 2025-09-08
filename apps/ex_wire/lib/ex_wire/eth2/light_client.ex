@@ -15,7 +15,6 @@ defmodule ExWire.Eth2.LightClient do
   use GenServer
   require Logger
 
-
   # Light client protocol constants
   @min_sync_committee_participants 1
   # slots (~27 hours)
@@ -154,11 +153,11 @@ defmodule ExWire.Eth2.LightClient do
       schedule_auto_update()
     end
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:bootstrap, trusted_root, bootstrap_data}, _from, state) do
+  def handle_call({:bootstrap, trusted_root, bootstrap_data}, _from, _state) do
     case validate_bootstrap(trusted_root, bootstrap_data) do
       :ok ->
         store = %{
@@ -177,18 +176,18 @@ defmodule ExWire.Eth2.LightClient do
 
         {:reply, :ok, new_state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Bootstrap validation failed: #{inspect(reason)}")
         {:reply, error, state}
     end
   end
 
   @impl true
-  def handle_call({:process_update, update}, _from, state) do
+  def handle_call({:process_update, update}, _from, _state) do
     case validate_update(update, state.store) do
       :ok ->
         new_store = apply_update(update, state.store)
-        new_state = %{state | store: new_store}
+        new_state = %{_state | store: new_store}
 
         # Update metrics
         metrics = update_metrics(state.metrics, update)
@@ -198,14 +197,14 @@ defmodule ExWire.Eth2.LightClient do
 
         {:reply, :ok, final_state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.warning("Update validation failed: #{inspect(reason)}")
         {:reply, error, state}
     end
   end
 
   @impl true
-  def handle_call({:process_optimistic_update, attested_header, sync_aggregate}, _from, state) do
+  def handle_call({:process_optimistic_update, attested_header, sync_aggregate}, _from, _state) do
     if state.store == nil do
       {:reply, {:error, :not_bootstrapped}, state}
     else
@@ -219,7 +218,7 @@ defmodule ExWire.Eth2.LightClient do
                state.store
              ) do
             new_store = %{
-              state.store
+              _state.store
               | optimistic_header: attested_header,
                 current_max_active_participants: active_participants
             }
@@ -233,7 +232,7 @@ defmodule ExWire.Eth2.LightClient do
             {:reply, :ok, state}
           end
 
-        {:error, reason} = error ->
+        {:error, _reason} = error ->
           Logger.warning("Optimistic update validation failed: #{inspect(reason)}")
           {:reply, error, state}
       end
@@ -241,7 +240,7 @@ defmodule ExWire.Eth2.LightClient do
   end
 
   @impl true
-  def handle_call(:get_finalized_header, _from, state) do
+  def handle_call(:get_finalized_header, _from, _state) do
     if state.store do
       {:reply, {:ok, state.store.finalized_header}, state}
     else
@@ -250,7 +249,7 @@ defmodule ExWire.Eth2.LightClient do
   end
 
   @impl true
-  def handle_call(:get_optimistic_header, _from, state) do
+  def handle_call(:get_optimistic_header, _from, _state) do
     if state.store do
       {:reply, {:ok, state.store.optimistic_header}, state}
     else
@@ -259,7 +258,7 @@ defmodule ExWire.Eth2.LightClient do
   end
 
   @impl true
-  def handle_call(:is_synced?, _from, state) do
+  def handle_call(:is_synced?, _from, _state) do
     is_synced =
       if state.store do
         current_slot = compute_current_slot(state.genesis_time)
@@ -273,7 +272,7 @@ defmodule ExWire.Eth2.LightClient do
   end
 
   @impl true
-  def handle_call(:force_update, _from, state) do
+  def handle_call(:force_update, _from, _state) do
     if state.store && state.store.best_valid_update do
       current_slot = compute_current_slot(state.genesis_time)
       update_slot = state.store.best_valid_update.attested_header.slot
@@ -295,7 +294,7 @@ defmodule ExWire.Eth2.LightClient do
   end
 
   @impl true
-  def handle_info(:auto_update, state) do
+  def handle_info(:auto_update, _state) do
     # Check if we should request an update
     if should_request_update?(state) do
       Logger.debug("Requesting light client update")

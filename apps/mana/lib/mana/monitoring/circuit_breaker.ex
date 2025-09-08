@@ -34,7 +34,7 @@ defmodule Mana.Monitoring.CircuitBreaker do
   Starts a circuit breaker for a given name.
   """
   @spec start_link(atom(), map()) :: GenServer.on_start()
-  def start_link(name, config \\ %{}) do
+  def start_link(name, _config \\ %{}) do
     GenServer.start_link(__MODULE__, {name, config}, name: registry_name(name))
   end
 
@@ -49,10 +49,10 @@ defmodule Mana.Monitoring.CircuitBreaker do
   ## Returns
   - {:ok, result} if the function succeeds
   - {:error, :circuit_open} if the circuit breaker is open
-  - {:error, reason} if the function fails
+  - {:error, _reason} if the function fails
   """
   @spec call(atom(), function(), map()) :: {:ok, term()} | {:error, term()}
-  def call(breaker_name, fun, config \\ %{}) when is_function(fun, 0) do
+  def call(breaker_name, fun, _config \\ %{}) when is_function(fun, 0) do
     case get_or_start_breaker(breaker_name, config) do
       {:ok, pid} ->
         GenServer.call(
@@ -61,8 +61,8 @@ defmodule Mana.Monitoring.CircuitBreaker do
           Map.get(config, :timeout_ms, @default_config.timeout_ms) + 5000
         )
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -85,7 +85,7 @@ defmodule Mana.Monitoring.CircuitBreaker do
   Records a failed operation.
   """
   @spec record_failure(atom(), term()) :: :ok
-  def record_failure(breaker_name, reason) do
+  def record_failure(breaker_name, _reason) do
     case get_or_start_breaker(breaker_name) do
       {:ok, pid} ->
         GenServer.cast(pid, {:record_failure, reason})
@@ -114,7 +114,7 @@ defmodule Mana.Monitoring.CircuitBreaker do
   Manually opens a circuit breaker.
   """
   @spec open(atom(), term()) :: :ok
-  def open(breaker_name, reason \\ :manual) do
+  def open(breaker_name, _reason \\ :manual) do
     case get_or_start_breaker(breaker_name) do
       {:ok, pid} ->
         GenServer.cast(pid, {:force_open, reason})
@@ -169,7 +169,7 @@ defmodule Mana.Monitoring.CircuitBreaker do
   # GenServer Callbacks
 
   @impl true
-  def init({name, config}) do
+  def init({name, _config}) do
     # Ensure registry exists
     ensure_registry()
 
@@ -199,17 +199,17 @@ defmodule Mana.Monitoring.CircuitBreaker do
 
     emit_telemetry(:circuit_breaker_started, state)
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:call, fun}, _from, state) do
+  def handle_call({:call, fun}, _from, _state) do
     case can_execute?(state) do
       true ->
         execute_function(fun, state)
 
       false ->
-        new_state = update_stats(state, :rejected)
+        new_state = update_stats(_state, :rejected)
 
         emit_telemetry(:call_rejected, new_state)
 
@@ -218,12 +218,12 @@ defmodule Mana.Monitoring.CircuitBreaker do
   end
 
   @impl true
-  def handle_call(:get_state, _from, state) do
+  def handle_call(:get_state, _from, _state) do
     {:reply, state.state, state}
   end
 
   @impl true
-  def handle_call(:get_stats, _from, state) do
+  def handle_call(:get_stats, _from, _state) do
     stats = %{
       name: state.name,
       state: state.state,
@@ -250,13 +250,13 @@ defmodule Mana.Monitoring.CircuitBreaker do
   end
 
   @impl true
-  def handle_cast({:record_failure, reason}, state) do
+  def handle_cast({:record_failure, _reason}, _state) do
     new_state = handle_failure(state, reason)
     {:noreply, new_state}
   end
 
   @impl true
-  def handle_cast({:force_open, reason}, state) do
+  def handle_cast({:force_open, _reason}, _state) do
     new_state = transition_to_open(state, reason)
 
     Logger.warning("Circuit breaker manually opened", %{
@@ -281,7 +281,7 @@ defmodule Mana.Monitoring.CircuitBreaker do
     case state.state do
       :open ->
         if should_attempt_reset?(state) do
-          new_state = transition_to_half_open(state)
+          new_state = transition_to_half_open(_state)
           {:noreply, new_state}
         else
           schedule_reset_check(state)
@@ -303,7 +303,7 @@ defmodule Mana.Monitoring.CircuitBreaker do
     end
   end
 
-  defp execute_function(fun, state) do
+  defp execute_function(fun, _state) do
     start_time = System.system_time(:microsecond)
 
     try do
@@ -311,7 +311,7 @@ defmodule Mana.Monitoring.CircuitBreaker do
       duration_ms = (System.system_time(:microsecond) - start_time) / 1000
 
       new_state =
-        state
+        _state
         |> handle_success()
         |> update_stats(:success, duration_ms)
 
@@ -351,7 +351,7 @@ defmodule Mana.Monitoring.CircuitBreaker do
     end
   end
 
-  defp handle_success(state) do
+  defp handle_success(_state) do
     current_time = System.system_time(:millisecond)
 
     new_state = %{
@@ -364,7 +364,7 @@ defmodule Mana.Monitoring.CircuitBreaker do
 
     case new_state.state do
       :half_open ->
-        if new_state.current_consecutive_successes >= new_state.config.success_threshold do
+        if new_state.current_consecutive_successes >= new_state._config.success_threshold do
           transition_to_closed(new_state)
         else
           new_state
@@ -375,20 +375,20 @@ defmodule Mana.Monitoring.CircuitBreaker do
     end
   end
 
-  defp handle_failure(state, reason) do
+  defp handle_failure(_state, _reason) do
     current_time = System.system_time(:millisecond)
 
     new_state = %{
       state
       | failure_count: state.failure_count + 1,
-        current_consecutive_failures: state.current_consecutive_failures + 1,
+        current_consecutive_failures: _state.current_consecutive_failures + 1,
         current_consecutive_successes: 0,
         last_failure_time: current_time
     }
 
     case new_state.state do
       :closed ->
-        if new_state.current_consecutive_failures >= new_state.config.failure_threshold do
+        if new_state.current_consecutive_failures >= new_state._config.failure_threshold do
           transition_to_open(new_state, reason)
         else
           new_state
@@ -403,12 +403,12 @@ defmodule Mana.Monitoring.CircuitBreaker do
     end
   end
 
-  defp transition_to_open(state, reason) do
+  defp transition_to_open(_state, _reason) do
     Logger.warning("Circuit breaker opening", %{
       name: state.name,
-      reason: reason,
+      reason: _reason,
       consecutive_failures: state.current_consecutive_failures,
-      total_failures: state.failure_count
+      total_failures: _state.failure_count
     })
 
     new_state = %{
@@ -424,7 +424,7 @@ defmodule Mana.Monitoring.CircuitBreaker do
     new_state
   end
 
-  defp transition_to_half_open(state) do
+  defp transition_to_half_open(_state) do
     Logger.info("Circuit breaker transitioning to half-open", %{name: state.name})
 
     new_state = %{
@@ -440,7 +440,7 @@ defmodule Mana.Monitoring.CircuitBreaker do
     new_state
   end
 
-  defp transition_to_closed(state) do
+  defp transition_to_closed(_state) do
     Logger.info("Circuit breaker closing", %{name: state.name})
 
     new_state = %{
@@ -463,17 +463,17 @@ defmodule Mana.Monitoring.CircuitBreaker do
     time_since_open >= state.config.reset_timeout_ms
   end
 
-  defp schedule_reset_check(state) do
+  defp schedule_reset_check(_state) do
     Process.send_after(self(), :check_reset, state.config.reset_timeout_ms)
   end
 
-  defp update_stats(state, result, duration_ms \\ 0) do
+  defp update_stats(_state, result, duration_ms \\ 0) do
     case result do
       :success ->
         %{
           state
           | total_calls: state.total_calls + 1,
-            total_successes: state.total_successes + 1
+            total_successes: _state.total_successes + 1
         }
 
       :failure ->
@@ -489,7 +489,7 @@ defmodule Mana.Monitoring.CircuitBreaker do
     end
   end
 
-  defp calculate_success_rate(state) do
+  defp calculate_success_rate(_state) do
     if state.total_calls > 0 do
       state.total_successes / state.total_calls * 100
     else
@@ -520,7 +520,7 @@ defmodule Mana.Monitoring.CircuitBreaker do
     end
   end
 
-  defp get_or_start_breaker(breaker_name, config \\ %{}) do
+  defp get_or_start_breaker(breaker_name, _config \\ %{}) do
     case get_breaker_pid(breaker_name) do
       {:ok, pid} ->
         {:ok, pid}
@@ -534,13 +534,13 @@ defmodule Mana.Monitoring.CircuitBreaker do
           {:error, {:already_started, pid}} ->
             {:ok, pid}
 
-          {:error, reason} ->
-            {:error, reason}
+          {:error, _reason} ->
+            {:error, _reason}
         end
     end
   end
 
-  defp emit_telemetry(event, state, metadata \\ %{}) do
+  defp emit_telemetry(event, _state, metadata \\ %{}) do
     base_metadata = %{
       circuit_breaker_name: state.name,
       state: state.state,

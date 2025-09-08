@@ -74,17 +74,17 @@ defmodule ExWire.Packet.Capability.Verkle.GetWitnesses do
   Validate the GetWitnesses packet structure.
   """
   @spec validate(t()) :: {:ok, t()} | {:error, term()}
-  def validate(%__MODULE__{keys: keys} = packet) when length(keys) > 256 do
+  def validate(%__MODULE__{keys: keys} = _packet) when length(keys) > 256 do
     {:error, :too_many_keys}
   end
 
-  def validate(%__MODULE__{root_commitment: root} = packet) when byte_size(root) != 32 do
+  def validate(%__MODULE__{root_commitment: root} = _packet) when byte_size(root) != 32 do
     {:error, :invalid_root_commitment}
   end
 
-  def validate(%__MODULE__{keys: keys} = packet) do
+  def validate(%__MODULE__{keys: keys} = _packet) do
     if Enum.all?(keys, &(byte_size(&1) == 32)) do
-      {:ok, packet}
+      {:ok, _packet}
     else
       {:error, :invalid_key_format}
     end

@@ -249,7 +249,7 @@ defmodule ExWire.ProtocolComplianceTest do
       invalid_ack_data = <<255, 255, 255>>
 
       case Handshake.handle_ack(handshake, invalid_ack_data) do
-        {:invalid, reason} ->
+        {:invalid, _reason} ->
           assert is_atom(reason)
 
         {:ok, _, _, _} ->

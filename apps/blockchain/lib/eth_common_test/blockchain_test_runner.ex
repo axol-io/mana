@@ -57,7 +57,7 @@ defmodule EthCommonTest.BlockchainTestRunner do
     Blocktree.new_tree()
   end
 
-  defp add_genesis_block(blocktree, json_test, state, chain) do
+  defp add_genesis_block(blocktree, json_test, _state, chain) do
     block =
       if json_test["genesisRLP"] do
         case Block.decode_rlp(json_test["genesisRLP"]) do
@@ -81,7 +81,7 @@ defmodule EthCommonTest.BlockchainTestRunner do
     {blocktree, new_state}
   end
 
-  defp add_blocks({blocktree, state}, json_test, chain) do
+  defp add_blocks({blocktree, _state}, json_test, chain) do
     Enum.reduce(json_test["blocks"], {blocktree, state}, fn json_block, {acc, state_acc} ->
       block = json_block["rlp"] |> Block.decode_rlp()
 

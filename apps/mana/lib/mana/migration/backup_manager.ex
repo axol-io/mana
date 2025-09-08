@@ -30,10 +30,10 @@ defmodule Mana.Migration.BackupManager do
 
   ## Returns
   - {:ok, backup_ref} on success
-  - {:error, reason} on failure
+  - {:error, _reason} on failure
   """
   @spec create_backup(atom(), map(), backup_metadata()) :: {:ok, backup_ref()} | {:error, term()}
-  def create_backup(module_type, state, metadata \\ %{}) do
+  def create_backup(module_type, _state, metadata \\ %{}) do
     backup_ref = make_ref()
     timestamp = System.system_time(:second)
 
@@ -66,7 +66,7 @@ defmodule Mana.Migration.BackupManager do
 
       {:ok, backup_ref}
     else
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Backup creation failed", %{
           module_type: module_type,
           backup_ref: backup_ref,
@@ -84,8 +84,8 @@ defmodule Mana.Migration.BackupManager do
   - backup_ref: Reference to the backup to restore
 
   ## Returns
-  - {:ok, state} on successful restoration
-  - {:error, reason} on failure
+  - {:ok, _state} on successful restoration
+  - {:error, _reason} on failure
   """
   @spec restore_backup(backup_ref()) :: {:ok, map()} | {:error, term()}
   def restore_backup(backup_ref) do
@@ -111,9 +111,9 @@ defmodule Mana.Migration.BackupManager do
         duration_ms: duration_ms
       })
 
-      {:ok, state}
+      {:ok, _state}
     else
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Backup restoration failed", %{
           backup_ref: backup_ref,
           reason: reason
@@ -164,7 +164,7 @@ defmodule Mana.Migration.BackupManager do
 
   ## Returns
   - {:ok, backup_info} on success
-  - {:error, reason} if backup not found or corrupted
+  - {:error, _reason} if backup not found or corrupted
   """
   @spec get_backup_info(backup_ref()) :: {:ok, map()} | {:error, term()}
   def get_backup_info(backup_ref) do
@@ -183,7 +183,7 @@ defmodule Mana.Migration.BackupManager do
 
         {:ok, info}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         error
     end
   end
@@ -196,7 +196,7 @@ defmodule Mana.Migration.BackupManager do
 
   ## Returns
   - :ok on successful deletion
-  - {:error, reason} on failure
+  - {:error, _reason} on failure
   """
   @spec delete_backup(backup_ref()) :: :ok | {:error, term()}
   def delete_backup(backup_ref) do
@@ -210,7 +210,7 @@ defmodule Mana.Migration.BackupManager do
 
         :ok
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Backup deletion failed", %{
           backup_ref: backup_ref,
           reason: reason
@@ -228,7 +228,7 @@ defmodule Mana.Migration.BackupManager do
 
   ## Returns
   - {:ok, deleted_count} on success
-  - {:error, reason} on failure
+  - {:error, _reason} on failure
   """
   @spec cleanup_old_backups(non_neg_integer()) :: {:ok, non_neg_integer()} | {:error, term()}
   def cleanup_old_backups(retention_days \\ @default_retention_days) do
@@ -249,7 +249,7 @@ defmodule Mana.Migration.BackupManager do
 
       {:ok, deleted_count}
     else
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Cleanup failed", %{
           reason: reason
         })
@@ -274,7 +274,7 @@ defmodule Mana.Migration.BackupManager do
           :ok ->
             acc + 1
 
-          {:error, reason} ->
+          {:error, _reason} ->
             Logger.warning("Failed to delete old backup", %{
               backup_ref: backup_ref,
               reason: reason
@@ -295,7 +295,7 @@ defmodule Mana.Migration.BackupManager do
 
   ## Returns
   - {:ok, validation_report} with details of validation results
-  - {:error, reason} on failure
+  - {:error, _reason} on failure
   """
   @spec validate_all_backups() :: {:ok, map()} | {:error, term()}
   def validate_all_backups do
@@ -320,7 +320,7 @@ defmodule Mana.Migration.BackupManager do
 
       {:ok, validation_report}
     else
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Backup validation failed", %{
           reason: reason
         })
@@ -346,12 +346,12 @@ defmodule Mana.Migration.BackupManager do
               valid: integrity_result == :ok
             }
 
-          {:error, reason} ->
+          {:error, _reason} ->
             %{
               backup_ref: backup_ref,
               module_type: :unknown,
               created_at: nil,
-              integrity_status: {:error, reason},
+              integrity_status: {:error, _reason},
               valid: false
             }
         end
@@ -380,13 +380,13 @@ defmodule Mana.Migration.BackupManager do
 
   # Private Implementation
 
-  defp estimate_state_size(state) when is_map(state) do
+  defp estimate_state_size(_state) when is_map(state) do
     :erlang.external_size(state)
   end
 
   defp estimate_state_size(_state), do: 0
 
-  defp calculate_checksum(state) do
+  defp calculate_checksum(_state) do
     state
     |> :erlang.term_to_binary()
     |> :crypto.hash(:sha256)
@@ -460,7 +460,7 @@ defmodule Mana.Migration.BackupManager do
             :ok
 
           expected_checksum ->
-            actual_checksum = calculate_checksum(backup_data.state)
+            actual_checksum = calculate_checksum(backup_data._state)
 
             if actual_checksum == expected_checksum do
               :ok
@@ -482,8 +482,8 @@ defmodule Mana.Migration.BackupManager do
       {:ok, backup_data} ->
         {:ok, backup_data.metadata}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -531,7 +531,7 @@ defmodule Mana.Migration.BackupManager do
 
   # Helper functions for functional error handling
 
-  defp safe_prepare_backup_data(module_type, state, metadata, timestamp, backup_ref) do
+  defp safe_prepare_backup_data(module_type, _state, metadata, timestamp, backup_ref) do
     backup_data = %{
       version: @backup_version,
       module_type: module_type,
@@ -540,7 +540,7 @@ defmodule Mana.Migration.BackupManager do
         Map.merge(metadata, %{
           created_at: timestamp,
           backup_ref: backup_ref,
-          state_checksum: calculate_checksum(state)
+          state_checksum: calculate_checksum(_state)
         }),
       compression: should_compress?(state)
     }

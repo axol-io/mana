@@ -48,7 +48,7 @@ defmodule ExWire.Enterprise.ComplianceReporter do
   @doc """
   Generate a compliance report
   """
-  def generate_report(report_type, params \\ %{}) do
+  def generate_report(report_type, _params \\ %{}) do
     GenServer.call(__MODULE__, {:generate_report, report_type, params})
   end
 
@@ -76,7 +76,7 @@ defmodule ExWire.Enterprise.ComplianceReporter do
   @doc """
   Generate Suspicious Activity Report (SAR)
   """
-  def generate_sar(transaction_ids, reason) do
+  def generate_sar(transaction_ids, _reason) do
     GenServer.call(__MODULE__, {:generate_sar, transaction_ids, reason})
   end
 
@@ -132,11 +132,11 @@ defmodule ExWire.Enterprise.ComplianceReporter do
     }
 
     schedule_periodic_reports()
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:generate_report, report_type, params}, _from, state) do
+  def handle_call({:generate_report, report_type, _params}, _from, _state) do
     report =
       case report_type do
         :aml -> generate_aml_report(state, params)
@@ -144,7 +144,7 @@ defmodule ExWire.Enterprise.ComplianceReporter do
         :transaction -> generate_transaction_report(state, params)
         :suspicious_activity -> generate_sar_report(state, params)
         :regulatory -> generate_regulatory_report(state, params)
-        :tax -> generate_tax_report(state, params)
+        :tax -> generate_tax_report(_state, _params)
         _ -> {:error, :unknown_report_type}
       end
 
@@ -169,13 +169,13 @@ defmodule ExWire.Enterprise.ComplianceReporter do
 
         {:reply, {:ok, report_entry}, state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:monitor_transaction, transaction}, _from, state) do
+  def handle_call({:monitor_transaction, transaction}, _from, _state) do
     # Check transaction against all active rules
     alerts = check_monitoring_rules(transaction, state.monitoring_rules)
 
@@ -206,7 +206,7 @@ defmodule ExWire.Enterprise.ComplianceReporter do
   end
 
   @impl true
-  def handle_call({:add_monitoring_rule, rule}, _from, state) do
+  def handle_call({:add_monitoring_rule, rule}, _from, _state) do
     rule = Map.put(rule, :id, generate_rule_id())
     state = update_in(state.monitoring_rules, &[rule | &1])
 
@@ -220,7 +220,7 @@ defmodule ExWire.Enterprise.ComplianceReporter do
   end
 
   @impl true
-  def handle_call({:check_sanctions, address}, _from, state) do
+  def handle_call({:check_sanctions, address}, _from, _state) do
     result = check_sanctions_lists(address)
 
     if result.sanctioned do
@@ -251,7 +251,7 @@ defmodule ExWire.Enterprise.ComplianceReporter do
   end
 
   @impl true
-  def handle_call({:generate_sar, transaction_ids, reason}, _from, state) do
+  def handle_call({:generate_sar, transaction_ids, _reason}, _from, _state) do
     sar = %{
       id: generate_sar_id(),
       transaction_ids: transaction_ids,
@@ -274,7 +274,7 @@ defmodule ExWire.Enterprise.ComplianceReporter do
   end
 
   @impl true
-  def handle_call({:verify_kyc, address, kyc_data}, _from, state) do
+  def handle_call({:verify_kyc, address, kyc_data}, _from, _state) do
     verification = perform_kyc_verification(kyc_data)
 
     kyc_record = %{
@@ -295,13 +295,13 @@ defmodule ExWire.Enterprise.ComplianceReporter do
   end
 
   @impl true
-  def handle_call({:get_alerts, status}, _from, state) do
+  def handle_call({:get_alerts, status}, _from, _state) do
     alerts = Enum.filter(state.alerts, fn alert -> alert.status == status end)
     {:reply, {:ok, alerts}, state}
   end
 
   @impl true
-  def handle_call({:review_alert, alert_id, decision, reviewer}, _from, state) do
+  def handle_call({:review_alert, alert_id, decision, reviewer}, _from, _state) do
     case Enum.find_index(state.alerts, fn a -> a.id == alert_id end) do
       nil ->
         {:reply, {:error, :alert_not_found}, state}
@@ -329,13 +329,13 @@ defmodule ExWire.Enterprise.ComplianceReporter do
   end
 
   @impl true
-  def handle_call({:get_metrics, time_range}, _from, state) do
+  def handle_call({:get_metrics, time_range}, _from, _state) do
     metrics = calculate_metrics(state, time_range)
     {:reply, {:ok, metrics}, state}
   end
 
   @impl true
-  def handle_call({:export_reports, format, time_range}, _from, state) do
+  def handle_call({:export_reports, format, time_range}, _from, _state) do
     reports = filter_reports_by_time(state.reports, time_range)
 
     exported =
@@ -350,7 +350,7 @@ defmodule ExWire.Enterprise.ComplianceReporter do
   end
 
   @impl true
-  def handle_info(:generate_periodic_reports, state) do
+  def handle_info(:generate_periodic_reports, _state) do
     # Generate required periodic reports
     Enum.each(state.jurisdictions, fn jurisdiction ->
       generate_jurisdiction_reports(jurisdiction, state)
@@ -467,7 +467,7 @@ defmodule ExWire.Enterprise.ComplianceReporter do
     15
   end
 
-  defp generate_aml_report(state, params) do
+  defp generate_aml_report(_state, _params) do
     # Generate AML compliance report
     {:ok,
      %{
@@ -480,7 +480,7 @@ defmodule ExWire.Enterprise.ComplianceReporter do
      }}
   end
 
-  defp generate_kyc_report(state, params) do
+  defp generate_kyc_report(_state, _params) do
     # Generate KYC compliance report
     {:ok,
      %{
@@ -491,7 +491,7 @@ defmodule ExWire.Enterprise.ComplianceReporter do
      }}
   end
 
-  defp generate_transaction_report(state, params) do
+  defp generate_transaction_report(_state, _params) do
     # Generate transaction monitoring report
     {:ok,
      %{
@@ -502,7 +502,7 @@ defmodule ExWire.Enterprise.ComplianceReporter do
      }}
   end
 
-  defp generate_sar_report(state, params) do
+  defp generate_sar_report(_state, _params) do
     # Generate Suspicious Activity Report
     {:ok,
      %{
@@ -514,19 +514,19 @@ defmodule ExWire.Enterprise.ComplianceReporter do
      }}
   end
 
-  defp generate_regulatory_report(state, params) do
+  defp generate_regulatory_report(_state, _params) do
     # Generate jurisdiction-specific regulatory report
     jurisdiction = params[:jurisdiction] || :us
 
     case jurisdiction do
       :us -> generate_fincen_report(state, params)
       :eu -> generate_mica_report(state, params)
-      :uk -> generate_fca_report(state, params)
+      :uk -> generate_fca_report(_state, _params)
       _ -> {:error, :unknown_jurisdiction}
     end
   end
 
-  defp generate_tax_report(state, params) do
+  defp generate_tax_report(_state, _params) do
     # Generate tax compliance report
     {:ok,
      %{
@@ -537,7 +537,7 @@ defmodule ExWire.Enterprise.ComplianceReporter do
      }}
   end
 
-  defp generate_fincen_report(state, params) do
+  defp generate_fincen_report(_state, _params) do
     {:ok,
      %{
        type: :fincen,
@@ -546,7 +546,7 @@ defmodule ExWire.Enterprise.ComplianceReporter do
      }}
   end
 
-  defp generate_mica_report(state, params) do
+  defp generate_mica_report(_state, _params) do
     {:ok,
      %{
        type: :mica,
@@ -555,7 +555,7 @@ defmodule ExWire.Enterprise.ComplianceReporter do
      }}
   end
 
-  defp generate_fca_report(state, params) do
+  defp generate_fca_report(_state, _params) do
     {:ok,
      %{
        type: :fca,
@@ -608,11 +608,11 @@ defmodule ExWire.Enterprise.ComplianceReporter do
     }
   end
 
-  defp update_metrics(state, metric, value) do
+  defp update_metrics(_state, metric, value) do
     update_in(state.metrics[metric], &(&1 + value))
   end
 
-  defp calculate_metrics(state, time_range) do
+  defp calculate_metrics(_state, time_range) do
     # Calculate metrics for specified time range
     state.metrics
   end
@@ -636,7 +636,7 @@ defmodule ExWire.Enterprise.ComplianceReporter do
     {:ok, "report_id,type,date\n"}
   end
 
-  defp count_sars(state) do
+  defp count_sars(_state) do
     Enum.count(state.reports, fn {_id, report} ->
       Map.get(report, :type) == :sar
     end)

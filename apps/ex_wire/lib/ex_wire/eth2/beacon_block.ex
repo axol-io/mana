@@ -60,7 +60,7 @@ defmodule ExWire.Eth2.BeaconBlock.Operations do
   """
   @spec process_block(BeaconState.t(), BeaconBlock.t()) ::
           {:ok, BeaconState.t()} | {:error, term()}
-  def process_block(state, block) do
+  def process_block(_state, block) do
     with :ok <- validate_structure(block),
          :ok <- ExWire.Eth2.BeaconState.Operations.validate_block(state, block) do
       new_state =
@@ -133,7 +133,7 @@ defmodule ExWire.Eth2.BeaconBlock.Operations do
 
   defp validate_body(_), do: {:error, :invalid_body}
 
-  defp process_block_header(state, block) do
+  defp process_block_header(_state, block) do
     # Update latest block header
     %{
       state
@@ -148,13 +148,13 @@ defmodule ExWire.Eth2.BeaconBlock.Operations do
     }
   end
 
-  defp process_randao(state, block) do
+  defp process_randao(_state, block) do
     # Process RANDAO reveal - simplified
     # In real implementation, would verify BLS signature and update randao_mixes
     state
   end
 
-  defp process_eth1_data(state, block) do
+  defp process_eth1_data(_state, block) do
     # Process ETH1 data votes
     new_votes = [block.body.eth1_data | state.eth1_data_votes]
 
@@ -168,7 +168,7 @@ defmodule ExWire.Eth2.BeaconBlock.Operations do
     end
   end
 
-  defp process_operations(state, block) do
+  defp process_operations(_state, block) do
     # Process all operations in the block body
     state
     |> process_proposer_slashings(block.body.proposer_slashings)
@@ -179,7 +179,7 @@ defmodule ExWire.Eth2.BeaconBlock.Operations do
     |> process_sync_aggregate(block.body.sync_aggregate)
   end
 
-  defp process_execution_payload(state, block) do
+  defp process_execution_payload(_state, block) do
     case block.body.execution_payload do
       nil -> state
       payload -> process_execution_payload_internal(state, payload)
@@ -187,13 +187,13 @@ defmodule ExWire.Eth2.BeaconBlock.Operations do
   end
 
   # Operation processing stubs - would implement full logic in production
-  defp process_proposer_slashings(state, _slashings), do: state
-  defp process_attester_slashings(state, _slashings), do: state
-  defp process_attestations(state, _attestations), do: state
-  defp process_deposits(state, _deposits), do: state
-  defp process_voluntary_exits(state, _exits), do: state
-  defp process_sync_aggregate(state, _sync_aggregate), do: state
-  defp process_execution_payload_internal(state, _payload), do: state
+  defp process_proposer_slashings(_state, _slashings), do: state
+  defp process_attester_slashings(_state, _slashings), do: state
+  defp process_attestations(_state, _attestations), do: state
+  defp process_deposits(_state, _deposits), do: state
+  defp process_voluntary_exits(_state, _exits), do: state
+  defp process_sync_aggregate(_state, _sync_aggregate), do: state
+  defp process_execution_payload_internal(_state, _payload), do: _state
 
   defp get_body_root(body) do
     :crypto.hash(:sha256, :erlang.term_to_binary(body))

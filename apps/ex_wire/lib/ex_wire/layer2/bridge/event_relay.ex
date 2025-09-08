@@ -24,13 +24,13 @@ defmodule ExWire.Layer2.Bridge.EventRelay do
 
   # GenServer callbacks
 
-  def init(state) do
+  def init(_state) do
     # Schedule periodic event checks
     Process.send_after(self(), :check_events, 1000)
-    {:ok, state}
+    {:ok, _state}
   end
 
-  def handle_info(:check_events, state) do
+  def handle_info(:check_events, _state) do
     # Simulate event checking
     # In production, this would query blockchain events
 
@@ -43,7 +43,7 @@ defmodule ExWire.Layer2.Bridge.EventRelay do
     {:noreply, state}
   end
 
-  defp generate_mock_event(state) do
+  defp generate_mock_event(_state) do
     %{
       layer: state.layer,
       contract: state.contract,

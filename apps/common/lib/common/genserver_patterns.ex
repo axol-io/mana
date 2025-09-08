@@ -80,7 +80,7 @@ defmodule Common.GenServerPatterns do
         }
       end
 
-      def stop(server \\ __MODULE__, reason \\ :normal, timeout \\ 5_000) do
+      def stop(server \\ __MODULE__, _reason \\ :normal, timeout \\ 5_000) do
         GenServer.stop(server, reason, timeout)
       end
 
@@ -100,26 +100,26 @@ defmodule Common.GenServerPatterns do
 
         # Call user initialization
         case init_state(args) do
-          {:ok, state} ->
+          {:ok, _state} ->
             emit_telemetry(:ready, %{}, %{})
-            {:ok, state}
+            {:ok, _state}
 
           {:ok, state, timeout} ->
             emit_telemetry(:ready, %{}, %{})
             {:ok, state, timeout}
 
-          {:error, reason} = error ->
+          {:error, _reason} = error ->
             emit_telemetry(:init_error, %{}, %{reason: reason})
             {:stop, reason}
 
           state when is_struct(state) ->
             emit_telemetry(:ready, %{}, %{})
-            {:ok, state}
+            {:ok, _state}
         end
       end
 
       @impl GenServer
-      def terminate(reason, _state) do
+      def terminate(_reason, _state) do
         emit_telemetry(:terminate, %{}, %{reason: reason})
 
         # Call user cleanup if defined

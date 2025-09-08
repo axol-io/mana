@@ -15,7 +15,7 @@ defmodule Blockchain.Monitoring.TelemetryIntegrator do
   @p2p_message_event [:mana, :p2p, :message]
   @storage_operation_event [:mana, :storage, :operation]
   @evm_execution_event [:mana, :evm, :execution]
-  @sync_progress_event [:mana, :sync, :progress]
+  # @sync_progress_event [:mana, :sync, :progress] # TODO: Unused attribute
   @peer_count_event [:mana, :p2p, :peer_count]
   @transaction_pool_event [:mana, :transaction_pool, :size]
 
@@ -133,7 +133,7 @@ defmodule Blockchain.Monitoring.TelemetryIntegrator do
   @spec emit_sync_progress(float(), map()) :: :ok
   def emit_sync_progress(progress_ratio, metadata \\ %{}) do
     :telemetry.execute(
-      @sync_progress_event,
+  # @sync_progress_event, # TODO: Unused attribute
       %{
         progress: progress_ratio
       },

@@ -69,7 +69,7 @@ defmodule ExWire.LoadTest.MetricsCollector do
   @doc """
   Record a transaction failure.
   """
-  def record_transaction_failed(scenario_name, tx_hash, reason) do
+  def record_transaction_failed(scenario_name, tx_hash, _reason) do
     GenServer.cast(__MODULE__, {:transaction_failed, scenario_name, tx_hash, reason})
   end
 
@@ -126,7 +126,7 @@ defmodule ExWire.LoadTest.MetricsCollector do
      }}
   end
 
-  def handle_call({:start_collection, scenario_name}, _from, state) do
+  def handle_call({:start_collection, scenario_name}, _from, _state) do
     metrics = %Metrics{
       start_time: System.monotonic_time(:millisecond),
       transactions_sent: 0,
@@ -160,7 +160,7 @@ defmodule ExWire.LoadTest.MetricsCollector do
     {:reply, :ok, %{state | scenarios: new_scenarios}}
   end
 
-  def handle_call({:stop_collection, scenario_name}, _from, state) do
+  def handle_call({:stop_collection, scenario_name}, _from, _state) do
     case Map.get(state.scenarios, scenario_name) do
       nil ->
         {:reply, {:error, :not_found}, state}
@@ -182,14 +182,14 @@ defmodule ExWire.LoadTest.MetricsCollector do
     end
   end
 
-  def handle_call({:get_metrics, scenario_name}, _from, state) do
+  def handle_call({:get_metrics, scenario_name}, _from, _state) do
     case Map.get(state.scenarios, scenario_name) do
-      nil -> {:reply, nil, state}
+      nil -> {:reply, nil, _state}
       scenario_data -> {:reply, scenario_data.metrics, state}
     end
   end
 
-  def handle_call({:export_prometheus, scenario_name}, _from, state) do
+  def handle_call({:export_prometheus, scenario_name}, _from, _state) do
     case Map.get(state.scenarios, scenario_name) do
       nil ->
         {:reply, {:error, :not_found}, state}
@@ -200,7 +200,7 @@ defmodule ExWire.LoadTest.MetricsCollector do
     end
   end
 
-  def handle_cast({:transaction_sent, scenario_name, tx_hash}, state) do
+  def handle_cast({:transaction_sent, scenario_name, tx_hash}, _state) do
     new_state =
       update_scenario(state, scenario_name, fn data ->
         data
@@ -212,7 +212,7 @@ defmodule ExWire.LoadTest.MetricsCollector do
     {:noreply, new_state}
   end
 
-  def handle_cast({:transaction_confirmed, scenario_name, tx_hash, gas_used, latency_ms}, state) do
+  def handle_cast({:transaction_confirmed, scenario_name, tx_hash, gas_used, latency_ms}, _state) do
     new_state =
       update_scenario(state, scenario_name, fn data ->
         sent_time = get_in(data, [:pending_txs, tx_hash])
@@ -238,7 +238,7 @@ defmodule ExWire.LoadTest.MetricsCollector do
     {:noreply, new_state}
   end
 
-  def handle_cast({:transaction_failed, scenario_name, tx_hash, reason}, state) do
+  def handle_cast({:transaction_failed, scenario_name, tx_hash, _reason}, _state) do
     new_state =
       update_scenario(state, scenario_name, fn data ->
         data
@@ -251,7 +251,7 @@ defmodule ExWire.LoadTest.MetricsCollector do
     {:noreply, new_state}
   end
 
-  def handle_cast({:block_produced, scenario_name, _block_number, block_time_ms, tx_count}, state) do
+  def handle_cast({:block_produced, scenario_name, _block_number, block_time_ms, tx_count}, _state) do
     new_state =
       update_scenario(state, scenario_name, fn data ->
         data
@@ -266,7 +266,7 @@ defmodule ExWire.LoadTest.MetricsCollector do
     {:noreply, new_state}
   end
 
-  def handle_cast({:custom_metric, scenario_name, metric_name, value}, state) do
+  def handle_cast({:custom_metric, scenario_name, metric_name, value}, _state) do
     new_state =
       update_scenario(state, scenario_name, fn data ->
         update_in(data, [:metrics, :custom_metrics], &Map.put(&1, metric_name, value))
@@ -275,7 +275,7 @@ defmodule ExWire.LoadTest.MetricsCollector do
     {:noreply, new_state}
   end
 
-  def handle_info(:collect_system_metrics, state) do
+  def handle_info(:collect_system_metrics, _state) do
     # Collect system metrics for all active scenarios
     new_state =
       Enum.reduce(state.scenarios, state, fn {scenario_name, _data}, acc ->
@@ -294,13 +294,13 @@ defmodule ExWire.LoadTest.MetricsCollector do
 
   # Private helper functions
 
-  defp update_scenario(state, scenario_name, update_fn) do
+  defp update_scenario(_state, scenario_name, update_fn) do
     case Map.get(state.scenarios, scenario_name) do
       nil ->
         state
 
       _data ->
-        update_in(state, [:scenarios, scenario_name], update_fn)
+        update_in(_state, [:scenarios, scenario_name], update_fn)
     end
   end
 

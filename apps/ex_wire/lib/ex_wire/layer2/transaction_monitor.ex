@@ -116,11 +116,11 @@ defmodule ExWire.Layer2.TransactionMonitor do
       "Transaction monitor started with #{state.confirmation_blocks} confirmation blocks"
     )
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_cast({:monitor, tx_hash, tx_params, opts}, state) do
+  def handle_cast({:monitor, tx_hash, tx_params, opts}, _state) do
     transaction = %{
       hash: tx_hash,
       status: :pending,
@@ -144,7 +144,7 @@ defmodule ExWire.Layer2.TransactionMonitor do
   end
 
   @impl true
-  def handle_cast({:stop_monitoring, tx_hash}, state) do
+  def handle_cast({:stop_monitoring, tx_hash}, _state) do
     new_pending = Map.delete(state.pending_transactions, tx_hash)
     new_state = %{state | pending_transactions: new_pending}
 
@@ -155,20 +155,20 @@ defmodule ExWire.Layer2.TransactionMonitor do
   end
 
   @impl true
-  def handle_cast({:subscribe, pid}, state) do
+  def handle_cast({:subscribe, pid}, _state) do
     Process.monitor(pid)
     new_subscribers = MapSet.put(state.subscribers, pid)
     {:noreply, %{state | subscribers: new_subscribers}}
   end
 
   @impl true
-  def handle_cast({:unsubscribe, pid}, state) do
+  def handle_cast({:unsubscribe, pid}, _state) do
     new_subscribers = MapSet.delete(state.subscribers, pid)
     {:noreply, %{state | subscribers: new_subscribers}}
   end
 
   @impl true
-  def handle_call({:get_status, tx_hash}, _from, state) do
+  def handle_call({:get_status, tx_hash}, _from, _state) do
     case Map.get(state.pending_transactions, tx_hash) do
       nil -> {:reply, {:error, :not_found}, state}
       transaction -> {:reply, {:ok, transaction}, state}
@@ -176,27 +176,27 @@ defmodule ExWire.Layer2.TransactionMonitor do
   end
 
   @impl true
-  def handle_call(:get_pending, _from, state) do
+  def handle_call(:get_pending, _from, _state) do
     pending = Map.values(state.pending_transactions)
     {:reply, pending, state}
   end
 
   @impl true
-  def handle_info(:check_transactions, state) do
+  def handle_info(:check_transactions, _state) do
     new_state = check_all_transactions(state)
     schedule_check(state.check_interval)
     {:noreply, new_state}
   end
 
   @impl true
-  def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
+  def handle_info({:DOWN, _ref, :process, pid, _reason}, _state) do
     new_subscribers = MapSet.delete(state.subscribers, pid)
     {:noreply, %{state | subscribers: new_subscribers}}
   end
 
   # Private Functions
 
-  defp check_all_transactions(state) do
+  defp check_all_transactions(_state) do
     {completed, still_pending} =
       state.pending_transactions
       |> Enum.map(fn {hash, tx} -> {hash, check_single_transaction(tx, state)} end)
@@ -223,7 +223,7 @@ defmodule ExWire.Layer2.TransactionMonitor do
     %{state | pending_transactions: new_pending}
   end
 
-  defp check_single_transaction(tx, state) do
+  defp check_single_transaction(tx, _state) do
     now = DateTime.utc_now()
 
     # Check for timeout
@@ -267,7 +267,7 @@ defmodule ExWire.Layer2.TransactionMonitor do
                     last_checked: now
                 }
 
-              {:error, reason} ->
+              {:error, _reason} ->
                 Logger.error("Failed to retry transaction #{tx.hash}: #{inspect(reason)}")
                 %{tx | last_checked: now}
             end
@@ -296,14 +296,14 @@ defmodule ExWire.Layer2.TransactionMonitor do
               %{tx | last_checked: now}
           end
 
-        {:error, reason} ->
+        {:error, _reason} ->
           Logger.warning("Error checking transaction #{tx.hash}: #{inspect(reason)}")
           %{tx | last_checked: now}
       end
     end
   end
 
-  defp get_transaction_status(tx_hash, state) do
+  defp get_transaction_status(tx_hash, _state) do
     case Web3Client.get_transaction_receipt(state.client, tx_hash) do
       {:ok, receipt} ->
         if receipt.status do
@@ -323,8 +323,8 @@ defmodule ExWire.Layer2.TransactionMonitor do
       {:error, :not_found} ->
         {:error, :not_found}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -335,7 +335,7 @@ defmodule ExWire.Layer2.TransactionMonitor do
     pending_time > 120_000
   end
 
-  defp retry_transaction(tx, state) do
+  defp retry_transaction(tx, _state) do
     # Increase gas price by the bump factor
     original_gas_price = tx.original_params[:gasPrice] || tx.original_params[:maxFeePerGas]
 
@@ -355,7 +355,7 @@ defmodule ExWire.Layer2.TransactionMonitor do
     end
   end
 
-  defp update_gas_price(params, new_gas_price) do
+  defp update_gas_price(_params, new_gas_price) do
     cond do
       params[:maxFeePerGas] ->
         # EIP-1559 transaction
@@ -371,7 +371,7 @@ defmodule ExWire.Layer2.TransactionMonitor do
     end
   end
 
-  defp check_replacement_transactions(tx, state) do
+  defp check_replacement_transactions(tx, _state) do
     # Check if any replacement transactions are confirmed
     tx.replacement_hashes
     |> Enum.find_value(fn hash ->
@@ -392,7 +392,7 @@ defmodule ExWire.Layer2.TransactionMonitor do
     end
   end
 
-  defp notify_subscribers(message, state) do
+  defp notify_subscribers(message, _state) do
     Enum.each(state.subscribers, fn pid ->
       send(pid, {:transaction_monitor, message})
     end)

@@ -50,7 +50,7 @@ defmodule Blockchain.Transaction.Signature do
   def get_public_key(private_key) do
     case :libsecp256k1.ec_pubkey_create(private_key, :uncompressed) do
       {:ok, public_key} -> {:ok, public_key}
-      {:error, reason} -> {:error, to_string(reason)}
+      {:error, _reason} -> {:error, to_string(reason)}
     end
   end
 
@@ -147,7 +147,7 @@ defmodule Blockchain.Transaction.Signature do
 
     case :libsecp256k1.ecdsa_recover_compact(hash, signature, :uncompressed, recovery_id) do
       {:ok, <<_byte::8, public_key::binary>>} -> {:ok, public_key}
-      {:error, reason} -> {:error, to_string(reason)}
+      {:error, _reason} -> {:error, to_string(reason)}
     end
   end
 

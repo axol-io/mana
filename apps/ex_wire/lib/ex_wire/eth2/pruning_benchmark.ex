@@ -140,7 +140,7 @@ defmodule ExWire.Eth2.PruningBenchmark do
       :scalability -> run_scalability_benchmark(config)
       :memory -> run_memory_benchmark(config)
       :concurrency -> run_concurrency_benchmark(config)
-      :realistic -> run_realistic_scenario_benchmark(config)
+      :realistic -> run_realistic_scenario_benchmark(_config)
     end
   end
 
@@ -171,13 +171,13 @@ defmodule ExWire.Eth2.PruningBenchmark do
 
   # Private Functions - Benchmark Scenarios
 
-  defp run_throughput_benchmark(config) do
+  defp run_throughput_benchmark(_config) do
     Logger.info("Running throughput benchmark")
 
     results =
       for scale <- config.dataset_scales,
           network <- config.network_profiles,
-          iteration <- 1..config.iterations do
+          iteration <- 1.._config.iterations do
         Logger.info("Throughput test: #{network}/#{scale} iteration #{iteration}")
 
         dataset = TestDataGenerator.generate_dataset(network, scale)
@@ -210,7 +210,7 @@ defmodule ExWire.Eth2.PruningBenchmark do
     }
   end
 
-  defp run_scalability_benchmark(config) do
+  defp run_scalability_benchmark(_config) do
     Logger.info("Running scalability benchmark")
 
     scalability_data =
@@ -252,7 +252,7 @@ defmodule ExWire.Eth2.PruningBenchmark do
     }
   end
 
-  defp run_memory_benchmark(config) do
+  defp run_memory_benchmark(_config) do
     Logger.info("Running memory benchmark")
 
     dataset = TestDataGenerator.generate_dataset(:mainnet, config.dataset_scale)
@@ -311,7 +311,7 @@ defmodule ExWire.Eth2.PruningBenchmark do
     }
   end
 
-  defp run_concurrency_benchmark(config) do
+  defp run_concurrency_benchmark(_config) do
     Logger.info("Running concurrency benchmark")
 
     dataset = TestDataGenerator.generate_dataset(:mainnet, config.dataset_scale)
@@ -347,7 +347,7 @@ defmodule ExWire.Eth2.PruningBenchmark do
     }
   end
 
-  defp run_realistic_scenario_benchmark(config) do
+  defp run_realistic_scenario_benchmark(_config) do
     Logger.info("Running realistic scenario benchmark")
 
     # Simulate real-world operation patterns

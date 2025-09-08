@@ -96,7 +96,7 @@ defmodule ExWire.Eth2.MainnetConfig do
   @max_voluntary_exits 16
 
   # Sync committee
-  @sync_committee_size 512
+  # @sync_committee_size 512 # TODO: Unused attribute
   @epochs_per_sync_committee_period 256
 
   # Deneb/EIP-4844 specific
@@ -184,6 +184,42 @@ defmodule ExWire.Eth2.MainnetConfig do
 
   def max_withdrawals_per_payload, do: @max_withdrawals_per_payload
   def max_bls_to_execution_changes, do: @max_bls_to_execution_changes
+
+  # Additional getters for previously unused attributes
+  def seconds_per_eth1_block, do: @seconds_per_eth1_block
+  def min_validator_withdrawability_delay, do: @min_validator_withdrawability_delay
+  def shard_committee_period, do: @shard_committee_period
+  def eth1_follow_distance, do: @eth1_follow_distance
+  def slots_per_historical_root, do: @slots_per_historical_root
+  def min_seed_lookahead, do: @min_seed_lookahead
+  def max_seed_lookahead, do: @max_seed_lookahead
+  def min_epochs_to_inactivity_penalty, do: @min_epochs_to_inactivity_penalty
+  def ejection_balance, do: @ejection_balance
+  def effective_balance_increment, do: @effective_balance_increment
+  def max_validators_per_committee, do: @max_validators_per_committee
+  def shuffle_round_count, do: @shuffle_round_count
+  def deposit_chain_id, do: @deposit_chain_id
+  def deposit_network_id, do: @deposit_network_id
+  def deposit_contract_address, do: @deposit_contract_address
+  def gwei_per_eth, do: @gwei_per_eth
+  def wei_per_gwei, do: @wei_per_gwei
+  def genesis_slot, do: @genesis_slot
+  def genesis_epoch, do: @genesis_epoch
+  def far_future_epoch, do: @far_future_epoch
+  def base_reward_factor, do: @base_reward_factor
+  def whistleblower_reward_quotient, do: @whistleblower_reward_quotient
+  def proposer_reward_quotient, do: @proposer_reward_quotient
+  def inactivity_penalty_quotient, do: @inactivity_penalty_quotient
+  def min_slashing_penalty_quotient, do: @min_slashing_penalty_quotient
+  def proportional_slashing_multiplier, do: @proportional_slashing_multiplier
+  def max_blob_commitments_per_block, do: @max_blob_commitments_per_block
+  def field_elements_per_blob, do: @field_elements_per_blob
+  def bytes_per_field_element, do: @bytes_per_field_element
+  def kzg_commitment_inclusion_proof_depth, do: @kzg_commitment_inclusion_proof_depth
+  def blob_base_fee_update_fraction, do: @blob_base_fee_update_fraction
+  def max_validators_per_withdrawals_sweep, do: @max_validators_per_withdrawals_sweep
+  def light_client_update_timeout, do: @light_client_update_timeout
+  def light_client_finality_update_timeout, do: @light_client_finality_update_timeout
 
   @doc """
   Get fork version for a given epoch.

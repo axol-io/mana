@@ -42,7 +42,7 @@ defmodule Common.Production.TransactionPriorityQueue do
   @doc """
   Adds a transaction to the priority queue.
 
-  Returns {:ok, queue} if successful, or {:error, reason} if the queue is full
+  Returns {:ok, queue} if successful, or {:error, _reason} if the queue is full
   or the transaction would exceed gas limits.
   """
   @spec add(t(), transaction()) :: {:ok, t()} | {:error, atom()}

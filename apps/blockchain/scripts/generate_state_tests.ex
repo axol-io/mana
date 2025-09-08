@@ -157,7 +157,7 @@ defmodule GenerateStateTests do
     end)
   end
 
-  def dump_state(state) do
+  def dump_state(_state) do
     state
     |> Trie.Inspector.all_values()
     |> Enum.map(fn {key, value} ->

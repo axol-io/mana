@@ -20,7 +20,7 @@ defmodule MerklePatriciaTree.DB.AntidoteIntegrationTest do
 
   setup_all do
     # Check if AntidoteDB is running
-    case :gen_tcp.connect('localhost', 8087, [:binary, {:packet, 0}], 1000) do
+    case :gen_tcp.connect(~c"localhost", 8087, [:binary, {:packet, 0}], 1000) do
       {:ok, socket} ->
         :gen_tcp.close(socket)
         :ok

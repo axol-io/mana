@@ -122,11 +122,11 @@ defmodule ExWire.Enterprise.AuditLogger do
     schedule_anchoring()
     schedule_rotation()
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_cast({:log, event_type, details, opts}, state) do
+  def handle_cast({:log, event_type, details, opts}, _state) do
     entry = create_log_entry(event_type, details, opts, state)
     state = add_to_buffer(state, entry)
 
@@ -142,7 +142,7 @@ defmodule ExWire.Enterprise.AuditLogger do
   end
 
   @impl true
-  def handle_call({:log, event_type, details, opts}, _from, state) do
+  def handle_call({:log, event_type, details, opts}, _from, _state) do
     entry = create_log_entry(event_type, details, opts, state)
     state = add_to_buffer(state, entry)
     state = flush_buffer(state)
@@ -151,7 +151,7 @@ defmodule ExWire.Enterprise.AuditLogger do
   end
 
   @impl true
-  def handle_call({:query, filters}, _from, state) do
+  def handle_call({:query, filters}, _from, _state) do
     # Flush buffer first to ensure all logs are queryable
     state = flush_buffer(state)
 
@@ -160,13 +160,13 @@ defmodule ExWire.Enterprise.AuditLogger do
   end
 
   @impl true
-  def handle_call({:verify_integrity, from_id, to_id}, _from, state) do
+  def handle_call({:verify_integrity, from_id, to_id}, _from, _state) do
     result = verify_log_chain(state.log_store, from_id, to_id)
     {:reply, result, state}
   end
 
   @impl true
-  def handle_call({:export, format, filters}, _from, state) do
+  def handle_call({:export, format, filters}, _from, _state) do
     state = flush_buffer(state)
     logs = query_logs(state.log_store, filters)
 
@@ -182,7 +182,7 @@ defmodule ExWire.Enterprise.AuditLogger do
   end
 
   @impl true
-  def handle_call(:get_metrics, _from, state) do
+  def handle_call(:get_metrics, _from, _state) do
     metrics =
       Map.merge(state.metrics, %{
         buffer_size: length(state.buffer),
@@ -194,38 +194,38 @@ defmodule ExWire.Enterprise.AuditLogger do
   end
 
   @impl true
-  def handle_call(:anchor_to_blockchain, _from, state) do
+  def handle_call(:anchor_to_blockchain, _from, _state) do
     case create_blockchain_anchor(state) do
       {:ok, anchor} ->
         state = %{state | blockchain_anchor: anchor}
         {:reply, {:ok, anchor}, state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:verify_anchor, anchor_id}, _from, state) do
+  def handle_call({:verify_anchor, anchor_id}, _from, _state) do
     result = verify_blockchain_anchor(anchor_id, state)
     {:reply, result, state}
   end
 
   @impl true
-  def handle_info(:flush_buffer, state) do
+  def handle_info(:flush_buffer, _state) do
     state = flush_buffer(state)
     schedule_flush()
     {:noreply, state}
   end
 
   @impl true
-  def handle_info(:anchor_logs, state) do
+  def handle_info(:anchor_logs, _state) do
     case create_blockchain_anchor(state) do
       {:ok, anchor} ->
         state = %{state | blockchain_anchor: anchor}
         Logger.info("Audit logs anchored to blockchain: #{inspect(anchor)}")
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Failed to anchor logs: #{inspect(reason)}")
     end
 
@@ -234,7 +234,7 @@ defmodule ExWire.Enterprise.AuditLogger do
   end
 
   @impl true
-  def handle_info(:rotate_logs, state) do
+  def handle_info(:rotate_logs, _state) do
     state = rotate_log_files(state)
     schedule_rotation()
     {:noreply, state}
@@ -242,7 +242,7 @@ defmodule ExWire.Enterprise.AuditLogger do
 
   # Private Functions
 
-  defp create_log_entry(event_type, details, opts, state) do
+  defp create_log_entry(event_type, details, opts, _state) do
     timestamp = DateTime.utc_now()
     actor = Keyword.get(opts, :actor, get_current_actor())
 
@@ -282,12 +282,12 @@ defmodule ExWire.Enterprise.AuditLogger do
     :crypto.verify(:ecdsa, :sha256, hash, signature, [public_key, :secp256k1])
   end
 
-  defp add_to_buffer(state, entry) do
+  defp add_to_buffer(_state, entry) do
     %{state | buffer: [entry | state.buffer], current_hash: entry.hash}
     |> update_metrics(:entries_buffered)
   end
 
-  defp flush_buffer(state) do
+  defp flush_buffer(_state) do
     if length(state.buffer) > 0 do
       # Write to persistent storage
       :ok = write_logs(state.log_store, Enum.reverse(state.buffer))
@@ -417,7 +417,7 @@ defmodule ExWire.Enterprise.AuditLogger do
     end
   end
 
-  defp create_blockchain_anchor(state) do
+  defp create_blockchain_anchor(_state) do
     # Flush buffer first
     state = flush_buffer(state)
 
@@ -490,7 +490,7 @@ defmodule ExWire.Enterprise.AuditLogger do
     {:ok, :valid}
   end
 
-  defp rotate_log_files(state) do
+  defp rotate_log_files(_state) do
     case state.log_store.type do
       :file ->
         current_file = state.log_store.current_file
@@ -506,7 +506,7 @@ defmodule ExWire.Enterprise.AuditLogger do
         end
 
       _ ->
-        state
+        _state
     end
   end
 
@@ -664,7 +664,7 @@ defmodule ExWire.Enterprise.AuditLogger do
     }
   end
 
-  defp update_metrics(state, metric, count \\ 1) do
+  defp update_metrics(_state, metric, count \\ 1) do
     update_in(state.metrics[metric], &(&1 + count))
   end
 

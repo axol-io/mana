@@ -13,49 +13,49 @@ defmodule ExWire.Bridge.Sync do
   @spec get_best_block_and_chain() :: {:ok, Block.t(), Chain.t()} | {:error, atom()}
   def get_best_block_and_chain() do
     case get_last_sync_state() do
-      {:ok, state} ->
-        {:ok, block} = get_best_block({:ok, state})
-        {:ok, chain} = get_chain({:ok, state})
+      {:ok, _state} ->
+        {:ok, block} = get_best_block({:ok, _state})
+        {:ok, chain} = get_chain({:ok, _state})
         {:ok, block, chain}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
   @spec get_best_block(Sync.state() | any()) :: {:ok, Block.t()} | {:error, atom()}
   def get_best_block(sync_state \\ nil) do
     case sync_state || get_last_sync_state() do
-      {:ok, state} ->
+      {:ok, _state} ->
         {:ok, {block, _caching_trie}} =
           Blocktree.get_best_block(state.block_tree, state.chain, state.trie)
 
         {:ok, block}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
   @spec get_chain(Sync.state() | any()) :: {:ok, Chain.t()} | {:error, atom()}
   def get_chain(sync_state \\ nil) do
     case sync_state || get_last_sync_state() do
-      {:ok, state} ->
+      {:ok, _state} ->
         {:ok, state.chain}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
   @spec get_current_trie(Sync.state() | any()) :: {:ok, Trie.t()} | {:error, atom()}
   def get_current_trie(sync_state \\ nil) do
     case sync_state || get_last_sync_state() do
-      {:ok, state} ->
+      {:ok, _state} ->
         {:ok, state.trie}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 

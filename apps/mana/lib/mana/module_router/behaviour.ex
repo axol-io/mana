@@ -17,7 +17,7 @@ defmodule Mana.ModuleRouter.Behaviour do
 
   ## Returns
   - {:ok, result} on successful operation
-  - {:error, reason} on failure
+  - {:error, _reason} on failure
   """
   @callback route_request(
               module_type :: atom(),
@@ -55,7 +55,7 @@ defmodule Mana.ModuleRouter.Behaviour do
 
   ## Returns
   - :ok on success
-  - {:error, reason} on failure
+  - {:error, _reason} on failure
   """
   @callback force_version(module_type :: atom(), version :: :v1 | :v2) ::
               :ok | {:error, term()}

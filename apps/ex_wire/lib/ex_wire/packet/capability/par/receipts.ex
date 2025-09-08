@@ -44,7 +44,7 @@ defmodule ExWire.Packet.Capability.Par.Receipts do
   """
   @impl true
   @spec serialize(t) :: ExRLP.t()
-  def serialize(packet = %__MODULE__{}) do
+  def serialize(_packet = %__MODULE__{}) do
     for receipt <- packet.receipts, do: receipt
   end
 
@@ -71,7 +71,7 @@ defmodule ExWire.Packet.Capability.Par.Receipts do
   """
   @impl true
   @spec handle(ExWire.Packet.packet()) :: ExWire.Packet.handle_response()
-  def handle(packet = %__MODULE__{}) do
+  def handle(_packet = %__MODULE__{}) do
     :ok = Logger.info("[Packet] Peer sent #{Enum.count(packet.receipts)} Receipt(s).")
 
     :ok

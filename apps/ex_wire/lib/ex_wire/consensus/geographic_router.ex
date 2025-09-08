@@ -194,11 +194,11 @@ defmodule ExWire.Consensus.GeographicRouter do
 
     Logger.info("[GeographicRouter] Started with geolocation service: #{geolocation_service}")
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl GenServer
-  def handle_call({:add_datacenter, datacenter_id, coordinates, opts}, _from, state) do
+  def handle_call({:add_datacenter, datacenter_id, coordinates, opts}, _from, _state) do
     datacenter_info = %{
       datacenter_id: datacenter_id,
       coordinates: coordinates,
@@ -221,7 +221,7 @@ defmodule ExWire.Consensus.GeographicRouter do
   end
 
   @impl GenServer
-  def handle_call({:remove_datacenter, datacenter_id}, _from, state) do
+  def handle_call({:remove_datacenter, datacenter_id}, _from, _state) do
     new_datacenters = Map.delete(state.datacenters, datacenter_id)
     new_state = %{state | datacenters: new_datacenters}
 
@@ -231,7 +231,7 @@ defmodule ExWire.Consensus.GeographicRouter do
   end
 
   @impl GenServer
-  def handle_call({:route_request, request, client_ip, opts}, _from, state) do
+  def handle_call({:route_request, request, client_ip, opts}, _from, _state) do
     case determine_optimal_datacenter(request, client_ip, opts, state) do
       {:ok, datacenter_id} ->
         Logger.debug(
@@ -240,17 +240,17 @@ defmodule ExWire.Consensus.GeographicRouter do
 
         {:reply, {:ok, datacenter_id}, state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error(
           "[GeographicRouter] Routing failed for client #{client_ip}: #{inspect(reason)}"
         )
 
-        {:reply, {:error, reason}, state}
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl GenServer
-  def handle_call({:get_routing_decision, request, client_ip, opts}, _from, state) do
+  def handle_call({:get_routing_decision, request, client_ip, opts}, _from, _state) do
     start_time = System.monotonic_time(:millisecond)
 
     case determine_optimal_datacenter_with_reasoning(request, client_ip, opts, state) do
@@ -259,18 +259,18 @@ defmodule ExWire.Consensus.GeographicRouter do
         decision_with_time = %{decision | decision_time_ms: end_time - start_time}
         {:reply, {:ok, decision_with_time}, state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl GenServer
-  def handle_call(:get_datacenter_info, _from, state) do
+  def handle_call(:get_datacenter_info, _from, _state) do
     {:reply, state.datacenters, state}
   end
 
   @impl GenServer
-  def handle_cast({:update_datacenter_status, datacenter_id, updates}, state) do
+  def handle_cast({:update_datacenter_status, datacenter_id, updates}, _state) do
     case Map.get(state.datacenters, datacenter_id) do
       nil ->
         Logger.warning(
@@ -298,7 +298,7 @@ defmodule ExWire.Consensus.GeographicRouter do
   end
 
   @impl GenServer
-  def handle_cast({:record_latency, datacenter_id, client_ip, latency_ms}, state) do
+  def handle_cast({:record_latency, datacenter_id, client_ip, latency_ms}, _state) do
     # Store latency measurement for adaptive routing
     client_measurements = Map.get(state.latency_measurements, client_ip, %{})
     datacenter_measurements = Map.get(client_measurements, datacenter_id, [])
@@ -324,13 +324,13 @@ defmodule ExWire.Consensus.GeographicRouter do
   end
 
   @impl GenServer
-  def handle_cast({:set_compliance_rules, rules}, state) do
+  def handle_cast({:set_compliance_rules, rules}, _state) do
     Logger.info("[GeographicRouter] Updated compliance rules: #{inspect(Map.keys(rules))}")
     {:noreply, %{state | compliance_rules: rules}}
   end
 
   @impl GenServer
-  def handle_info(:cache_cleanup, state) do
+  def handle_info(:cache_cleanup, _state) do
     # Clean up expired cache entries
     current_time = System.system_time(:second)
 
@@ -350,7 +350,7 @@ defmodule ExWire.Consensus.GeographicRouter do
   end
 
   @impl GenServer
-  def handle_info(:latency_analysis, state) do
+  def handle_info(:latency_analysis, _state) do
     # Analyze latency patterns and update datacenter average latencies
     updated_datacenters =
       state.datacenters
@@ -371,14 +371,14 @@ defmodule ExWire.Consensus.GeographicRouter do
 
   # Private functions
 
-  defp determine_optimal_datacenter(request, client_ip, opts, state) do
+  defp determine_optimal_datacenter(request, client_ip, opts, _state) do
     case determine_optimal_datacenter_with_reasoning(request, client_ip, opts, state) do
       {:ok, decision} -> {:ok, decision.selected_datacenter}
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
-  defp determine_optimal_datacenter_with_reasoning(request, client_ip, opts, state) do
+  defp determine_optimal_datacenter_with_reasoning(request, client_ip, opts, _state) do
     strategy = Keyword.get(opts, :strategy, :latency_optimized)
     compliance_required = Keyword.get(opts, :compliance_zone)
 
@@ -399,22 +399,22 @@ defmodule ExWire.Consensus.GeographicRouter do
 
           {:ok, decision}
 
-        {:error, reason} ->
-          {:error, reason}
+        {:error, _reason} ->
+          {:error, _reason}
       end
     end
   end
 
-  defp get_client_location(client_ip, state) do
+  defp get_client_location(client_ip, _state) do
     case Map.get(state.client_cache, client_ip) do
       nil ->
         # Perform geolocation lookup
-        case state.geolocation_service.lookup(client_ip) do
+        case _state.geolocation_service.lookup(client_ip) do
           {:ok, location} ->
             cached_location = Map.put(location, :cached_at, System.system_time(:second))
             {:ok, cached_location}
 
-          {:error, reason} ->
+          {:error, _reason} ->
             # Fallback to default location
             Logger.warning(
               "[GeographicRouter] Geolocation failed for #{client_ip}: #{inspect(reason)}"
@@ -428,7 +428,7 @@ defmodule ExWire.Consensus.GeographicRouter do
     end
   end
 
-  defp get_candidate_datacenters(nil, state) do
+  defp get_candidate_datacenters(nil, _state) do
     # No compliance requirements - all healthy datacenters are candidates
     candidates =
       state.datacenters
@@ -438,7 +438,7 @@ defmodule ExWire.Consensus.GeographicRouter do
     {:ok, candidates}
   end
 
-  defp get_candidate_datacenters(compliance_zone, state) do
+  defp get_candidate_datacenters(compliance_zone, _state) do
     # Filter datacenters by compliance requirements
     allowed_datacenters = Map.get(state.compliance_rules, compliance_zone, [])
 
@@ -455,7 +455,7 @@ defmodule ExWire.Consensus.GeographicRouter do
     end
   end
 
-  defp score_candidates(candidates, client_location, strategy, state) do
+  defp score_candidates(candidates, client_location, strategy, _state) do
     scored_candidates =
       candidates
       |> Enum.map(fn datacenter ->
@@ -485,7 +485,7 @@ defmodule ExWire.Consensus.GeographicRouter do
     {:ok, best, alternatives}
   end
 
-  defp calculate_datacenter_score(datacenter, client_location, strategy, state) do
+  defp calculate_datacenter_score(datacenter, client_location, strategy, _state) do
     base_score = 100.0
 
     # Factor in geographic distance
@@ -554,7 +554,7 @@ defmodule ExWire.Consensus.GeographicRouter do
     @earth_radius_km * c
   end
 
-  defp get_measured_latency(datacenter_id, client_ip, state) do
+  defp get_measured_latency(datacenter_id, client_ip, _state) do
     case get_in(state.latency_measurements, [client_ip, datacenter_id]) do
       nil -> nil
       [] -> nil
@@ -563,9 +563,9 @@ defmodule ExWire.Consensus.GeographicRouter do
     end
   end
 
-  defp estimate_latency(datacenter, client_location, state) do
+  defp estimate_latency(datacenter, client_location, _state) do
     # Use measured latency if available, otherwise estimate from distance
-    case get_measured_latency(datacenter.datacenter_id, client_location.ip_address, state) do
+    case get_measured_latency(datacenter.datacenter_id, client_location.ip_address, _state) do
       nil ->
         distance_km =
           calculate_great_circle_distance(

@@ -26,10 +26,10 @@ defmodule JSONRPC2.SpecHandler.LogsFilter do
     
   ## Returns
     - {:ok, list} - List of matching logs
-    - {:error, reason} - Error if filtering fails
+    - {:error, _reason} - Error if filtering fails
   """
   @spec filter_logs(map(), MerklePatriciaTree.Trie.t()) :: {:ok, list()} | {:error, any()}
-  def filter_logs(params, state_trie) do
+  def filter_logs(_params, state_trie) do
     with {:ok, filter} <- parse_filter_params(params),
          {:ok, blocks} <- get_blocks_in_range(filter, state_trie),
          logs <- collect_logs_from_blocks(blocks, filter, state_trie) do
@@ -37,7 +37,7 @@ defmodule JSONRPC2.SpecHandler.LogsFilter do
     end
   end
 
-  defp parse_filter_params(params) do
+  defp parse_filter_params(_params) do
     filter = %{
       from_block: params["fromBlock"] || "latest",
       to_block: params["toBlock"] || "latest",

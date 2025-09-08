@@ -10,7 +10,7 @@ defmodule ExWire.Crypto.TrustedSetup do
   """
 
   require Logger
-  alias ExWire.Crypto.KZG
+  alias ExthCrypto.KZG
 
   # Official Ethereum KZG ceremony URLs
   @mainnet_setup_url "https://github.com/ethereum/c-kzg-4844/raw/main/src/trusted_setup.txt"

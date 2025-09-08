@@ -72,11 +72,11 @@ defmodule ExWire.Eth2.ParallelAttestationProcessorSimplified do
       fork_choice_store: opts[:fork_choice_store]
     }
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:process_batch, attestations, beacon_state, fork_choice_store}, _from, state) do
+  def handle_call({:process_batch, attestations, beacon_state, fork_choice_store}, _from, _state) do
     start_time = System.monotonic_time(:millisecond)
 
     # Process attestations in parallel using Flow
@@ -92,12 +92,12 @@ defmodule ExWire.Eth2.ParallelAttestationProcessorSimplified do
   end
 
   @impl true
-  def handle_call(:get_stats, _from, state) do
+  def handle_call(:get_stats, _from, _state) do
     {:reply, state.processing_stats, state}
   end
 
   @impl true
-  def handle_cast({:queue_attestation, attestation, beacon_state, fork_choice_store}, state) do
+  def handle_cast({:queue_attestation, attestation, beacon_state, fork_choice_store}, _state) do
     # Add to pending queue
     pending = [{attestation, beacon_state, fork_choice_store} | state.pending_attestations]
 
@@ -121,7 +121,7 @@ defmodule ExWire.Eth2.ParallelAttestationProcessorSimplified do
   end
 
   @impl true
-  def handle_info(:process_batch, state) do
+  def handle_info(:process_batch, _state) do
     # Process any pending attestations
     state =
       if length(state.pending_attestations) > 0 do
@@ -154,7 +154,7 @@ defmodule ExWire.Eth2.ParallelAttestationProcessorSimplified do
            {:ok, attestation} <- validate_for_fork_choice(attestation, fork_choice_store) do
         {:ok, attestation}
       else
-        {:error, reason} -> {:error, reason, attestation}
+        {:error, _reason} -> {:error, reason, attestation}
       end
     end)
     |> Flow.partition(window: Flow.Window.count(@batch_size))
@@ -247,7 +247,7 @@ defmodule ExWire.Eth2.ParallelAttestationProcessorSimplified do
         {:ok, false} ->
           {:error, :invalid_signature}
 
-        {:error, reason} ->
+        {:error, _reason} ->
           {:error, {:signature_verification_failed, reason}}
       end
     end
@@ -264,7 +264,7 @@ defmodule ExWire.Eth2.ParallelAttestationProcessorSimplified do
 
   # Helper Functions
 
-  defp process_pending_batch(state) do
+  defp process_pending_batch(_state) do
     if state.pending_attestations == [] do
       state
     else
@@ -284,7 +284,7 @@ defmodule ExWire.Eth2.ParallelAttestationProcessorSimplified do
     end
   end
 
-  defp update_processing_stats(state, results, elapsed_ms) do
+  defp update_processing_stats(_state, results, elapsed_ms) do
     stats = state.processing_stats
 
     total_processed = stats.total_processed + results.total
@@ -337,7 +337,7 @@ defmodule ExWire.Eth2.ParallelAttestationProcessorSimplified do
     })
   end
 
-  defp verify_attestation_signature(attestation, state) do
+  defp verify_attestation_signature(attestation, _state) do
     # Get participating validator indices
     committee = get_beacon_committee(state, attestation.data.slot, attestation.data.index)
     participating_indices = get_attesting_indices(committee, attestation.aggregation_bits)
@@ -361,13 +361,13 @@ defmodule ExWire.Eth2.ParallelAttestationProcessorSimplified do
           # Verify aggregated signature
           ExWire.Crypto.BLS.verify(aggregated_pubkey, signing_root, attestation.signature)
 
-        {:error, reason} ->
+        {:error, _reason} ->
           {:error, {:pubkey_aggregation_failed, reason}}
       end
     end
   end
 
-  defp compute_domain_for_attestation(attestation_data, state) do
+  defp compute_domain_for_attestation(attestation_data, _state) do
     # Get current fork version
     fork_version = get_fork_version(state, attestation_data.target.epoch)
 
@@ -394,7 +394,7 @@ defmodule ExWire.Eth2.ParallelAttestationProcessorSimplified do
     SSZ.hash_tree_root(signing_data)
   end
 
-  defp get_fork_version(state, epoch) do
+  defp get_fork_version(_state, epoch) do
     # Simplified fork version logic - would need actual fork schedule
     cond do
       epoch >= get_deneb_fork_epoch() ->
@@ -488,14 +488,16 @@ defmodule ExWire.Eth2.ParallelAttestationProcessorSimplified do
 
   defp get_beacon_committee(beacon_state, slot, committee_index) do
     epoch = compute_epoch_at_slot(slot)
-    committees_per_slot = 1  # Simplified - normally would calculate based on active validators
-    
+    # Simplified - normally would calculate based on active validators
+    committees_per_slot = 1
+
     active_validators = get_active_validator_indices(beacon_state, epoch)
-    committee_count = div(length(active_validators), 128)  # Target committee size of 128
-    
+    # Target committee size of 128
+    committee_count = div(length(active_validators), 128)
+
     start_idx = rem(slot * committees_per_slot + committee_index, committee_count) * 128
     committee_size = min(128, length(active_validators) - start_idx)
-    
+
     Enum.slice(active_validators, start_idx, committee_size)
   end
 end

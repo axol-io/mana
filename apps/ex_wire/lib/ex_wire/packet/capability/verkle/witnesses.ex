@@ -100,18 +100,18 @@ defmodule ExWire.Packet.Capability.Verkle.Witnesses do
   Validate the Witnesses packet structure.
   """
   @spec validate(t()) :: {:ok, t()} | {:error, term()}
-  def validate(%__MODULE__{witnesses: witnesses, total_witnesses: total} = packet)
+  def validate(%__MODULE__{witnesses: witnesses, total_witnesses: total} = _packet)
       when length(witnesses) != total do
     {:error, :witness_count_mismatch}
   end
 
-  def validate(%__MODULE__{root_commitment: root} = packet) when byte_size(root) != 32 do
+  def validate(%__MODULE__{root_commitment: root} = _packet) when byte_size(root) != 32 do
     {:error, :invalid_root_commitment}
   end
 
-  def validate(%__MODULE__{witnesses: witnesses} = packet) do
+  def validate(%__MODULE__{witnesses: witnesses} = _packet) do
     if Enum.all?(witnesses, &validate_witness_data/1) do
-      {:ok, packet}
+      {:ok, _packet}
     else
       {:error, :invalid_witness_data}
     end

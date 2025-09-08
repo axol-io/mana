@@ -116,7 +116,7 @@ defmodule Mix.Tasks.ConsensusSpec do
         Logger.info("✅ Consensus spec tests ready at: #{test_dir}")
         Logger.info("💡 You can now run: mix consensus_spec")
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("❌ Failed to setup consensus spec tests: #{reason}")
         Logger.info("Manual setup:")
 
@@ -149,7 +149,7 @@ defmodule Mix.Tasks.ConsensusSpec do
           Logger.info("✅ All tests passed!")
         end
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("❌ Test run failed: #{reason}")
         System.halt(1)
     end

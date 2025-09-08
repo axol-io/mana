@@ -18,7 +18,7 @@ defmodule ExWire.FakeKademliaServer do
   def handle_call(
         {:neighbours, _find_neighbours, _endpoint},
         _from,
-        state = %{neighbours: neighbours}
+        _state = %{neighbours: neighbours}
       ) do
     {:reply, neighbours, state}
   end

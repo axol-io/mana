@@ -217,12 +217,12 @@ defmodule Blockchain.Compliance.Reporting do
         Logger.info("Generated compliance report: #{report_instance.id} (#{report_type})")
         {:reply, {:ok, report_instance}, new_state}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         updated_stats = Map.update(state.stats, :generation_errors, 1, &(&1 + 1))
         new_state = %{state | stats: updated_stats}
 
-        Logger.error("Failed to generate compliance report (#{report_type}): #{reason}")
-        {:reply, {:error, reason}, new_state}
+        Logger.error("Failed to generate compliance report (#{report_type}): #{_reason}")
+        {:reply, {:error, _reason}, new_state}
     end
   end
 
@@ -284,7 +284,7 @@ defmodule Blockchain.Compliance.Reporting do
     end
   end
 
-  def handle_call(:get_statistics, _from, state) do
+  def handle_call(:get_status, _from, state) do
     enhanced_stats =
       Map.merge(state.stats, %{
         scheduled_reports: map_size(state.scheduled_reports),

@@ -133,11 +133,11 @@ defmodule ExWire.Eth2.PruningScheduler do
     schedule_comprehensive_cycle()
     schedule_load_monitoring()
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_cast({:schedule_immediate, data_types, opts}, state) do
+  def handle_cast({:schedule_immediate, data_types, opts}, _state) do
     Logger.info("Scheduling immediate pruning for #{inspect(data_types)}")
 
     job = create_pruning_job(data_types, @priority_immediate, opts)
@@ -148,7 +148,7 @@ defmodule ExWire.Eth2.PruningScheduler do
   end
 
   @impl true
-  def handle_cast({:schedule_incremental, data_type, opts}, state) do
+  def handle_cast({:schedule_incremental, data_type, opts}, _state) do
     Logger.debug("Scheduling incremental pruning for #{data_type}")
 
     job = create_pruning_job([data_type], @priority_high, Map.put(opts, :incremental, true))
@@ -159,7 +159,7 @@ defmodule ExWire.Eth2.PruningScheduler do
   end
 
   @impl true
-  def handle_cast({:schedule_comprehensive, opts}, state) do
+  def handle_cast({:schedule_comprehensive, opts}, _state) do
     Logger.info("Scheduling comprehensive pruning")
 
     # Schedule for next maintenance window
@@ -172,7 +172,7 @@ defmodule ExWire.Eth2.PruningScheduler do
   end
 
   @impl true
-  def handle_cast({:set_pause_state, paused}, state) do
+  def handle_cast({:set_pause_state, paused}, _state) do
     Logger.info("Pruning scheduler #{if paused, do: "paused", else: "resumed"}")
 
     state = %{state | pruning_paused: paused}
@@ -189,7 +189,7 @@ defmodule ExWire.Eth2.PruningScheduler do
   end
 
   @impl true
-  def handle_cast({:cancel_job, job_id}, state) do
+  def handle_cast({:cancel_job, job_id}, _state) do
     Logger.info("Cancelling pruning job #{job_id}")
 
     # Remove from queue
@@ -210,7 +210,7 @@ defmodule ExWire.Eth2.PruningScheduler do
   end
 
   @impl true
-  def handle_call(:get_status, _from, state) do
+  def handle_call(:get_status, _from, _state) do
     status = %{
       schedule_state: state.schedule_state,
       system_load: state.system_load,
@@ -226,7 +226,7 @@ defmodule ExWire.Eth2.PruningScheduler do
   end
 
   @impl true
-  def handle_call(:get_queue, _from, state) do
+  def handle_call(:get_queue, _from, _state) do
     queue_info =
       Enum.map(state.job_queue, fn job ->
         %{
@@ -243,7 +243,7 @@ defmodule ExWire.Eth2.PruningScheduler do
   end
 
   @impl true
-  def handle_info(:incremental_cycle, state) do
+  def handle_info(:incremental_cycle, _state) do
     # Check if incremental pruning is needed
     state =
       if should_run_incremental_pruning?(state) do
@@ -259,7 +259,7 @@ defmodule ExWire.Eth2.PruningScheduler do
   end
 
   @impl true
-  def handle_info(:comprehensive_cycle, state) do
+  def handle_info(:comprehensive_cycle, _state) do
     # Check if comprehensive pruning is needed
     state =
       if should_run_comprehensive_pruning?(state) do
@@ -275,7 +275,7 @@ defmodule ExWire.Eth2.PruningScheduler do
   end
 
   @impl true
-  def handle_info(:load_monitoring, state) do
+  def handle_info(:load_monitoring, _state) do
     # Update system load assessment
     current_load = assess_system_load()
 
@@ -291,7 +291,7 @@ defmodule ExWire.Eth2.PruningScheduler do
   end
 
   @impl true
-  def handle_info({:job_complete, job_id, result}, state) do
+  def handle_info({:job_complete, job_id, result}, _state) do
     Logger.info("Pruning job #{job_id} completed: #{inspect(result)}")
 
     # Remove from active jobs
@@ -304,7 +304,7 @@ defmodule ExWire.Eth2.PruningScheduler do
           update_scheduler_metrics(state, :job_success)
           |> reset_failure_count()
 
-        {:error, reason} ->
+        {:error, _reason} ->
           Logger.error("Pruning job #{job_id} failed: #{inspect(reason)}")
 
           update_scheduler_metrics(state, :job_failure)
@@ -320,7 +320,7 @@ defmodule ExWire.Eth2.PruningScheduler do
   end
 
   @impl true
-  def handle_info({:job_timeout, job_id}, state) do
+  def handle_info({:job_timeout, job_id}, _state) do
     Logger.warning("Pruning job #{job_id} timed out")
 
     # Cancel the job
@@ -359,7 +359,7 @@ defmodule ExWire.Eth2.PruningScheduler do
     }
   end
 
-  defp enqueue_job(state, job) do
+  defp enqueue_job(_state, job) do
     # Insert job in priority order
     job_queue = insert_job_by_priority(state.job_queue, job)
     %{state | job_queue: job_queue}
@@ -375,7 +375,7 @@ defmodule ExWire.Eth2.PruningScheduler do
     end
   end
 
-  defp maybe_start_next_job(state) do
+  defp maybe_start_next_job(_state) do
     cond do
       state.pruning_paused ->
         state
@@ -401,7 +401,7 @@ defmodule ExWire.Eth2.PruningScheduler do
     end
   end
 
-  defp start_next_job(state) do
+  defp start_next_job(_state) do
     [job | remaining_queue] = state.job_queue
 
     # Check if it's time to run this job
@@ -493,14 +493,14 @@ defmodule ExWire.Eth2.PruningScheduler do
   end
 
   defp comprehensive_pruning_due?(state) do
-    last_prune = state.last_comprehensive_prune
+    last_prune = _state.last_comprehensive_prune
     hours_since_prune = DateTime.diff(DateTime.utc_now(), last_prune, :hour)
 
     # Daily comprehensive pruning
     hours_since_prune >= 24
   end
 
-  defp execute_incremental_pruning(state) do
+  defp execute_incremental_pruning(_state) do
     Logger.debug("Executing incremental pruning")
 
     # Light pruning of rapidly growing data
@@ -508,7 +508,7 @@ defmodule ExWire.Eth2.PruningScheduler do
     enqueue_job(state, job)
   end
 
-  defp execute_comprehensive_pruning(state) do
+  defp execute_comprehensive_pruning(_state) do
     Logger.info("Executing comprehensive pruning")
 
     job = create_pruning_job(:all, @priority_normal, %{comprehensive: true})
@@ -517,12 +517,12 @@ defmodule ExWire.Eth2.PruningScheduler do
     %{state | last_comprehensive_prune: DateTime.utc_now()}
   end
 
-  defp adjust_scheduling_for_load(state, load) do
+  defp adjust_scheduling_for_load(_state, load) do
     case load do
       :critical ->
         # Cancel low-priority jobs
         job_queue = Enum.filter(state.job_queue, &(&1.priority <= @priority_normal))
-        %{state | job_queue: job_queue}
+        %{_state | job_queue: job_queue}
 
       :high ->
         # Delay low-priority jobs
@@ -632,7 +632,7 @@ defmodule ExWire.Eth2.PruningScheduler do
 
   defp get_attestation_pool_size do
     case BeaconChain.get_state() do
-      {:ok, state} ->
+      {:ok, _state} ->
         Enum.reduce(state.attestation_pool || %{}, 0, fn {_slot, attestations}, acc ->
           acc + length(attestations)
         end)
@@ -653,12 +653,12 @@ defmodule ExWire.Eth2.PruningScheduler do
     }
   end
 
-  defp update_scheduler_metrics(state, metric_type) do
+  defp update_scheduler_metrics(_state, metric_type) do
     metrics =
       case metric_type do
         :job_success ->
           completed = state.metrics.jobs_completed + 1
-          %{state.metrics | jobs_completed: completed}
+          %{_state.metrics | jobs_completed: completed}
 
         :job_failure ->
           %{state.metrics | jobs_failed: state.metrics.jobs_failed + 1}
@@ -670,11 +670,11 @@ defmodule ExWire.Eth2.PruningScheduler do
     %{state | metrics: metrics}
   end
 
-  defp reset_failure_count(state) do
+  defp reset_failure_count(_state) do
     %{state | failure_count: 0}
   end
 
-  defp increment_failure_count(state) do
+  defp increment_failure_count(_state) do
     %{state | failure_count: state.failure_count + 1}
   end
 

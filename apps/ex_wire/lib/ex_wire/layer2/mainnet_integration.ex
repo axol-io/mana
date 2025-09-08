@@ -27,7 +27,7 @@ defmodule ExWire.Layer2.MainnetIntegration do
   @doc """
   Starts mainnet integration testing for a specific L2 network.
   """
-  def start_link(network, config \\ %{}) when network in @mainnet_networks do
+  def start_link(network, _config \\ %{}) when network in @mainnet_networks do
     GenServer.start_link(__MODULE__, {network, config}, name: via_tuple(network))
   end
 
@@ -56,7 +56,7 @@ defmodule ExWire.Layer2.MainnetIntegration do
   ## Server Callbacks
 
   @impl true
-  def init({network, config}) do
+  def init({network, _config}) do
     state = %__MODULE__{
       network: network,
       current_phase: :initialized,
@@ -67,11 +67,11 @@ defmodule ExWire.Layer2.MainnetIntegration do
     }
 
     Logger.info("Initialized mainnet integration testing for #{network}")
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:run_tests, opts}, _from, state) do
+  def handle_call({:run_tests, opts}, _from, _state) do
     Logger.info("Starting mainnet integration tests for #{state.network}")
 
     try do
@@ -82,16 +82,16 @@ defmodule ExWire.Layer2.MainnetIntegration do
     catch
       :exit, reason ->
         error_state = %{state | current_phase: :failed}
-        {:reply, {:error, reason}, error_state}
+        {:reply, {:error, _reason}, error_state}
 
       :error, reason ->
         error_state = %{state | current_phase: :failed}
-        {:reply, {:error, reason}, error_state}
+        {:reply, {:error, _reason}, error_state}
     end
   end
 
   @impl true
-  def handle_call(:get_status, _from, state) do
+  def handle_call(:get_status, _from, _state) do
     status = %{
       network: state.network,
       current_phase: state.current_phase,
@@ -104,7 +104,7 @@ defmodule ExWire.Layer2.MainnetIntegration do
   end
 
   @impl true
-  def handle_call(:stop_testing, _from, state) do
+  def handle_call(:stop_testing, _from, _state) do
     Logger.info("Stopping mainnet integration testing for #{state.network}")
     cleanup_resources(state.network)
     {:reply, :ok, state}
@@ -116,7 +116,7 @@ defmodule ExWire.Layer2.MainnetIntegration do
     {:via, Registry, {ExWire.Layer2.MainnetRegistry, network}}
   end
 
-  defp run_test_phases(state, opts) do
+  defp run_test_phases(_state, opts) do
     safe_mode = Keyword.get(opts, :safe_mode, true)
     max_test_amount = if safe_mode, do: 0.001, else: Keyword.get(opts, :max_amount, 0.01)
 
@@ -132,7 +132,7 @@ defmodule ExWire.Layer2.MainnetIntegration do
           :read_only -> test_read_only_operations(state.network)
           :small_tx -> test_small_transaction(state.network, max_test_amount)
           :bridge_test -> test_bridge_operations(state.network, max_test_amount)
-          :performance -> test_performance_under_load(state.network)
+          :performance -> test_performance_under_load(_state.network)
         end
 
       Map.put(results, phase, phase_result)
@@ -167,7 +167,7 @@ defmodule ExWire.Layer2.MainnetIntegration do
             timestamp: DateTime.utc_now()
           }
 
-        {:error, reason} ->
+        {:error, _reason} ->
           %{
             result: :failed,
             error: reason,
@@ -218,7 +218,7 @@ defmodule ExWire.Layer2.MainnetIntegration do
               successful_operations = successful_operations + 1
               {:ok, %{address: address, state: :accessible, storage: :error}}
 
-            {{:error, reason}, _} ->
+            {{:error, _reason}, _} ->
               {:error, %{address: address, reason: reason}}
           end
         catch
@@ -284,7 +284,7 @@ defmodule ExWire.Layer2.MainnetIntegration do
             timestamp: DateTime.utc_now()
           }
 
-        {:error, reason} ->
+        {:error, _reason} ->
           %{
             result: :failed,
             error: reason,

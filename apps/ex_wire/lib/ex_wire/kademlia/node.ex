@@ -136,7 +136,7 @@ defmodule ExWire.Kademlia.Node do
       }
   """
   @spec from_handler_params(Params.t()) :: t()
-  def from_handler_params(params) do
+  def from_handler_params(_params) do
     public_key =
       (<<params.type>> <> params.data)
       |> Message.recover_public_key(params.signature, params.recovery_id)

@@ -48,7 +48,7 @@ defmodule ExWire.Packet.Capability.Par.NewBlock do
   """
   @impl true
   @spec serialize(t) :: ExRLP.t()
-  def serialize(packet = %__MODULE__{}) do
+  def serialize(_packet = %__MODULE__{}) do
     [
       [
         Header.serialize(packet.header),
@@ -95,7 +95,7 @@ defmodule ExWire.Packet.Capability.Par.NewBlock do
   """
   @impl true
   @spec handle(ExWire.Packet.packet()) :: ExWire.Packet.handle_response()
-  def handle(packet = %__MODULE__{}) do
+  def handle(_packet = %__MODULE__{}) do
     # Queue block for validation and potential import
     # Parity-specific block handling would go here
 

@@ -39,7 +39,7 @@ defmodule ExWire.Enterprise.HSMIntegration do
   @doc """
   Initialize HSM connection
   """
-  def connect(provider, config) do
+  def connect(provider, _config) do
     GenServer.call(__MODULE__, {:connect, provider, config})
   end
 
@@ -136,11 +136,11 @@ defmodule ExWire.Enterprise.HSMIntegration do
     end
 
     schedule_health_check()
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:connect, provider, config}, _from, state) do
+  def handle_call({:connect, provider, _config}, _from, _state) do
     case connect_to_hsm(provider, config) do
       {:ok, connection} ->
         state = %{
@@ -163,13 +163,13 @@ defmodule ExWire.Enterprise.HSMIntegration do
 
         {:reply, {:ok, state.session_id}, state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:generate_key, key_type, key_id, opts}, _from, state) do
+  def handle_call({:generate_key, key_type, key_id, opts}, _from, _state) do
     if state.status != :connected do
       {:reply, {:error, :not_connected}, state}
     else
@@ -186,14 +186,14 @@ defmodule ExWire.Enterprise.HSMIntegration do
 
           {:reply, {:ok, key_info}, state}
 
-        {:error, reason} ->
-          {:reply, {:error, reason}, state}
+        {:error, _reason} ->
+          {:reply, {:error, _reason}, state}
       end
     end
   end
 
   @impl true
-  def handle_call({:sign, key_id, data, algorithm}, _from, state) do
+  def handle_call({:sign, key_id, data, algorithm}, _from, _state) do
     if state.status != :connected do
       {:reply, {:error, :not_connected}, state}
     else
@@ -214,15 +214,15 @@ defmodule ExWire.Enterprise.HSMIntegration do
 
               {:reply, {:ok, signature}, state}
 
-            {:error, reason} ->
-              {:reply, {:error, reason}, state}
+            {:error, _reason} ->
+              {:reply, {:error, _reason}, state}
           end
       end
     end
   end
 
   @impl true
-  def handle_call({:verify, key_id, data, signature, algorithm}, _from, state) do
+  def handle_call({:verify, key_id, data, signature, algorithm}, _from, _state) do
     if state.status != :connected do
       {:reply, {:error, :not_connected}, state}
     else
@@ -231,14 +231,14 @@ defmodule ExWire.Enterprise.HSMIntegration do
           update_metrics(state, :signatures_verified)
           {:reply, {:ok, valid}, state}
 
-        {:error, reason} ->
-          {:reply, {:error, reason}, state}
+        {:error, _reason} ->
+          {:reply, {:error, _reason}, state}
       end
     end
   end
 
   @impl true
-  def handle_call({:encrypt, key_id, plaintext}, _from, state) do
+  def handle_call({:encrypt, key_id, plaintext}, _from, _state) do
     if state.status != :connected do
       {:reply, {:error, :not_connected}, state}
     else
@@ -247,14 +247,14 @@ defmodule ExWire.Enterprise.HSMIntegration do
           update_metrics(state, :encryptions)
           {:reply, {:ok, ciphertext}, state}
 
-        {:error, reason} ->
-          {:reply, {:error, reason}, state}
+        {:error, _reason} ->
+          {:reply, {:error, _reason}, state}
       end
     end
   end
 
   @impl true
-  def handle_call({:decrypt, key_id, ciphertext}, _from, state) do
+  def handle_call({:decrypt, key_id, ciphertext}, _from, _state) do
     if state.status != :connected do
       {:reply, {:error, :not_connected}, state}
     else
@@ -263,14 +263,14 @@ defmodule ExWire.Enterprise.HSMIntegration do
           update_metrics(state, :decryptions)
           {:reply, {:ok, plaintext}, state}
 
-        {:error, reason} ->
-          {:reply, {:error, reason}, state}
+        {:error, _reason} ->
+          {:reply, {:error, _reason}, state}
       end
     end
   end
 
   @impl true
-  def handle_call(:list_keys, _from, state) do
+  def handle_call(:list_keys, _from, _state) do
     keys =
       Enum.map(state.keys, fn {id, info} ->
         %{
@@ -285,7 +285,7 @@ defmodule ExWire.Enterprise.HSMIntegration do
   end
 
   @impl true
-  def handle_call({:delete_key, key_id}, _from, state) do
+  def handle_call({:delete_key, key_id}, _from, _state) do
     if state.status != :connected do
       {:reply, {:error, :not_connected}, state}
     else
@@ -295,19 +295,19 @@ defmodule ExWire.Enterprise.HSMIntegration do
 
           AuditLogger.log(:hsm_key_deleted, %{
             key_id: key_id,
-            provider: state.provider
+            provider: _state.provider
           })
 
           {:reply, :ok, state}
 
-        {:error, reason} ->
-          {:reply, {:error, reason}, state}
+        {:error, _reason} ->
+          {:reply, {:error, _reason}, state}
       end
     end
   end
 
   @impl true
-  def handle_call({:rotate_key, key_id}, _from, state) do
+  def handle_call({:rotate_key, key_id}, _from, _state) do
     if state.status != :connected do
       {:reply, {:error, :not_connected}, state}
     else
@@ -322,36 +322,37 @@ defmodule ExWire.Enterprise.HSMIntegration do
 
           {:reply, {:ok, new_key_info}, state}
 
-        {:error, reason} ->
-          {:reply, {:error, reason}, state}
+        {:error, _reason} ->
+          {:reply, {:error, _reason}, state}
       end
     end
   end
 
   @impl true
-  def handle_call(:health_check, _from, state) do
+  def handle_call(:health_check, _from, _state) do
     health = perform_health_check(state)
     state = %{state | last_health_check: DateTime.utc_now()}
     {:reply, {:ok, health}, state}
   end
 
   @impl true
-  def handle_info(:scheduled_health_check, state) do
+  def handle_info(:scheduled_health_check, _state) do
     health = perform_health_check(state)
 
-    updated_state = if health.status == :unhealthy && state.status == :connected do
-      Logger.error("HSM health check failed: #{inspect(health)}")
-      %{state | status: :degraded}
-    else
-      state
-    end
+    updated_state =
+      if health.status == :unhealthy && state.status == :connected do
+        Logger.error("HSM health check failed: #{inspect(health)}")
+        %{state | status: :degraded}
+      else
+        state
+      end
 
     schedule_health_check()
     {:noreply, %{updated_state | last_health_check: DateTime.utc_now()}}
   end
 
   @impl true
-  def handle_info({:auto_connect, provider, config}, state) do
+  def handle_info({:auto_connect, provider, _config}, _state) do
     case connect_to_hsm(provider, config) do
       {:ok, connection} ->
         state = %{
@@ -366,7 +367,7 @@ defmodule ExWire.Enterprise.HSMIntegration do
         {:ok, keys} = load_keys_from_hsm(connection, provider)
         {:noreply, %{state | keys: keys}}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Failed to auto-connect to HSM: #{inspect(reason)}")
         {:noreply, state}
     end
@@ -374,12 +375,12 @@ defmodule ExWire.Enterprise.HSMIntegration do
 
   # Private Functions - HSM Provider Implementations
 
-  defp connect_to_hsm(:pkcs11, config) do
+  defp connect_to_hsm(:pkcs11, _config) do
     # PKCS#11 connection implementation
     {:ok, %{type: :pkcs11, slot: config.slot, pin: config.pin}}
   end
 
-  defp connect_to_hsm(:aws_cloudhsm, config) do
+  defp connect_to_hsm(:aws_cloudhsm, _config) do
     # AWS CloudHSM connection using AWS SDK
     with :ok <- validate_aws_config(config),
          {:ok, client} <- create_aws_hsm_client(config),
@@ -397,28 +398,28 @@ defmodule ExWire.Enterprise.HSMIntegration do
       Logger.info("Connected to AWS CloudHSM cluster #{config.cluster_id}")
       {:ok, connection}
     else
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("AWS CloudHSM connection failed: #{inspect(reason)}")
         {:error, {:aws_connection_failed, reason}}
     end
   end
 
-  defp connect_to_hsm(:azure_keyvault, config) do
+  defp connect_to_hsm(:azure_keyvault, _config) do
     # Azure Key Vault connection
     {:ok, %{type: :azure_keyvault, vault_name: config.vault_name}}
   end
 
-  defp connect_to_hsm(:hashicorp_vault, config) do
+  defp connect_to_hsm(:hashicorp_vault, _config) do
     # HashiCorp Vault connection
     {:ok, %{type: :hashicorp_vault, address: config.address, token: config.token}}
   end
 
-  defp connect_to_hsm(:softhsm, config) do
+  defp connect_to_hsm(:softhsm, _config) do
     # SoftHSM for testing
     {:ok, %{type: :softhsm, config: config}}
   end
 
-  defp generate_key_in_hsm(state, key_type, key_id, opts) do
+  defp generate_key_in_hsm(_state, key_type, key_id, opts) do
     # Provider-specific key generation
     key_info = %{
       key_id: key_id,
@@ -436,7 +437,7 @@ defmodule ExWire.Enterprise.HSMIntegration do
         generate_azure_key(state.connection, key_type, key_id, opts)
 
       :pkcs11 ->
-        generate_pkcs11_key(state.connection, key_type, key_id, opts)
+        generate_pkcs11_key(_state.connection, key_type, key_id, opts)
 
       :softhsm ->
         # Simulate key generation for testing
@@ -447,7 +448,7 @@ defmodule ExWire.Enterprise.HSMIntegration do
     end
   end
 
-  defp sign_with_hsm(state, key_id, data, algorithm) do
+  defp sign_with_hsm(_state, key_id, data, algorithm) do
     # Provider-specific signing
     case state.provider do
       :aws_cloudhsm ->
@@ -457,7 +458,7 @@ defmodule ExWire.Enterprise.HSMIntegration do
         sign_with_azure_hsm(state.connection, key_id, data, algorithm)
 
       :pkcs11 ->
-        sign_with_pkcs11(state.connection, key_id, data, algorithm)
+        sign_with_pkcs11(_state.connection, key_id, data, algorithm)
 
       :softhsm ->
         # Simulate signing for testing
@@ -471,7 +472,7 @@ defmodule ExWire.Enterprise.HSMIntegration do
     end
   end
 
-  defp verify_with_hsm(state, key_id, data, signature, algorithm) do
+  defp verify_with_hsm(_state, key_id, data, signature, algorithm) do
     # Provider-specific verification
     case state.provider do
       :softhsm ->
@@ -484,7 +485,7 @@ defmodule ExWire.Enterprise.HSMIntegration do
     end
   end
 
-  defp encrypt_with_hsm(state, key_id, plaintext) do
+  defp encrypt_with_hsm(_state, key_id, plaintext) do
     # Provider-specific encryption
     case state.provider do
       :softhsm ->
@@ -500,7 +501,7 @@ defmodule ExWire.Enterprise.HSMIntegration do
     end
   end
 
-  defp decrypt_with_hsm(state, key_id, ciphertext) do
+  defp decrypt_with_hsm(_state, key_id, ciphertext) do
     # Provider-specific decryption
     case state.provider do
       :softhsm ->
@@ -518,7 +519,7 @@ defmodule ExWire.Enterprise.HSMIntegration do
     :ok
   end
 
-  defp rotate_key_in_hsm(state, key_id) do
+  defp rotate_key_in_hsm(_state, key_id) do
     case Map.get(state.keys, key_id) do
       nil ->
         {:error, :key_not_found}
@@ -540,7 +541,7 @@ defmodule ExWire.Enterprise.HSMIntegration do
     {:ok, %{}}
   end
 
-  defp perform_health_check(state) do
+  defp perform_health_check(_state) do
     %{
       status: if(state.status == :connected, do: :healthy, else: :unhealthy),
       provider: state.provider,
@@ -561,7 +562,7 @@ defmodule ExWire.Enterprise.HSMIntegration do
     }
   end
 
-  defp update_metrics(state, operation) do
+  defp update_metrics(_state, operation) do
     update_in(state.metrics[operation], &(&1 + 1))
   end
 
@@ -575,7 +576,7 @@ defmodule ExWire.Enterprise.HSMIntegration do
 
   # AWS CloudHSM Implementation
 
-  defp validate_aws_config(config) do
+  defp validate_aws_config(_config) do
     required_fields = [:cluster_id, :user, :password]
 
     missing_fields =
@@ -590,7 +591,7 @@ defmodule ExWire.Enterprise.HSMIntegration do
     end
   end
 
-  defp create_aws_hsm_client(config) do
+  defp create_aws_hsm_client(_config) do
     # Create AWS CloudHSM client using AWS CLI/SDK
     # In production, this would use the actual AWS SDK
 
@@ -606,7 +607,7 @@ defmodule ExWire.Enterprise.HSMIntegration do
     {:ok, client_config}
   end
 
-  defp establish_hsm_session(client, config) do
+  defp establish_hsm_session(client, _config) do
     # Establish session with CloudHSM cluster
     session_params = %{
       cluster_id: config.cluster_id,
@@ -658,9 +659,9 @@ defmodule ExWire.Enterprise.HSMIntegration do
         Logger.info("Generated #{key_type} key #{key_id} in AWS CloudHSM")
         {:ok, key_info}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("AWS key generation failed: #{inspect(reason)}")
-        {:error, reason}
+        {:error, _reason}
     end
   end
 
@@ -682,9 +683,9 @@ defmodule ExWire.Enterprise.HSMIntegration do
         Logger.debug("Signed data with key #{key_id} using AWS CloudHSM")
         {:ok, signature}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("AWS signing failed: #{inspect(reason)}")
-        {:error, reason}
+        {:error, _reason}
     end
   end
 
@@ -708,9 +709,9 @@ defmodule ExWire.Enterprise.HSMIntegration do
         Logger.debug("Signed data with key #{key_id} using Azure Key Vault")
         {:ok, signature}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Azure signing failed: #{inspect(reason)}")
-        {:error, reason}
+        {:error, _reason}
     end
   end
 
@@ -735,9 +736,9 @@ defmodule ExWire.Enterprise.HSMIntegration do
         Logger.info("Generated #{key_type} key #{key_id} in Azure Key Vault")
         {:ok, key_info}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Azure key generation failed: #{inspect(reason)}")
-        {:error, reason}
+        {:error, _reason}
     end
   end
 
@@ -764,15 +765,15 @@ defmodule ExWire.Enterprise.HSMIntegration do
         Logger.info("Generated #{key_type} key #{key_id} via PKCS#11")
         {:ok, key_info}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("PKCS#11 key generation failed: #{inspect(reason)}")
-        {:error, reason}
+        {:error, _reason}
     end
   end
 
   # Helper Functions
 
-  defp get_hsm_endpoint(config) do
+  defp get_hsm_endpoint(_config) do
     # Get CloudHSM cluster endpoint
     "https://cloudhsmv2.#{config.region || "us-west-2"}.amazonaws.com"
   end
@@ -851,7 +852,7 @@ defmodule ExWire.Enterprise.HSMIntegration do
     {:ok, key_info}
   end
 
-  defp simulate_azure_signing(params) do
+  defp simulate_azure_signing(_params) do
     # Simulate Azure Key Vault signing operation
     # In production, this would be actual Azure SDK call
     # 64-byte signature
@@ -893,9 +894,9 @@ defmodule ExWire.Enterprise.HSMIntegration do
         Logger.debug("Signed data with key #{key_id} using PKCS#11")
         {:ok, signature}
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("PKCS#11 signing failed: #{inspect(reason)}")
-        {:error, reason}
+        {:error, _reason}
     end
   end
 

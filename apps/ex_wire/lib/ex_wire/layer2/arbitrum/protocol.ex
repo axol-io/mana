@@ -162,11 +162,11 @@ defmodule ExWire.Layer2.Arbitrum.Protocol do
 
     Logger.info("Arbitrum protocol initialized for network: #{network}")
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:post_assertion, assertion_data}, _from, state) do
+  def handle_call({:post_assertion, assertion_data}, _from, _state) do
     assertion = build_assertion(assertion_data, state)
 
     case validate_assertion(assertion, state) do
@@ -174,20 +174,20 @@ defmodule ExWire.Layer2.Arbitrum.Protocol do
         assertion_hash = hash_assertion(assertion)
 
         # In production, would submit to L1 rollup contract
-        new_state = %{state | latest_assertion: assertion}
+        new_state = %{_state | latest_assertion: assertion}
 
         Logger.info("Assertion posted: #{Base.encode16(assertion_hash)}")
 
         {:reply, {:ok, Base.encode16(assertion_hash)}, new_state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Invalid assertion: #{inspect(reason)}")
         {:reply, error, state}
     end
   end
 
   @impl true
-  def handle_call({:send_l1_to_l2_message, params}, _from, state) do
+  def handle_call({:send_l1_to_l2_message, _params}, _from, _state) do
     # Create retryable ticket
     ticket = %{
       from: params[:from],
@@ -208,7 +208,7 @@ defmodule ExWire.Layer2.Arbitrum.Protocol do
   end
 
   @impl true
-  def handle_call({:send_l2_to_l1_message, params}, _from, state) do
+  def handle_call({:send_l2_to_l1_message, _params}, _from, _state) do
     message = %{
       sender: params[:from],
       target: params[:to],
@@ -228,7 +228,7 @@ defmodule ExWire.Layer2.Arbitrum.Protocol do
   end
 
   @impl true
-  def handle_call({:execute_l2_to_l1_message, message_id, proof}, _from, state) do
+  def handle_call({:execute_l2_to_l1_message, message_id, proof}, _from, _state) do
     case find_message(message_id, state) do
       nil ->
         {:reply, {:error, :message_not_found}, state}
@@ -253,7 +253,7 @@ defmodule ExWire.Layer2.Arbitrum.Protocol do
   end
 
   @impl true
-  def handle_call({:submit_sequencer_batch, messages}, _from, state) do
+  def handle_call({:submit_sequencer_batch, messages}, _from, _state) do
     # Compress messages using Brotli compression
     compressed_batch = compress_batch(messages)
 
@@ -278,7 +278,7 @@ defmodule ExWire.Layer2.Arbitrum.Protocol do
   end
 
   @impl true
-  def handle_call({:challenge_assertion, assertion_hash, challenge_data}, _from, state) do
+  def handle_call({:challenge_assertion, assertion_hash, challenge_data}, _from, _state) do
     challenge_id = generate_challenge_id()
 
     challenge = %{
@@ -298,7 +298,7 @@ defmodule ExWire.Layer2.Arbitrum.Protocol do
   end
 
   @impl true
-  def handle_call({:bisect_challenge, challenge_id, segment_index, proof}, _from, state) do
+  def handle_call({:bisect_challenge, challenge_id, segment_index, proof}, _from, _state) do
     # Interactive fraud proof bisection
     # Each round narrows down the disagreement point
 
@@ -307,14 +307,14 @@ defmodule ExWire.Layer2.Arbitrum.Protocol do
         Logger.info("Bisection move made in challenge #{challenge_id}")
         {:reply, {:ok, :move_made}, state}
 
-      {:error, reason} = error ->
+      {:error, _reason} = error ->
         Logger.error("Invalid bisection proof: #{inspect(reason)}")
         {:reply, error, state}
     end
   end
 
   @impl true
-  def handle_call({:stake, amount}, _from, state) do
+  def handle_call({:stake, amount}, _from, _state) do
     if state.staker_address do
       stake_data = %{
         staker: state.staker_address,
@@ -342,7 +342,7 @@ defmodule ExWire.Layer2.Arbitrum.Protocol do
   end
 
   @impl true
-  def handle_info(:check_assertions, state) do
+  def handle_info(:check_assertions, _state) do
     # Check for new assertions to validate
     check_pending_assertions(state)
     schedule_assertion_check()
@@ -350,7 +350,7 @@ defmodule ExWire.Layer2.Arbitrum.Protocol do
   end
 
   @impl true
-  def handle_info(:submit_batch, state) do
+  def handle_info(:submit_batch, _state) do
     # Periodic batch submission by sequencer
     if should_submit_batch?(state) do
       submit_pending_batch(state)
@@ -384,7 +384,7 @@ defmodule ExWire.Layer2.Arbitrum.Protocol do
     get_contracts_for_network(:mainnet, layer)
   end
 
-  defp build_assertion(data, state) do
+  defp build_assertion(data, _state) do
     %{
       state_hash: data[:state_hash],
       challenge_hash: data[:challenge_hash],
@@ -397,7 +397,7 @@ defmodule ExWire.Layer2.Arbitrum.Protocol do
     }
   end
 
-  defp validate_assertion(assertion, state) do
+  defp validate_assertion(assertion, _state) do
     cond do
       assertion.num_blocks < 1 ->
         {:error, :invalid_block_range}
@@ -427,7 +427,7 @@ defmodule ExWire.Layer2.Arbitrum.Protocol do
     :crypto.hash(:sha256, :erlang.term_to_binary(message))
   end
 
-  defp find_message(message_id, state) do
+  defp find_message(message_id, _state) do
     Enum.find(state.pending_messages, fn msg ->
       hash_l2_to_l1_message(msg) == message_id
     end)
@@ -486,7 +486,7 @@ defmodule ExWire.Layer2.Arbitrum.Protocol do
     end
   end
 
-  defp check_pending_assertions(state) do
+  defp check_pending_assertions(_state) do
     # Check for assertions that need confirmation
     Logger.debug("Checking pending assertions...")
 
@@ -500,7 +500,7 @@ defmodule ExWire.Layer2.Arbitrum.Protocol do
     length(state.sequencer_batches) < 100
   end
 
-  defp submit_pending_batch(state) do
+  defp submit_pending_batch(_state) do
     # Submit accumulated messages as a batch
     if length(state.pending_messages) > 0 do
       Logger.info("Submitting batch with #{length(state.pending_messages)} messages")

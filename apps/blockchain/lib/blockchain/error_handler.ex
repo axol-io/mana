@@ -114,7 +114,7 @@ defmodule Blockchain.ErrorHandler do
   end
 
   @doc """
-  Converts traditional {:ok, result} | {:error, reason} to structured errors.
+  Converts traditional {:ok, result} | {:error, _reason} to structured errors.
   """
   @spec normalize_error({:ok, any()} | {:error, any()}, error_category(), keyword()) ::
           {:ok, any()} | {:error, structured_error()}

@@ -7,7 +7,7 @@ defmodule ExWire.Eth2.BlobVerification do
   """
 
   require Logger
-  alias ExWire.Crypto.KZG
+  alias ExthCrypto.KZG
   alias ExWire.Eth2.{BlobSidecar, BeaconBlock, ExecutionPayload}
 
   # EIP-4844 constants
@@ -32,9 +32,9 @@ defmodule ExWire.Eth2.BlobVerification do
          :ok <- verify_inclusion_proofs(block, blob_sidecars) do
       {:ok, :valid}
     else
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.warning("Blob verification failed: #{inspect(reason)}")
-        {:error, reason}
+        {:error, _reason}
     end
   end
 
@@ -72,7 +72,7 @@ defmodule ExWire.Eth2.BlobVerification do
          :ok <- validate_commitment_proof(sidecar) do
       {:ok, :valid}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 
@@ -122,7 +122,7 @@ defmodule ExWire.Eth2.BlobVerification do
         # Fallback to individual verification for better error reporting
         verify_individual_proofs(blob_sidecars)
 
-      {:error, reason} ->
+      {:error, _reason} ->
         {:error, {:kzg_verification_error, reason}}
     end
   end
@@ -191,7 +191,7 @@ defmodule ExWire.Eth2.BlobVerification do
 
     case ExecutionPayload.validate_blob_gas_fields(execution_payload, expected_blob_gas) do
       :ok -> {:ok, :valid}
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} -> {:error, _reason}
     end
   end
 

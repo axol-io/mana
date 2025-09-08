@@ -254,7 +254,7 @@ defmodule ExWire.Kademlia.RoutingTable do
   end
 
   @spec handle_ping(t(), Params.t()) :: t()
-  def handle_ping(table, params) do
+  def handle_ping(table, _params) do
     add_node_from_params(table, params)
   end
 
@@ -284,7 +284,7 @@ defmodule ExWire.Kademlia.RoutingTable do
   end
 
   @spec add_node_from_params(t(), Params.t()) :: t()
-  defp add_node_from_params(table, params) do
+  defp add_node_from_params(table, _params) do
     node = Node.from_handler_params(params)
 
     refresh_node(table, node)

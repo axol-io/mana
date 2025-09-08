@@ -25,7 +25,7 @@ defmodule JSONRPC2.Request do
   @spec request(request) :: map
   def request(request)
 
-  def request({method, params})
+  def request({method, _params})
       when is_binary(method) and (is_list(params) or is_map(params)) do
     %{
       "jsonrpc" => "2.0",
@@ -34,7 +34,7 @@ defmodule JSONRPC2.Request do
     }
   end
 
-  def request({method, params, id})
+  def request({method, _params, id})
       when is_number(id) or is_binary(id) do
     {method, params}
     |> request()

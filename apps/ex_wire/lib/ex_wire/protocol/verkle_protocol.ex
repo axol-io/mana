@@ -153,49 +153,49 @@ defmodule ExWire.Protocol.VerkleProtocol do
     schedule_peer_capability_update()
     schedule_metrics_update()
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:request_witnesses, root_commitment, keys, opts}, from, state) do
+  def handle_call({:request_witnesses, root_commitment, keys, opts}, from, _state) do
     request_context = create_request_context(root_commitment, keys, from, :standard, opts)
 
     case queue_request(request_context, state) do
       {:ok, new_state, request_ref} ->
         {:reply, {:ok, request_ref}, new_state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:request_healing_witnesses, root_commitment, keys}, from, state) do
+  def handle_call({:request_healing_witnesses, root_commitment, keys}, from, _state) do
     request_context = create_request_context(root_commitment, keys, from, :healing, [])
 
     case queue_request(request_context, state) do
       {:ok, new_state, request_ref} ->
         {:reply, {:ok, request_ref}, new_state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call(:get_stats, _from, state) do
+  def handle_call(:get_stats, _from, _state) do
     stats = calculate_protocol_stats(state)
     {:reply, stats, state}
   end
 
   @impl true
-  def handle_call({:update_settings, settings}, _from, state) do
+  def handle_call({:update_settings, settings}, _from, _state) do
     new_state = apply_settings(state, settings)
     {:reply, :ok, new_state}
   end
 
   @impl true
-  def handle_info(:process_request_queue, state) do
+  def handle_info(:process_request_queue, _state) do
     new_state = process_request_queue(state)
 
     # Continue processing if there are queued requests
@@ -207,33 +207,33 @@ defmodule ExWire.Protocol.VerkleProtocol do
   end
 
   @impl true
-  def handle_info({:witness_response, packet, peer}, state) do
+  def handle_info({:witness_response, _packet, peer}, _state) do
     new_state = handle_witness_response(packet, peer, state)
     {:noreply, new_state}
   end
 
   @impl true
-  def handle_info({:request_timeout, request_ref}, state) do
+  def handle_info({:request_timeout, request_ref}, _state) do
     new_state = handle_request_timeout(request_ref, state)
     {:noreply, new_state}
   end
 
   @impl true
-  def handle_info(:cleanup_cache, state) do
+  def handle_info(:cleanup_cache, _state) do
     new_state = cleanup_witness_cache(state)
     schedule_cache_cleanup()
     {:noreply, new_state}
   end
 
   @impl true
-  def handle_info(:update_peer_capabilities, state) do
+  def handle_info(:update_peer_capabilities, _state) do
     new_state = update_peer_capabilities(state)
     schedule_peer_capability_update()
     {:noreply, new_state}
   end
 
   @impl true
-  def handle_info(:update_metrics, state) do
+  def handle_info(:update_metrics, _state) do
     new_state = update_protocol_metrics(state)
     schedule_metrics_update()
     {:noreply, new_state}
@@ -257,7 +257,7 @@ defmodule ExWire.Protocol.VerkleProtocol do
     }
   end
 
-  defp queue_request(request_context, state) do
+  defp queue_request(request_context, _state) do
     # Check for deduplication opportunities
     {deduplicated_keys, cached_witnesses} =
       if state.deduplication_enabled do
@@ -284,7 +284,7 @@ defmodule ExWire.Protocol.VerkleProtocol do
     end
   end
 
-  defp process_request_queue(state) do
+  defp process_request_queue(_state) do
     available_slots = @max_concurrent_requests - map_size(state.active_requests)
 
     if available_slots > 0 and not :queue.is_empty(state.request_queue) do
@@ -304,7 +304,7 @@ defmodule ExWire.Protocol.VerkleProtocol do
     end
   end
 
-  defp extract_optimal_batches(queue, max_batches, state) do
+  defp extract_optimal_batches(queue, max_batches, _state) do
     # Extract requests and optimize batching
     {all_requests, empty_queue} = extract_all_requests(queue, [])
 
@@ -335,7 +335,7 @@ defmodule ExWire.Protocol.VerkleProtocol do
     end
   end
 
-  defp create_adaptive_batches(requests, max_batches, state) do
+  defp create_adaptive_batches(requests, max_batches, _state) do
     # Group requests by similarity and peer capability
     grouped_requests = group_requests_by_similarity(requests)
 
@@ -356,7 +356,7 @@ defmodule ExWire.Protocol.VerkleProtocol do
     end)
   end
 
-  defp optimize_batch_for_peers(batch_requests, state) do
+  defp optimize_batch_for_peers(batch_requests, _state) do
     # Select optimal peer and adjust batch based on capabilities
     best_peer = select_optimal_peer(batch_requests, state)
 
@@ -369,7 +369,7 @@ defmodule ExWire.Protocol.VerkleProtocol do
     end
   end
 
-  defp send_batch_request(batch_requests, state) do
+  defp send_batch_request(batch_requests, _state) do
     peer = select_optimal_peer(batch_requests, state)
 
     if peer do
@@ -418,7 +418,7 @@ defmodule ExWire.Protocol.VerkleProtocol do
     end
   end
 
-  defp select_optimal_peer(batch_requests, state) do
+  defp select_optimal_peer(batch_requests, _state) do
     # Select peer based on capabilities, latency, and success rate
     available_peers = PeerSupervisor.connected_peers()
 
@@ -432,7 +432,7 @@ defmodule ExWire.Protocol.VerkleProtocol do
     )
   end
 
-  defp calculate_peer_score(peer, batch_requests, state) do
+  defp calculate_peer_score(peer, batch_requests, _state) do
     capability = Map.get(state.peer_capabilities, peer, default_peer_capability())
     metrics = Map.get(state.peer_metrics, peer, default_peer_metrics())
 
@@ -446,18 +446,18 @@ defmodule ExWire.Protocol.VerkleProtocol do
     capability_score + batch_score + latency_score + success_score + compression_score
   end
 
-  defp handle_witness_response(packet, peer, state) do
+  defp handle_witness_response(_packet, peer, _state) do
     case Witnesses.validate(packet) do
       {:ok, validated_packet} ->
         process_witness_packet(validated_packet, peer, state)
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.warning("Invalid witness packet from peer: #{inspect(reason)}")
         state
     end
   end
 
-  defp process_witness_packet(packet, peer, state) do
+  defp process_witness_packet(_packet, peer, _state) do
     # Find the corresponding request
     request_context = find_request_by_id(packet.request_id, state.active_requests)
 
@@ -497,10 +497,10 @@ defmodule ExWire.Protocol.VerkleProtocol do
     end
   end
 
-  defp handle_request_timeout(request_ref, state) do
+  defp handle_request_timeout(request_ref, _state) do
     case Map.get(state.active_requests, request_ref) do
       nil ->
-        state
+        _state
 
       batch_context ->
         Logger.debug(
@@ -544,13 +544,13 @@ defmodule ExWire.Protocol.VerkleProtocol do
     end)
   end
 
-  defp should_use_compression(keys, peer, state) do
+  defp should_use_compression(keys, peer, _state) do
     state.compression_enabled and
       supports_compression(peer, state) and
       byte_size_sum(keys) > @compression_threshold
   end
 
-  defp calculate_adaptive_timeout(peer, state) do
+  defp calculate_adaptive_timeout(peer, _state) do
     base_timeout = @request_timeout_base
 
     case Map.get(state.peer_capabilities, peer) do
@@ -568,7 +568,7 @@ defmodule ExWire.Protocol.VerkleProtocol do
     true
   end
 
-  defp supports_compression(peer, state) do
+  defp supports_compression(peer, _state) do
     case Map.get(state.peer_capabilities, peer) do
       %{compression_support: true} -> true
       _ -> false
@@ -632,11 +632,11 @@ defmodule ExWire.Protocol.VerkleProtocol do
   defp update_peer_metrics(metrics, _peer, _context, _result), do: metrics
   defp calculate_compression_savings(_packet), do: 0
   defp remove_completed_request(active_requests, _request_id), do: active_requests
-  defp handle_verification_failure(_request_id, _peer, state), do: state
-  defp handle_request_retry_or_failure(_batch_context, state), do: state
-  defp cleanup_witness_cache(state), do: state
-  defp update_peer_capabilities(state), do: state
-  defp update_protocol_metrics(state), do: state
-  defp calculate_protocol_stats(state), do: %{}
-  defp apply_settings(state, _settings), do: state
+  defp handle_verification_failure(_request_id, _peer, _state), do: state
+  defp handle_request_retry_or_failure(_batch_context, _state), do: state
+  defp cleanup_witness_cache(_state), do: state
+  defp update_peer_capabilities(_state), do: state
+  defp update_protocol_metrics(_state), do: state
+  defp calculate_protocol_stats(_state), do: %{}
+  defp apply_settings(_state, _settings), do: state
 end

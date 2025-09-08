@@ -929,7 +929,7 @@ td.source {
 <tr>
 <td class="line" id="L165"><a href="#L165">165</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_call(:get_config, _from, state) do</code></td>
+<td class="source"><code>  def handle_call(:get_config, _from, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L166"><a href="#L166">166</a></td>
@@ -939,7 +939,7 @@ td.source {
 <tr class="miss">
 <td class="line" id="L167"><a href="#L167">167</a></td>
 <td class="hits"><pre style="display: inline;">:-(</pre></td>
-<td class="source"><code>    {:reply, {:ok, config}, state}</code></td>
+<td class="source"><code>    {:reply, {:ok, _config}, state}</code></td>
 </tr>
 <tr>
 <td class="line" id="L168"><a href="#L168">168</a></td>
@@ -954,7 +954,7 @@ td.source {
 <tr>
 <td class="line" id="L170"><a href="#L170">170</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_call({:update_config, updates}, _from, state) do</code></td>
+<td class="source"><code>  def handle_call({:update_config, updates}, _from, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L171"><a href="#L171">171</a></td>
@@ -1049,7 +1049,7 @@ td.source {
 <tr>
 <td class="line" id="L189"><a href="#L189">189</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_call({:set_runtime_override, key, value}, _from, state) do</code></td>
+<td class="source"><code>  def handle_call({:set_runtime_override, key, value}, _from, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L190"><a href="#L190">190</a></td>
@@ -1089,7 +1089,7 @@ td.source {
 <tr>
 <td class="line" id="L197"><a href="#L197">197</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_call({:remove_runtime_override, key}, _from, state) do</code></td>
+<td class="source"><code>  def handle_call({:remove_runtime_override, key}, _from, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L198"><a href="#L198">198</a></td>
@@ -1129,7 +1129,7 @@ td.source {
 <tr>
 <td class="line" id="L205"><a href="#L205">205</a></td>
 <td class="hits"></td>
-<td class="source"><code>  def handle_call(:get_validation_errors, _from, state) do</code></td>
+<td class="source"><code>  def handle_call(:get_validation_errors, _from, _state) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L206"><a href="#L206">206</a></td>
@@ -1389,7 +1389,7 @@ td.source {
 <tr class="miss">
 <td class="line" id="L257"><a href="#L257">257</a></td>
 <td class="hits"><pre style="display: inline;">:-(</pre></td>
-<td class="source"><code>      {:ok, config} -&gt; config.enabled</code></td>
+<td class="source"><code>      {:ok, _config} -&gt; config.enabled</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L258"><a href="#L258">258</a></td>
@@ -1444,7 +1444,7 @@ td.source {
 <tr>
 <td class="line" id="L268"><a href="#L268">268</a></td>
 <td class="hits"></td>
-<td class="source"><code>      {:ok, config} -&gt;</code></td>
+<td class="source"><code>      {:ok, _config} -&gt;</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L269"><a href="#L269">269</a></td>
@@ -1454,7 +1454,7 @@ td.source {
 <tr class="miss">
 <td class="line" id="L270"><a href="#L270">270</a></td>
 <td class="hits"><pre style="display: inline;">:-(</pre></td>
-<td class="source"><code>          :pkcs11 -&gt; {:ok, extract_pkcs11_config(config)}</code></td>
+<td class="source"><code>          :pkcs11 -&gt; {:ok, extract_pkcs11_config(_config)}</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L271"><a href="#L271">271</a></td>
@@ -2169,7 +2169,7 @@ td.source {
 <tr>
 <td class="line" id="L413"><a href="#L413">413</a></td>
 <td class="hits"></td>
-<td class="source"><code>  defp validate_configuration(config) do</code></td>
+<td class="source"><code>  defp validate_configuration(_config) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L414"><a href="#L414">414</a></td>
@@ -2499,7 +2499,7 @@ td.source {
 <tr>
 <td class="line" id="L479"><a href="#L479">479</a></td>
 <td class="hits"></td>
-<td class="source"><code>      {:ok, config}</code></td>
+<td class="source"><code>      {:ok, _config}</code></td>
 </tr>
 <tr>
 <td class="line" id="L480"><a href="#L480">480</a></td>
@@ -2769,7 +2769,7 @@ td.source {
 <tr>
 <td class="line" id="L533"><a href="#L533">533</a></td>
 <td class="hits"></td>
-<td class="source"><code>  defp extract_pkcs11_config(config) do</code></td>
+<td class="source"><code>  defp extract_pkcs11_config(_config) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L534"><a href="#L534">534</a></td>
@@ -2819,7 +2819,7 @@ td.source {
 <tr>
 <td class="line" id="L543"><a href="#L543">543</a></td>
 <td class="hits"></td>
-<td class="source"><code>  defp extract_key_manager_config(config) do</code></td>
+<td class="source"><code>  defp extract_key_manager_config(_config) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L544"><a href="#L544">544</a></td>
@@ -2859,7 +2859,7 @@ td.source {
 <tr>
 <td class="line" id="L551"><a href="#L551">551</a></td>
 <td class="hits"></td>
-<td class="source"><code>  defp extract_signing_service_config(config) do</code></td>
+<td class="source"><code>  defp extract_signing_service_config(_config) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L552"><a href="#L552">552</a></td>
@@ -2909,7 +2909,7 @@ td.source {
 <tr>
 <td class="line" id="L561"><a href="#L561">561</a></td>
 <td class="hits"></td>
-<td class="source"><code>  defp apply_runtime_overrides(config, overrides) do</code></td>
+<td class="source"><code>  defp apply_runtime_overrides(_config, overrides) do</code></td>
 </tr>
 <tr class="miss">
 <td class="line" id="L562"><a href="#L562">562</a></td>

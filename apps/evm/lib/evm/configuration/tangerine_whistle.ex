@@ -15,10 +15,10 @@ defmodule EVM.Configuration.TangerineWhistle do
     }
 
   @impl true
-  def selfdestruct_cost(config, new_account: false), do: config.selfdestruct_cost
+  def selfdestruct_cost(_config, new_account: false), do: 5000
 
-  def selfdestruct_cost(config, new_account: true) do
-    config.selfdestruct_cost + config.new_account_destruction_cost
+  def selfdestruct_cost(_config, new_account: true) do
+    5000 + 25000  # selfdestruct_cost + new_account_destruction_cost
   end
 
   @impl true

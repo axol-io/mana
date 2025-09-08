@@ -77,7 +77,7 @@ defmodule ExWire.Eth2.BeaconState.Operations do
   Gets the previous epoch.
   """
   @spec get_previous_epoch(ExWire.Eth2.BeaconState.t()) :: non_neg_integer()
-  def get_previous_epoch(state) do
+  def get_previous_epoch(_state) do
     current_epoch = get_current_epoch(state)
     max(0, current_epoch - 1)
   end
@@ -109,7 +109,7 @@ defmodule ExWire.Eth2.BeaconState.Operations do
   Updates the state for a new slot.
   """
   @spec process_slot(ExWire.Eth2.BeaconState.t()) :: ExWire.Eth2.BeaconState.t()
-  def process_slot(%{slot: slot} = state) do
+  def process_slot(%{slot: slot} = _state) do
     # Update state root in block roots
     new_slot = slot + 1
     block_roots_index = rem(slot, length(state.block_roots))
@@ -123,7 +123,7 @@ defmodule ExWire.Eth2.BeaconState.Operations do
   Processes epoch transition.
   """
   @spec process_epoch(ExWire.Eth2.BeaconState.t()) :: ExWire.Eth2.BeaconState.t()
-  def process_epoch(state) do
+  def process_epoch(_state) do
     state
     |> process_justification_and_finalization()
     |> process_rewards_and_penalties()
@@ -136,7 +136,7 @@ defmodule ExWire.Eth2.BeaconState.Operations do
   Validates a beacon block against the current state.
   """
   @spec validate_block(ExWire.Eth2.BeaconState.t(), BeaconBlock.t()) :: :ok | {:error, term()}
-  def validate_block(state, block) do
+  def validate_block(_state, block) do
     with :ok <- validate_block_slot(state, block),
          :ok <- validate_block_parent(state, block),
          :ok <- validate_proposer(state, block) do
@@ -175,33 +175,33 @@ defmodule ExWire.Eth2.BeaconState.Operations do
     end
   end
 
-  defp process_justification_and_finalization(state) do
+  defp process_justification_and_finalization(_state) do
     # Placeholder implementation - would implement actual justification logic
     state
   end
 
-  defp process_rewards_and_penalties(state) do
+  defp process_rewards_and_penalties(_state) do
     # Placeholder implementation - would implement actual rewards/penalties
     state
   end
 
-  defp process_registry_updates(state) do
+  defp process_registry_updates(_state) do
     # Placeholder implementation - would implement validator registry updates
     state
   end
 
-  defp process_slashings(state) do
+  defp process_slashings(_state) do
     # Placeholder implementation - would implement slashing penalties
     state
   end
 
-  defp update_sync_committee_if_needed(state) do
+  defp update_sync_committee_if_needed(_state) do
     # Placeholder implementation - would update sync committee when needed
     state
   end
 
   # Simplified hash function - in production would use SSZ tree hashing
-  defp hash_tree_root(state) do
+  defp hash_tree_root(_state) do
     :crypto.hash(:sha256, :erlang.term_to_binary(state))
   end
 end

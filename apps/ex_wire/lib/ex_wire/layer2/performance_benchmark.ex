@@ -197,19 +197,19 @@ defmodule ExWire.Layer2.PerformanceBenchmark do
   end
 
   # Helper function to verify proofs based on system type
-  defp verify_proof(:groth16, proof, inputs, config),
+  defp verify_proof(:groth16, proof, inputs, _config),
     do: ProofVerifier.verify_groth16(proof, inputs, config)
 
-  defp verify_proof(:plonk, proof, inputs, config),
+  defp verify_proof(:plonk, proof, inputs, _config),
     do: ProofVerifier.verify_plonk(proof, inputs, config)
 
-  defp verify_proof(:stark, proof, inputs, config),
+  defp verify_proof(:stark, proof, inputs, _config),
     do: ProofVerifier.verify_stark(proof, inputs, config)
 
-  defp verify_proof(:fflonk, proof, inputs, config),
+  defp verify_proof(:fflonk, proof, inputs, _config),
     do: ProofVerifier.verify_fflonk(proof, inputs, config)
 
-  defp verify_proof(:halo2, proof, inputs, config),
+  defp verify_proof(:halo2, proof, inputs, _config),
     do: ProofVerifier.verify_halo2(proof, inputs, config)
 
   # Simulation functions for realistic workloads

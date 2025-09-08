@@ -121,7 +121,7 @@ defmodule ExWire.CLI.InteractiveCLI do
         IO.puts("#{@colors.info}CLI already running. Type 'help' for commands.#{@colors.reset}")
         start_interactive_loop()
 
-      {:error, reason} ->
+      {:error, _reason} ->
         IO.puts("#{@colors.error}Failed to start CLI: #{inspect(reason)}#{@colors.reset}")
     end
   end
@@ -180,11 +180,11 @@ defmodule ExWire.CLI.InteractiveCLI do
 
     Logger.info("[InteractiveCLI] Started with context: #{context}")
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl GenServer
-  def handle_call({:execute_command, command_line}, _from, state) do
+  def handle_call({:execute_command, command_line}, _from, _state) do
     trimmed_command = String.trim(command_line)
 
     # Skip empty commands
@@ -202,7 +202,7 @@ defmodule ExWire.CLI.InteractiveCLI do
   end
 
   @impl GenServer
-  def handle_call({:auto_complete, partial_command}, _from, state) do
+  def handle_call({:auto_complete, partial_command}, _from, _state) do
     completions =
       AutoComplete.get_completions(state.auto_complete, partial_command, state.context)
 
@@ -210,7 +210,7 @@ defmodule ExWire.CLI.InteractiveCLI do
   end
 
   @impl GenServer
-  def handle_cast({:switch_context, new_context}, state) do
+  def handle_cast({:switch_context, new_context}, _state) do
     Logger.info("[InteractiveCLI] Switching context: #{state.context} -> #{new_context}")
 
     ContextManager.switch_context(state.context_manager, new_context)
@@ -223,7 +223,7 @@ defmodule ExWire.CLI.InteractiveCLI do
   end
 
   @impl GenServer
-  def handle_cast(:toggle_debug_mode, state) do
+  def handle_cast(:toggle_debug_mode, _state) do
     new_debug_mode = not state.state.debug_mode
 
     new_state = %{state | state: %{state.state | debug_mode: new_debug_mode}}
@@ -255,7 +255,7 @@ defmodule ExWire.CLI.InteractiveCLI do
           IO.puts("\n#{@colors.info}Goodbye!#{@colors.reset}")
           :ok
 
-        {:error, reason} ->
+        {:error, _reason} ->
           IO.puts("#{@colors.error}Input error: #{inspect(reason)}#{@colors.reset}")
           interactive_loop()
 
@@ -286,7 +286,7 @@ defmodule ExWire.CLI.InteractiveCLI do
     end
   end
 
-  defp parse_and_execute(command_line, state) do
+  defp parse_and_execute(command_line, _state) do
     # Support pipe operations: command1 | command2 | command3
     commands =
       command_line
@@ -305,7 +305,7 @@ defmodule ExWire.CLI.InteractiveCLI do
 
   defp execute_pipeline([], result, _state), do: result
 
-  defp execute_pipeline([command | rest], input, state) do
+  defp execute_pipeline([command | rest], input, _state) do
     # Parse command and arguments
     [cmd | args] = String.split(command, " ", trim: true)
 
@@ -417,7 +417,7 @@ defmodule ExWire.CLI.HistoryManager do
   end
 
   @impl GenServer
-  def handle_cast({:add_command, command}, state) do
+  def handle_cast({:add_command, command}, _state) do
     new_history =
       [command | state.history]
       |> Enum.take(state.max_size)
@@ -426,13 +426,13 @@ defmodule ExWire.CLI.HistoryManager do
   end
 
   @impl GenServer
-  def handle_call({:get_history, limit}, _from, state) do
+  def handle_call({:get_history, limit}, _from, _state) do
     history = Enum.take(state.history, limit)
     {:reply, history, state}
   end
 
   @impl GenServer
-  def handle_call({:search_history, pattern}, _from, state) do
+  def handle_call({:search_history, pattern}, _from, _state) do
     matches =
       state.history
       |> Enum.filter(&String.contains?(&1, pattern))
@@ -498,11 +498,11 @@ defmodule ExWire.CLI.AutoComplete do
       recent_block_hashes: []
     }
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl GenServer
-  def handle_call({:get_completions, partial_command, _context}, _from, state) do
+  def handle_call({:get_completions, partial_command, _context}, _from, _state) do
     completions =
       state.commands
       |> Enum.filter(&String.starts_with?(&1, partial_command))
@@ -535,12 +535,12 @@ defmodule ExWire.CLI.ContextManager do
   end
 
   @impl GenServer
-  def handle_cast({:switch_context, new_context}, state) do
+  def handle_cast({:switch_context, new_context}, _state) do
     {:noreply, %{state | current_context: new_context}}
   end
 
   @impl GenServer
-  def handle_call(:get_context, _from, state) do
+  def handle_call(:get_context, _from, _state) do
     {:reply, state.current_context, state}
   end
 end
@@ -572,7 +572,7 @@ defmodule ExWire.CLI.Formatter do
   end
 
   @impl GenServer
-  def handle_call({:format_block, block}, _from, state) do
+  def handle_call({:format_block, block}, _from, _state) do
     formatted = """
     \e[36m━━━ BLOCK ##{block.header.number} ━━━\e[0m
     \e[32mHash:\e[0m     #{format_hash(block.header.hash)}
@@ -586,7 +586,7 @@ defmodule ExWire.CLI.Formatter do
   end
 
   @impl GenServer
-  def handle_call({:format_transaction, tx}, _from, state) do
+  def handle_call({:format_transaction, tx}, _from, _state) do
     formatted = """
     \e[35m━━━ TRANSACTION ━━━\e[0m
     \e[32mHash:\e[0m     #{format_hash(tx.hash)}
@@ -601,7 +601,7 @@ defmodule ExWire.CLI.Formatter do
   end
 
   @impl GenServer
-  def handle_call({:format_error, error}, _from, state) do
+  def handle_call({:format_error, error}, _from, _state) do
     formatted = "\e[31m✗ Error: #{inspect(error)}\e[0m"
     {:reply, formatted, state}
   end

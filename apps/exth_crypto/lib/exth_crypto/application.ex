@@ -9,6 +9,7 @@ defmodule ExthCrypto.Application do
   require Logger
 
   alias ExthCrypto.HSM.Supervisor, as: HSMSupervisor
+  alias ExthCrypto.Hash.Cache
 
   def start(_type, _args) do
     children = build_children()
@@ -34,6 +35,10 @@ defmodule ExthCrypto.Application do
   defp build_children() do
     children = []
 
+    # Add hash cache for performance optimization
+    cache_config = get_cache_config()
+    children = [{Cache, cache_config} | children]
+
     # Add HSM supervisor if HSM is enabled
     children =
       if hsm_enabled?() do
@@ -45,6 +50,15 @@ defmodule ExthCrypto.Application do
       end
 
     children
+  end
+
+  defp get_cache_config() do
+    Application.get_env(:exth_crypto, :hash_cache, [
+      max_size: 10_000,
+      ttl: 300_000,  # 5 minutes
+      cleanup_interval: 60_000,  # 1 minute
+      enable_stats: true
+    ])
   end
 
   defp hsm_enabled?() do

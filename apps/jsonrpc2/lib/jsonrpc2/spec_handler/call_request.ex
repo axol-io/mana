@@ -20,7 +20,7 @@ defmodule JSONRPC2.SpecHandler.CallRequest do
         }
 
   @spec new(map()) :: {:ok, t()} | {:error, :invalid_params}
-  def new(params) do
+  def new(_params) do
     with {:ok, from} <- params |> Map.get("from") |> parse_binary(),
          {:ok, to} <- params |> Map.get("to") |> parse_binary(),
          {:ok, gas} <- params |> Map.get("gas") |> parse_integer(),

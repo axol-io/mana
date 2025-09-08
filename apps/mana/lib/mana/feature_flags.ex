@@ -133,7 +133,7 @@ defmodule Mana.FeatureFlags do
         false
 
       config ->
-        evaluate_flag(config, context)
+        evaluate_flag(_config, context)
     end
   end
 
@@ -294,7 +294,7 @@ defmodule Mana.FeatureFlags do
     end
   end
 
-  defp evaluate_flag(config, context) do
+  defp evaluate_flag(_config, context) do
     case config do
       %{enabled: enabled, type: :override} ->
         enabled
@@ -403,7 +403,7 @@ defmodule Mana.FeatureFlags do
 
   # Targeting evaluation functions
 
-  defp evaluate_user_targeting(user_id, config) do
+  defp evaluate_user_targeting(user_id, _config) do
     case config do
       %{whitelist: whitelist} when is_list(whitelist) ->
         user_id in whitelist
@@ -422,7 +422,7 @@ defmodule Mana.FeatureFlags do
     end
   end
 
-  defp evaluate_session_targeting(session_id, config) do
+  defp evaluate_session_targeting(session_id, _config) do
     case config do
       %{prefix_whitelist: prefixes} when is_list(prefixes) ->
         Enum.any?(prefixes, fn prefix ->
@@ -440,7 +440,7 @@ defmodule Mana.FeatureFlags do
     end
   end
 
-  defp evaluate_time_conditions(config) do
+  defp evaluate_time_conditions(_config) do
     case config do
       %{allowed_hours: {start_hour, end_hour}} ->
         current_hour = DateTime.utc_now().hour
@@ -466,7 +466,7 @@ defmodule Mana.FeatureFlags do
     end
   end
 
-  defp evaluate_load_conditions(config) do
+  defp evaluate_load_conditions(_config) do
     case config do
       %{max_cpu_percent: max_cpu} ->
         current_cpu = get_current_cpu_usage()

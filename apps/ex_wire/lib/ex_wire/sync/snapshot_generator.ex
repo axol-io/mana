@@ -83,7 +83,7 @@ defmodule ExWire.Sync.SnapshotGenerator do
   # Keep last 5 snapshots
   @snapshot_retention_count 5
   # Cache 100 state diffs
-  @incremental_cache_size 100
+  # @incremental_cache_size 100 # TODO: Unused attribute
 
   @name __MODULE__
 
@@ -177,11 +177,11 @@ defmodule ExWire.Sync.SnapshotGenerator do
       "[SnapshotGenerator] Started with serving_enabled=#{serving_enabled}, max_chunk_size=#{max_chunk_size}"
     )
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl GenServer
-  def handle_call({:generate_snapshot, block_number, opts}, from, state) do
+  def handle_call({:generate_snapshot, block_number, opts}, from, _state) do
     compression = Keyword.get(opts, :compression, true)
     incremental_from = Keyword.get(opts, :incremental_from)
 
@@ -203,7 +203,7 @@ defmodule ExWire.Sync.SnapshotGenerator do
   end
 
   @impl GenServer
-  def handle_call({:generate_incremental, from_block, to_block}, from, state) do
+  def handle_call({:generate_incremental, from_block, to_block}, from, _state) do
     request = %{
       block_number: to_block,
       state_root: get_state_root_for_block(to_block, state.trie),
@@ -222,7 +222,7 @@ defmodule ExWire.Sync.SnapshotGenerator do
   end
 
   @impl GenServer
-  def handle_call(:get_serving_info, _from, state) do
+  def handle_call(:get_serving_info, _from, _state) do
     snapshot_info =
       state.current_snapshots
       |> Enum.map(fn {block_number, result} ->
@@ -245,7 +245,7 @@ defmodule ExWire.Sync.SnapshotGenerator do
   end
 
   @impl GenServer
-  def handle_call({:get_chunk_by_hash, chunk_hash}, _from, state) do
+  def handle_call({:get_chunk_by_hash, chunk_hash}, _from, _state) do
     # Search through all snapshots for the requested chunk
     result =
       state.current_snapshots
@@ -260,7 +260,7 @@ defmodule ExWire.Sync.SnapshotGenerator do
   end
 
   @impl GenServer
-  def handle_call(:get_latest_manifest, _from, state) do
+  def handle_call(:get_latest_manifest, _from, _state) do
     case get_latest_snapshot(state) do
       nil -> {:reply, {:error, :no_snapshots}, state}
       {_block_number, result} -> {:reply, {:ok, result.manifest}, state}
@@ -268,12 +268,12 @@ defmodule ExWire.Sync.SnapshotGenerator do
   end
 
   @impl GenServer
-  def handle_call(:get_stats, _from, state) do
+  def handle_call(:get_stats, _from, _state) do
     {:reply, state.stats, state}
   end
 
   @impl GenServer
-  def handle_cast({:set_serving_enabled, enabled}, state) do
+  def handle_cast({:set_serving_enabled, enabled}, _state) do
     Logger.info(
       "[SnapshotGenerator] Serving enabled changed: #{state.serving_enabled} -> #{enabled}"
     )
@@ -282,7 +282,7 @@ defmodule ExWire.Sync.SnapshotGenerator do
   end
 
   @impl GenServer
-  def handle_info({ref, result}, state) when is_reference(ref) do
+  def handle_info({ref, result}, _state) when is_reference(ref) do
     # Task completed successfully
     case Map.pop(state.generation_tasks, ref) do
       {nil, _} ->
@@ -316,19 +316,19 @@ defmodule ExWire.Sync.SnapshotGenerator do
                  stats: new_stats
              }}
 
-          {:error, reason} ->
+          {:error, _reason} ->
             Logger.error(
               "[SnapshotGenerator] Snapshot generation failed for block #{request.block_number}: #{inspect(reason)}"
             )
 
-            send(request.requester_pid, {:snapshot_generated, {:error, reason}})
+            send(request.requester_pid, {:snapshot_generated, {:error, _reason}})
             {:noreply, %{state | generation_tasks: remaining_tasks}}
         end
     end
   end
 
   @impl GenServer
-  def handle_info({:DOWN, ref, :process, _pid, reason}, state) do
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, _state) do
     # Task crashed
     case Map.pop(state.generation_tasks, ref) do
       {nil, _} ->
@@ -346,7 +346,7 @@ defmodule ExWire.Sync.SnapshotGenerator do
 
   # Private functions
 
-  defp generate_snapshot_async(request, state) do
+  defp generate_snapshot_async(request, _state) do
     start_time = System.monotonic_time(:millisecond)
 
     Logger.info(
@@ -399,7 +399,7 @@ defmodule ExWire.Sync.SnapshotGenerator do
     end
   end
 
-  defp generate_incremental_async(request, state, from_block, to_block) do
+  defp generate_incremental_async(request, _state, from_block, to_block) do
     start_time = System.monotonic_time(:millisecond)
 
     Logger.info(
@@ -723,8 +723,8 @@ defmodule ExWire.Sync.SnapshotGenerator do
     end
   end
 
-  defp get_latest_snapshot(state) do
-    case Map.to_list(state.current_snapshots) do
+  defp get_latest_snapshot(_state) do
+    case Map.to_list(_state.current_snapshots) do
       [] ->
         nil
 

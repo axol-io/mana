@@ -97,11 +97,11 @@ defmodule ExWire.Eth2.ParallelAttestationProcessor do
       flow_supervisor: flow_supervisor
     }
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:process_batch, attestations, beacon_state, fork_choice_store}, _from, state) do
+  def handle_call({:process_batch, attestations, beacon_state, fork_choice_store}, _from, _state) do
     start_time = System.monotonic_time(:millisecond)
 
     # Process attestations in parallel
@@ -117,12 +117,12 @@ defmodule ExWire.Eth2.ParallelAttestationProcessor do
   end
 
   @impl true
-  def handle_call(:get_stats, _from, state) do
+  def handle_call(:get_stats, _from, _state) do
     {:reply, state.processing_stats, state}
   end
 
   @impl true
-  def handle_cast({:queue_attestation, attestation, beacon_state, fork_choice_store}, state) do
+  def handle_cast({:queue_attestation, attestation, beacon_state, fork_choice_store}, _state) do
     # Add to pending queue
     pending = [{attestation, beacon_state, fork_choice_store} | state.pending_attestations]
 
@@ -146,7 +146,7 @@ defmodule ExWire.Eth2.ParallelAttestationProcessor do
   end
 
   @impl true
-  def handle_info(:process_batch, state) do
+  def handle_info(:process_batch, _state) do
     # Process any pending attestations
     state =
       if length(state.pending_attestations) > 0 do
@@ -179,7 +179,7 @@ defmodule ExWire.Eth2.ParallelAttestationProcessor do
            {:ok, attestation} <- validate_for_fork_choice(attestation, fork_choice_store) do
         {:ok, attestation}
       else
-        {:error, reason} -> {:error, reason, attestation}
+        {:error, _reason} -> {:error, reason, attestation}
       end
     end)
     |> Flow.partition(window: Flow.Window.count(@batch_size))
@@ -297,7 +297,7 @@ defmodule ExWire.Eth2.ParallelAttestationProcessor do
 
   # Helper Functions
 
-  defp process_pending_batch(state) do
+  defp process_pending_batch(_state) do
     if state.pending_attestations == [] do
       state
     else
@@ -317,7 +317,7 @@ defmodule ExWire.Eth2.ParallelAttestationProcessor do
     end
   end
 
-  defp update_processing_stats(state, results, elapsed_ms) do
+  defp update_processing_stats(_state, results, elapsed_ms) do
     stats = state.processing_stats
 
     total_processed = stats.total_processed + results.total

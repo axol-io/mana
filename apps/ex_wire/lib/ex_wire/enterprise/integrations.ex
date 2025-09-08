@@ -69,7 +69,7 @@ defmodule ExWire.Enterprise.Integrations do
   @doc """
   Register a new integration connector
   """
-  def register_connector(type, name, config) do
+  def register_connector(type, name, _config) do
     GenServer.call(__MODULE__, {:register_connector, type, name, config})
   end
 
@@ -164,11 +164,11 @@ defmodule ExWire.Enterprise.Integrations do
     schedule_health_checks()
     schedule_message_processing()
 
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:register_connector, type, name, config}, _from, state) do
+  def handle_call({:register_connector, type, name, _config}, _from, _state) do
     if type not in @integration_types do
       {:reply, {:error, :unsupported_type}, state}
     else
@@ -197,7 +197,7 @@ defmodule ExWire.Enterprise.Integrations do
   end
 
   @impl true
-  def handle_call({:connect, connector_id}, _from, state) do
+  def handle_call({:connect, connector_id}, _from, _state) do
     case Map.get(state.connectors, connector_id) do
       nil ->
         {:reply, {:error, :connector_not_found}, state}
@@ -219,17 +219,17 @@ defmodule ExWire.Enterprise.Integrations do
 
             {:reply, :ok, state}
 
-          {:error, reason} ->
+          {:error, _reason} ->
             updated_connector = %{connector | status: :error}
             state = put_in(state.connectors[connector_id], updated_connector)
 
-            {:reply, {:error, reason}, state}
+            {:reply, {:error, _reason}, state}
         end
     end
   end
 
   @impl true
-  def handle_call({:disconnect, connector_id}, _from, state) do
+  def handle_call({:disconnect, connector_id}, _from, _state) do
     case Map.get(state.active_connections, connector_id) do
       nil ->
         {:reply, {:error, :not_connected}, state}
@@ -253,7 +253,7 @@ defmodule ExWire.Enterprise.Integrations do
   end
 
   @impl true
-  def handle_call({:send_data, connector_id, data, opts}, _from, state) do
+  def handle_call({:send_data, connector_id, data, opts}, _from, _state) do
     case Map.get(state.active_connections, connector_id) do
       nil ->
         {:reply, {:error, :not_connected}, state}
@@ -269,15 +269,15 @@ defmodule ExWire.Enterprise.Integrations do
             state = update_metrics(state, connector_id, :data_sent)
             {:reply, {:ok, result}, state}
 
-          {:error, reason} ->
+          {:error, _reason} ->
             state = update_metrics(state, connector_id, :errors)
-            {:reply, {:error, reason}, state}
+            {:reply, {:error, _reason}, state}
         end
     end
   end
 
   @impl true
-  def handle_call({:query_data, connector_id, query, opts}, _from, state) do
+  def handle_call({:query_data, connector_id, query, opts}, _from, _state) do
     case Map.get(state.active_connections, connector_id) do
       nil ->
         {:reply, {:error, :not_connected}, state}
@@ -292,15 +292,15 @@ defmodule ExWire.Enterprise.Integrations do
             state = update_metrics(state, connector_id, :queries_executed)
             {:reply, {:ok, transformed}, state}
 
-          {:error, reason} ->
+          {:error, _reason} ->
             state = update_metrics(state, connector_id, :errors)
-            {:reply, {:error, reason}, state}
+            {:reply, {:error, _reason}, state}
         end
     end
   end
 
   @impl true
-  def handle_call({:register_webhook, url, events, opts}, _from, state) do
+  def handle_call({:register_webhook, url, events, opts}, _from, _state) do
     webhook_id = generate_webhook_id()
 
     webhook = %{
@@ -325,7 +325,7 @@ defmodule ExWire.Enterprise.Integrations do
   end
 
   @impl true
-  def handle_call({:subscribe_events, connector_id, events}, _from, state) do
+  def handle_call({:subscribe_events, connector_id, events}, _from, _state) do
     case Map.get(state.connectors, connector_id) do
       nil ->
         {:reply, {:error, :connector_not_found}, state}
@@ -342,18 +342,18 @@ defmodule ExWire.Enterprise.Integrations do
   end
 
   @impl true
-  def handle_call({:transform_data, data, from_format, to_format}, _from, state) do
+  def handle_call({:transform_data, data, from_format, to_format}, _from, _state) do
     case transform(data, from_format, to_format, state.transformers) do
       {:ok, transformed} ->
         {:reply, {:ok, transformed}, state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:get_status, connector_id}, _from, state) do
+  def handle_call({:get_status, connector_id}, _from, _state) do
     case Map.get(state.connectors, connector_id) do
       nil ->
         {:reply, {:error, :connector_not_found}, state}
@@ -373,13 +373,13 @@ defmodule ExWire.Enterprise.Integrations do
   end
 
   @impl true
-  def handle_call(:list_connectors, _from, state) do
+  def handle_call(:list_connectors, _from, _state) do
     connectors = Map.values(state.connectors)
     {:reply, {:ok, connectors}, state}
   end
 
   @impl true
-  def handle_cast({:trigger_webhook, event, data}, state) do
+  def handle_cast({:trigger_webhook, event, data}, _state) do
     # Find webhooks subscribed to this event
     webhooks =
       Enum.filter(state.webhooks, fn {_id, webhook} ->
@@ -395,21 +395,21 @@ defmodule ExWire.Enterprise.Integrations do
   end
 
   @impl true
-  def handle_info(:health_check, state) do
+  def handle_info(:health_check, _state) do
     state = perform_health_checks(state)
     schedule_health_checks()
     {:noreply, state}
   end
 
   @impl true
-  def handle_info(:process_messages, state) do
+  def handle_info(:process_messages, _state) do
     state = process_message_queue(state)
     schedule_message_processing()
     {:noreply, state}
   end
 
   @impl true
-  def handle_info({:blockchain_event, event, data}, state) do
+  def handle_info({:blockchain_event, event, data}, _state) do
     # Handle blockchain events and forward to subscribers
     handle_blockchain_event(event, data, state)
     {:noreply, state}
@@ -441,7 +441,7 @@ defmodule ExWire.Enterprise.Integrations do
         connect_elasticsearch(connector.config)
 
       :rest_api ->
-        {:ok, %{type: :rest, base_url: connector.config.url}}
+        {:ok, %{type: :rest, base_url: connector._config.url}}
 
       :graphql_api ->
         {:ok, %{type: :graphql, endpoint: connector.config.endpoint}}
@@ -467,17 +467,17 @@ defmodule ExWire.Enterprise.Integrations do
 
   # Private Functions - Database Connectors
 
-  defp connect_postgresql(config) do
+  defp connect_postgresql(_config) do
     # PostgreSQL connection using Postgrex
-    {:ok, %{type: :postgresql, config: config}}
+    {:ok, %{type: :postgresql, config: _config}}
   end
 
-  defp connect_mysql(config) do
+  defp connect_mysql(_config) do
     # MySQL connection
     {:ok, %{type: :mysql, config: config}}
   end
 
-  defp connect_mongodb(config) do
+  defp connect_mongodb(_config) do
     # MongoDB connection
     {:ok, %{type: :mongodb, config: config}}
   end
@@ -488,17 +488,17 @@ defmodule ExWire.Enterprise.Integrations do
 
   # Private Functions - Message Queue Connectors
 
-  defp connect_kafka(config) do
+  defp connect_kafka(_config) do
     # Kafka connection
     {:ok, %{type: :kafka, brokers: config.brokers, topic: config.topic}}
   end
 
-  defp connect_rabbitmq(config) do
+  defp connect_rabbitmq(_config) do
     # RabbitMQ connection
     {:ok, %{type: :rabbitmq, config: config}}
   end
 
-  defp connect_sqs(config) do
+  defp connect_sqs(_config) do
     # AWS SQS connection
     {:ok, %{type: :sqs, queue_url: config.queue_url}}
   end
@@ -508,12 +508,12 @@ defmodule ExWire.Enterprise.Integrations do
 
   # Private Functions - Monitoring Connectors
 
-  defp connect_elasticsearch(config) do
+  defp connect_elasticsearch(_config) do
     # Elasticsearch connection
     {:ok, %{type: :elasticsearch, url: config.url}}
   end
 
-  defp connect_grpc(config) do
+  defp connect_grpc(_config) do
     # gRPC connection
     {:ok, %{type: :grpc, host: config.host, port: config.port}}
   end
@@ -717,7 +717,7 @@ defmodule ExWire.Enterprise.Integrations do
     }
   end
 
-  defp handle_blockchain_event(event, data, state) do
+  defp handle_blockchain_event(event, data, _state) do
     # Forward to subscribed connectors
     Enum.each(state.connectors, fn {_id, connector} ->
       if connector[:subscriptions] && event in connector.subscriptions.events do
@@ -729,7 +729,7 @@ defmodule ExWire.Enterprise.Integrations do
     GenServer.cast(self(), {:trigger_webhook, event, data})
   end
 
-  defp send_to_connector(connector, event, data, state) do
+  defp send_to_connector(connector, event, data, _state) do
     case Map.get(state.active_connections, connector.id) do
       nil -> :ok
       connection -> send_to_system(connection, connector, %{event: event, data: data}, [])
@@ -738,7 +738,7 @@ defmodule ExWire.Enterprise.Integrations do
 
   # Private Functions - Health Monitoring
 
-  defp perform_health_checks(state) do
+  defp perform_health_checks(_state) do
     Enum.reduce(state.connectors, state, fn {id, connector}, acc_state ->
       if connector.status == :connected do
         connection = Map.get(acc_state.active_connections, id)
@@ -768,8 +768,8 @@ defmodule ExWire.Enterprise.Integrations do
 
   # Private Functions - Message Queue
 
-  defp process_message_queue(state) do
-    case :queue.out(state.message_queue) do
+  defp process_message_queue(_state) do
+    case :queue.out(_state.message_queue) do
       {{:value, message}, rest_queue} ->
         process_queued_message(message, state)
         %{state | message_queue: rest_queue}
@@ -786,7 +786,7 @@ defmodule ExWire.Enterprise.Integrations do
 
   # Private Functions - Auto-connect
 
-  defp auto_connect_integrations(state, opts) do
+  defp auto_connect_integrations(_state, opts) do
     auto_connect = Keyword.get(opts, :auto_connect, [])
 
     Enum.reduce(auto_connect, state, fn config, acc_state ->
@@ -813,7 +813,7 @@ defmodule ExWire.Enterprise.Integrations do
 
   # Private Functions - Helpers
 
-  defp validate_config(type, config) do
+  defp validate_config(type, _config) do
     # Validate connector-specific configuration
     config
   end
@@ -828,7 +828,7 @@ defmodule ExWire.Enterprise.Integrations do
     }
   end
 
-  defp update_metrics(state, connector_id, metric) do
+  defp update_metrics(_state, connector_id, metric) do
     update_in(state.connectors[connector_id].metrics[metric], &(&1 + 1))
     |> put_in([:connectors, connector_id, :metrics, :last_activity], DateTime.utc_now())
   end
