@@ -81,7 +81,7 @@ defmodule Blockchain.PropertyTesting.Generators do
         # PUSH4
         constant(0x63),
 
-        # Stack operations  
+        # Stack operations
         # DUP1
         constant(0x80),
         # SWAP1
@@ -111,5 +111,69 @@ defmodule Blockchain.PropertyTesting.Generators do
       ])
     )
     |> map(&:binary.list_to_bin/1)
+  end
+
+  @doc """
+  Generates Ethereum addresses (20 bytes).
+  """
+  def ethereum_address do
+    binary(length: 20)
+  end
+
+  @doc """
+  Generates Wei amounts (positive integers representing Wei).
+  """
+  def wei_amount do
+    frequency([
+      # Small amounts (0-1000 wei)
+      {2, integer(0..1000)},
+      # Medium amounts (1 finney to 100 finney)
+      {2, integer(1_000_000_000_000_000..100_000_000_000_000_000)},
+      # Large amounts (up to 1000 ether)
+      {1, integer(1_000_000_000_000_000_000..1_000_000_000_000_000_000_000)}
+    ])
+  end
+
+  @doc """
+  Generates random transactions with valid structure.
+  """
+  def transaction do
+    fixed_map(%{
+      nonce: non_negative_integer(),
+      gas_price: positive_integer(),
+      gas_limit: integer(21_000..10_000_000),
+      to: one_of([binary(length: 20), constant(<<>>)]),
+      value: non_negative_integer(),
+      data: binary(max_length: 1000),
+      init: binary(max_length: 1000),
+      v: integer(0..255),
+      r: integer(0..0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
+      s: integer(0..0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)
+    })
+  end
+
+  @doc """
+  Generates random blocks with valid structure.
+  """
+  def block do
+    fixed_map(%{
+      hash: binary(length: 32),
+      parent_hash: binary(length: 32),
+      ommers_hash: binary(length: 32),
+      beneficiary: binary(length: 20),
+      state_root: binary(length: 32),
+      transactions_root: binary(length: 32),
+      receipts_root: binary(length: 32),
+      logs_bloom: binary(length: 256),
+      difficulty: positive_integer(),
+      number: non_negative_integer(),
+      gas_limit: integer(1_000_000..30_000_000),
+      gas_used: non_negative_integer(),
+      timestamp: positive_integer(),
+      extra_data: binary(max_length: 32),
+      mix_hash: binary(length: 32),
+      nonce: binary(length: 8),
+      transactions: list_of(transaction(), max_length: 100)
+    })
   end
 end

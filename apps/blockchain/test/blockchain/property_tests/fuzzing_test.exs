@@ -7,10 +7,7 @@ defmodule Blockchain.PropertyTests.FuzzingTest do
   processing, block validation, and state transitions.
   """
 
-  use ExUnitProperties
-  import StreamData
-  import Blockchain.PropertyTesting.Framework
-  import Blockchain.PropertyTesting.Generators
+  use Blockchain.PropertyTesting.Framework
 
   alias Blockchain.Transaction
   alias Blockchain.Block

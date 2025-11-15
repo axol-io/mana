@@ -7,9 +7,7 @@ defmodule EVM.PropertyTests.EVMPropertyTest do
   behave correctly with different inputs.
   """
 
-  use ExUnitProperties
-  import StreamData
-  import Blockchain.PropertyTesting.Generators
+  use Blockchain.PropertyTesting.Framework
 
   alias EVM.{Stack, Memory, Gas, Wei}
   alias EVM.Operation
