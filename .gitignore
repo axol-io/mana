@@ -48,3 +48,9 @@ apps/ex_wire/native/*/target/
 **/target/
 **/Cargo.lock
 **/*.pdb
+
+# App log directories
+apps/blockchain/log/
+apps/evm/log/
+apps/ex_wire/log/
+apps/exth_crypto/log/
