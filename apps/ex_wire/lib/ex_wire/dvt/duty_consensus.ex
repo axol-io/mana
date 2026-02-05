@@ -172,17 +172,17 @@ defmodule ExWire.DVT.DutyConsensus do
     schedule_periodic_tasks()
 
     Logger.info("DVT Duty Consensus Engine started")
-    {:ok, _state}
+    {:ok, state}
   end
 
   @impl true
-  def handle_call({:register_cluster, cluster_id, cluster_config}, _from, _state) do
+  def handle_call({:register_cluster, cluster_id, cluster_config}, _from, state) do
     # Validate cluster configuration
     case validate_cluster_config(cluster_config) do
       :ok ->
         new_state = %{
           state
-          | cluster_configs: Map.put(_state.cluster_configs, cluster_id, cluster_config)
+          | cluster_configs: Map.put(state.cluster_configs, cluster_id, cluster_config)
         }
 
         audit_duty_event(
@@ -203,7 +203,7 @@ defmodule ExWire.DVT.DutyConsensus do
   end
 
   @impl true
-  def handle_call({:submit_duty, cluster_id, duty_assignment}, _from, _state) do
+  def handle_call({:submit_duty, cluster_id, duty_assignment}, _from, state) do
     case Map.get(state.cluster_configs, cluster_id) do
       nil ->
         {:reply, {:error, :cluster_not_registered}, state}
@@ -232,7 +232,7 @@ defmodule ExWire.DVT.DutyConsensus do
 
             new_state = %{
               state
-              | active_consensus: Map.put(_state.active_consensus, duty_key, consensus_state)
+              | active_consensus: Map.put(state.active_consensus, duty_key, consensus_state)
             }
 
             # Start consensus process
@@ -251,7 +251,7 @@ defmodule ExWire.DVT.DutyConsensus do
 
             {:reply, {:ok, consensus_ref}, new_state}
 
-          {:error, _reason} = error ->
+          {:error, reason} = error ->
             audit_duty_event(
               :duty_rejected,
               cluster_id,
@@ -269,7 +269,7 @@ defmodule ExWire.DVT.DutyConsensus do
   end
 
   @impl true
-  def handle_call({:process_consensus_message, message}, _from, _state) do
+  def handle_call({:process_consensus_message, message}, _from, state) do
     duty_key = create_duty_key_from_message(message)
 
     case Map.get(state.active_consensus, duty_key) do
@@ -319,7 +319,7 @@ defmodule ExWire.DVT.DutyConsensus do
   end
 
   @impl true
-  def handle_call({:get_consensus_status, duty_key}, _from, _state) do
+  def handle_call({:get_consensus_status, duty_key}, _from, state) do
     case Map.get(state.active_consensus, duty_key) do
       nil ->
         {:reply, {:error, :consensus_not_found}, state}
@@ -341,15 +341,15 @@ defmodule ExWire.DVT.DutyConsensus do
   end
 
   @impl true
-  def handle_call(:get_performance_stats, _from, _state) do
+  def handle_call(:get_performance_stats, _from, state) do
     {:reply, state.performance_stats, state}
   end
 
   @impl true
-  def handle_cast({:trigger_view_change, duty_key}, _state) do
+  def handle_cast({:trigger_view_change, duty_key}, state) do
     case Map.get(state.active_consensus, duty_key) do
       nil ->
-        {:noreply, _state}
+        {:noreply, state}
 
       consensus_state ->
         # Initiate view change
@@ -377,10 +377,10 @@ defmodule ExWire.DVT.DutyConsensus do
 
   # Periodic consensus timeout handling
   @impl true
-  def handle_info({:consensus_timeout, duty_key}, _state) do
+  def handle_info({:consensus_timeout, duty_key}, state) do
     case Map.get(state.active_consensus, duty_key) do
       nil ->
-        {:noreply, _state}
+        {:noreply, state}
 
       consensus_state ->
         # Handle consensus timeout based on current phase
@@ -391,7 +391,7 @@ defmodule ExWire.DVT.DutyConsensus do
 
             new_state = %{
               state
-              | active_consensus: Map.put(_state.active_consensus, duty_key, new_consensus)
+              | active_consensus: Map.put(state.active_consensus, duty_key, new_consensus)
             }
 
             {:noreply, new_state}
@@ -431,7 +431,7 @@ defmodule ExWire.DVT.DutyConsensus do
 
   # Periodic cleanup and monitoring
   @impl true
-  def handle_info(:periodic_cleanup, _state) do
+  def handle_info(:periodic_cleanup, state) do
     # Clean up expired consensus instances
     current_time = DateTime.utc_now()
 

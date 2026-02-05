@@ -182,11 +182,11 @@ defmodule ExWire.DVT.ByzantineTolerance do
     schedule_health_monitoring()
 
     Logger.info("DVT Byzantine Fault Tolerance system initialized")
-    {:ok, _state}
+    {:ok, state}
   end
 
   @impl true
-  def handle_call({:configure_bft, cluster_id, total_nodes, bft_options}, _from, _state) do
+  def handle_call({:configure_bft, cluster_id, total_nodes, bft_options}, _from, state) do
     # Classical BFT: n >= 3f + 1
     max_faulty = div(total_nodes - 1, 3)
 
@@ -251,7 +251,7 @@ defmodule ExWire.DVT.ByzantineTolerance do
   end
 
   @impl true
-  def handle_call({:process_node_message, cluster_id, node_id, message}, _from, _state) do
+  def handle_call({:process_node_message, cluster_id, node_id, message}, _from, state) do
     case get_cluster_node_state(cluster_id, node_id, state) do
       {:ok, node_state} ->
         # Update node health metrics
@@ -270,7 +270,7 @@ defmodule ExWire.DVT.ByzantineTolerance do
         # Validate message for potential Byzantine behavior
         case validate_message_integrity(message, cluster_id, node_id, state) do
           :valid ->
-            new_state = update_node_state(cluster_id, node_id, updated_node, _state)
+            new_state = update_node_state(cluster_id, node_id, updated_node, state)
             {:reply, :ok, new_state}
 
           {:invalid, reason} ->
@@ -298,13 +298,13 @@ defmodule ExWire.DVT.ByzantineTolerance do
             {:reply, {:error, {:invalid_message, reason}}, new_state}
         end
 
-      {:error, _reason} ->
-        {:reply, {:error, _reason}, state}
+      {:error, reason} ->
+        {:reply, {:error, reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:get_bft_status, cluster_id}, _from, _state) do
+  def handle_call({:get_bft_status, cluster_id}, _from, state) do
     case Map.get(state.cluster_configs, cluster_id) do
       nil ->
         {:reply, {:error, :cluster_not_configured}, state}
@@ -348,7 +348,7 @@ defmodule ExWire.DVT.ByzantineTolerance do
   end
 
   @impl true
-  def handle_call({:trigger_recovery, cluster_id, recovery_type}, _from, _state) do
+  def handle_call({:trigger_recovery, cluster_id, recovery_type}, _from, state) do
     case Map.get(state.cluster_configs, cluster_id) do
       nil ->
         {:reply, {:error, :cluster_not_configured}, state}
@@ -392,14 +392,14 @@ defmodule ExWire.DVT.ByzantineTolerance do
   end
 
   @impl true
-  def handle_call({:get_fault_evidence, cluster_id}, _from, _state) do
+  def handle_call({:get_fault_evidence, cluster_id}, _from, state) do
     evidence =
       case cluster_id do
         :all ->
           state.fault_evidence
 
         specific_cluster ->
-          Enum.filter(_state.fault_evidence, fn evidence ->
+          Enum.filter(state.fault_evidence, fn evidence ->
             evidence.cluster_id == specific_cluster
           end)
       end
@@ -410,7 +410,7 @@ defmodule ExWire.DVT.ByzantineTolerance do
   @impl true
   def handle_cast(
         {:report_suspicious_behavior, cluster_id, suspected_node, fault_type, evidence},
-        _state
+        state
       ) do
     fault_evidence = %{
       node_id: suspected_node,
@@ -457,10 +457,10 @@ defmodule ExWire.DVT.ByzantineTolerance do
   end
 
   @impl true
-  def handle_cast({:consensus_timeout, cluster_id, current_view}, _state) do
+  def handle_cast({:consensus_timeout, cluster_id, current_view}, state) do
     case Map.get(state.view_states, cluster_id) do
       nil ->
-        {:noreply, _state}
+        {:noreply, state}
 
       view_state ->
         # Check if view change is already in progress
@@ -476,7 +476,7 @@ defmodule ExWire.DVT.ByzantineTolerance do
 
   # Periodic fault detection
   @impl true
-  def handle_info(:fault_detection, _state) do
+  def handle_info(:fault_detection, state) do
     # Perform fault detection across all clusters
     new_state =
       Enum.reduce(state.cluster_configs, state, fn {cluster_id, _config}, acc_state ->
@@ -489,7 +489,7 @@ defmodule ExWire.DVT.ByzantineTolerance do
 
   # Periodic health monitoring
   @impl true
-  def handle_info(:health_monitoring, _state) do
+  def handle_info(:health_monitoring, state) do
     # Update health metrics and detect slow/unresponsive nodes
     new_state =
       Enum.reduce(state.cluster_configs, state, fn {cluster_id, _config}, acc_state ->
@@ -502,10 +502,10 @@ defmodule ExWire.DVT.ByzantineTolerance do
 
   # Recovery procedure completion
   @impl true
-  def handle_info({:recovery_completed, recovery_ref, result}, _state) do
+  def handle_info({:recovery_completed, recovery_ref, result}, state) do
     case Map.get(state.recovery_procedures, recovery_ref) do
       nil ->
-        {:noreply, _state}
+        {:noreply, state}
 
       recovery_procedure ->
         completed_procedure = %{
@@ -539,7 +539,7 @@ defmodule ExWire.DVT.ByzantineTolerance do
 
   ## Private Implementation Functions
 
-  defp get_cluster_node_state(cluster_id, node_id, _state) do
+  defp get_cluster_node_state(cluster_id, node_id, state) do
     case Map.get(state.node_states, cluster_id) do
       nil ->
         {:error, :cluster_not_found}
@@ -552,7 +552,7 @@ defmodule ExWire.DVT.ByzantineTolerance do
     end
   end
 
-  defp update_node_state(cluster_id, node_id, updated_node, _state) do
+  defp update_node_state(cluster_id, node_id, updated_node, state) do
     cluster_nodes = Map.get(state.node_states, cluster_id, %{})
     updated_cluster_nodes = Map.put(cluster_nodes, node_id, updated_node)
 
@@ -564,7 +564,7 @@ defmodule ExWire.DVT.ByzantineTolerance do
     [new_time | response_times] |> Enum.take(20)
   end
 
-  defp validate_message_integrity(message, cluster_id, node_id, _state) do
+  defp validate_message_integrity(message, cluster_id, node_id, state) do
     # Comprehensive message validation for Byzantine behavior detection
     with :ok <- validate_message_structure(message),
          :ok <- validate_message_timing(message),
@@ -572,7 +572,7 @@ defmodule ExWire.DVT.ByzantineTolerance do
          :ok <- validate_message_signature(message) do
       :valid
     else
-      {:error, _reason} -> {:invalid, reason}
+      {:error, reason} -> {:invalid, reason}
     end
   end
 
@@ -599,7 +599,7 @@ defmodule ExWire.DVT.ByzantineTolerance do
     end
   end
 
-  defp validate_message_content(message, cluster_id, node_id, _state) do
+  defp validate_message_content(message, _cluster_id, _node_id, _state) do
     # Validate message content for consistency and correctness
     case message.type do
       :consensus_prepare ->
@@ -663,14 +663,14 @@ defmodule ExWire.DVT.ByzantineTolerance do
     min(base_score + fault_increment, 1.0)
   end
 
-  defp report_fault_evidence(cluster_id, node_id, fault_type, evidence, _state) do
+  defp report_fault_evidence(cluster_id, node_id, fault_type, evidence, _state \\ nil) do
     GenServer.cast(
       self(),
       {:report_suspicious_behavior, cluster_id, node_id, fault_type, evidence}
     )
   end
 
-  defp handle_fault_report(node_state, fault_type, evidence) do
+  defp handle_fault_report(node_state, fault_type, _evidence) do
     new_fault_score = calculate_fault_score(node_state, fault_type)
 
     new_status =
@@ -703,13 +703,13 @@ defmodule ExWire.DVT.ByzantineTolerance do
     DateTime.add(DateTime.utc_now(), quarantine_minutes, :minute)
   end
 
-  defp check_and_trigger_fault_response(cluster_id, suspected_node, fault_type, _state) do
+  defp check_and_trigger_fault_response(cluster_id, _suspected_node, fault_type, state) do
     case Map.get(state.cluster_configs, cluster_id) do
       nil ->
         state
 
       bft_config ->
-        node_states = Map.get(_state.node_states, cluster_id, %{})
+        node_states = Map.get(state.node_states, cluster_id, %{})
 
         faulty_count =
           Enum.count(node_states, fn {_id, node} ->
@@ -732,7 +732,7 @@ defmodule ExWire.DVT.ByzantineTolerance do
     end
   end
 
-  defp initiate_view_change(cluster_id, current_view_or_atom, _reason, _state) do
+  defp initiate_view_change(cluster_id, current_view_or_atom, reason, state) do
     case Map.get(state.view_states, cluster_id) do
       nil ->
         state
@@ -746,7 +746,7 @@ defmodule ExWire.DVT.ByzantineTolerance do
           end
 
         new_view = current_view + 1
-        new_leader = select_new_leader(cluster_id, new_view, _state)
+        new_leader = select_new_leader(cluster_id, new_view, state)
 
         updated_view_state = %{
           view_state
@@ -780,7 +780,7 @@ defmodule ExWire.DVT.ByzantineTolerance do
     end
   end
 
-  defp select_new_leader(cluster_id, new_view, _state) do
+  defp select_new_leader(cluster_id, new_view, state) do
     case Map.get(state.node_states, cluster_id) do
       nil ->
         # Fallback
@@ -804,7 +804,7 @@ defmodule ExWire.DVT.ByzantineTolerance do
     end
   end
 
-  defp trigger_emergency_recovery(cluster_id, _state) do
+  defp trigger_emergency_recovery(cluster_id, state) do
     # Critical fault tolerance situation - trigger emergency procedures
     Logger.critical("Emergency recovery triggered for DVT cluster", cluster_id: cluster_id)
 
@@ -822,10 +822,10 @@ defmodule ExWire.DVT.ByzantineTolerance do
     state
   end
 
-  defp perform_fault_detection(cluster_id, _state) do
+  defp perform_fault_detection(cluster_id, state) do
     case Map.get(state.node_states, cluster_id) do
       nil ->
-        _state
+        state
 
       node_states ->
         current_time = DateTime.utc_now()
@@ -876,7 +876,7 @@ defmodule ExWire.DVT.ByzantineTolerance do
     Enum.sum(response_times) / length(response_times)
   end
 
-  defp update_cluster_health_metrics(cluster_id, _state) do
+  defp update_cluster_health_metrics(cluster_id, state) do
     # Update comprehensive health metrics for cluster
     case Map.get(state.node_states, cluster_id) do
       nil ->
@@ -893,7 +893,7 @@ defmodule ExWire.DVT.ByzantineTolerance do
           faulty_nodes: count_nodes_by_status(node_states, :faulty),
           average_response_time: calculate_cluster_avg_response_time(node_states),
           message_throughput: calculate_cluster_message_throughput(node_states),
-          fault_detection_accuracy: calculate_fault_detection_accuracy(cluster_id, _state),
+          fault_detection_accuracy: calculate_fault_detection_accuracy(cluster_id, state),
           last_updated: current_time
         }
 
@@ -932,13 +932,13 @@ defmodule ExWire.DVT.ByzantineTolerance do
     total_messages
   end
 
-  defp calculate_fault_detection_accuracy(cluster_id, _state) do
+  defp calculate_fault_detection_accuracy(_cluster_id, _state) do
     # Calculate accuracy of fault detection vs actual faults
     # This is a simplified implementation
     95.0
   end
 
-  defp get_recent_fault_count(cluster_id, _state) do
+  defp get_recent_fault_count(cluster_id, state) do
     # Last 5 minutes
     cutoff_time = DateTime.add(DateTime.utc_now(), -300, :second)
 
@@ -948,7 +948,7 @@ defmodule ExWire.DVT.ByzantineTolerance do
     end)
   end
 
-  defp calculate_cluster_performance(cluster_id, _state) do
+  defp calculate_cluster_performance(cluster_id, state) do
     Map.get(state.performance_stats, cluster_id, %{})
   end
 
@@ -969,7 +969,7 @@ defmodule ExWire.DVT.ByzantineTolerance do
             :ok ->
               {:cont, {:ok, [step | completed_steps]}}
 
-            {:error, _reason} ->
+            {:error, reason} ->
               {:halt, {:error, reason, completed_steps}}
           end
         end)
@@ -981,7 +981,7 @@ defmodule ExWire.DVT.ByzantineTolerance do
     end
   end
 
-  defp execute_recovery_step(step, recovery_procedure, bft_config) do
+  defp execute_recovery_step(step, recovery_procedure, _bft_config) do
     case step do
       :isolate_faulty_nodes ->
         Logger.info("Isolating faulty nodes for cluster",

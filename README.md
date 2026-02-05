@@ -25,7 +25,7 @@ High-performance distributed Ethereum client with ultra-performance optimization
 
 ## Architecture
 
-Elixir umbrella project with 8 applications:
+Elixir umbrella project with 9 applications:
 
 - **blockchain** - Core blockchain logic and account management
 - **evm** - Ethereum Virtual Machine implementation
@@ -35,6 +35,7 @@ Elixir umbrella project with 8 applications:
 - **exth_crypto** - Cryptographic operations
 - **merkle_patricia_tree** - State storage with AntidoteDB backend
 - **jsonrpc2** - JSON-RPC API server
+- **history** - Stateless history node for eth_getLogs (~250GB vs 2TB+ archive)
 
 ## Requirements
 

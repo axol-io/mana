@@ -59,16 +59,16 @@ defmodule ExWire.DVT.CommunicationSupervisor do
         Logger.info("Restarted DVT component: #{component_id}")
         :ok
 
-      {:error, _reason} ->
+      {:error, reason} ->
         Logger.error("Failed to restart DVT component #{component_id}: #{inspect(reason)}")
-        {:error, _reason}
+        {:error, reason}
     end
   end
 
   @doc """
   Configure DVT communication for a new cluster.
   """
-  def configure_cluster(cluster_id, _config) do
+  def configure_cluster(cluster_id, config) do
     with :ok <- P2PProtocol.join_cluster(cluster_id, config.node_id, config.auth_key),
          :ok <-
            PartitionDetector.monitor_cluster(
@@ -81,7 +81,7 @@ defmodule ExWire.DVT.CommunicationSupervisor do
       Logger.info("DVT communication configured for cluster #{cluster_id}")
       :ok
     else
-      {:error, _reason} = error ->
+      {:error, reason} = error ->
         Logger.error(
           "Failed to configure DVT communication for cluster #{cluster_id}: #{inspect(reason)}"
         )

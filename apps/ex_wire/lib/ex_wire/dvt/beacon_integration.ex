@@ -183,11 +183,11 @@ defmodule ExWire.DVT.BeaconIntegration do
     }
 
     Logger.info("DVT Beacon Integration started")
-    {:ok, _state}
+    {:ok, state}
   end
 
   @impl true
-  def handle_call({:register_dvt_validators, cluster_id, validator_indices}, _from, _state) do
+  def handle_call({:register_dvt_validators, cluster_id, validator_indices}, _from, state) do
     # Register validator -> cluster_id mapping
     new_assignments =
       Enum.reduce(validator_indices, state.validator_assignments, fn validator_index, acc ->
@@ -210,7 +210,7 @@ defmodule ExWire.DVT.BeaconIntegration do
   end
 
   @impl true
-  def handle_call({:process_duty_assignments, epoch, duty_assignments}, _from, _state) do
+  def handle_call({:process_duty_assignments, epoch, duty_assignments}, _from, state) do
     # Process duty assignments and create DVT duties for registered validators
     {dvt_duties, regular_duties} =
       Enum.split_with(duty_assignments, fn duty ->
@@ -238,7 +238,7 @@ defmodule ExWire.DVT.BeaconIntegration do
 
             dvt_duty
 
-          {:error, _reason} ->
+          {:error, reason} ->
             Logger.error("Failed to submit DVT duty for consensus",
               duty: dvt_duty,
               reason: reason
@@ -259,7 +259,7 @@ defmodule ExWire.DVT.BeaconIntegration do
   end
 
   @impl true
-  def handle_call({:handle_block_production, validator_index, slot, randao_reveal}, _from, _state) do
+  def handle_call({:handle_block_production, validator_index, slot, randao_reveal}, _from, state) do
     case Map.get(state.validator_assignments, validator_index) do
       nil ->
         # Not a DVT validator - should not happen
@@ -291,7 +291,7 @@ defmodule ExWire.DVT.BeaconIntegration do
 
             {:reply, {:ok, signed_block}, new_state}
 
-          {:error, _reason} = error ->
+          {:error, reason} = error ->
             audit_beacon_event(
               :block_production_failed,
               cluster_id,
@@ -312,7 +312,7 @@ defmodule ExWire.DVT.BeaconIntegration do
   def handle_call(
         {:handle_attestation_duty, validator_index, slot, committee_index},
         _from,
-        _state
+        state
       ) do
     case Map.get(state.validator_assignments, validator_index) do
       nil ->
@@ -345,7 +345,7 @@ defmodule ExWire.DVT.BeaconIntegration do
 
             {:reply, {:ok, signed_attestation}, new_state}
 
-          {:error, _reason} = error ->
+          {:error, reason} = error ->
             audit_beacon_event(
               :attestation_production_failed,
               cluster_id,
@@ -364,7 +364,7 @@ defmodule ExWire.DVT.BeaconIntegration do
   end
 
   @impl true
-  def handle_call({:handle_sync_committee_duty, validator_index, slot}, _from, _state) do
+  def handle_call({:handle_sync_committee_duty, validator_index, slot}, _from, state) do
     case Map.get(state.validator_assignments, validator_index) do
       nil ->
         {:reply, {:error, :not_dvt_validator}, state}
@@ -388,7 +388,7 @@ defmodule ExWire.DVT.BeaconIntegration do
 
             {:reply, {:ok, sync_message}, new_state}
 
-          {:error, _reason} = error ->
+          {:error, reason} = error ->
             audit_beacon_event(
               :sync_message_production_failed,
               cluster_id,
@@ -406,7 +406,7 @@ defmodule ExWire.DVT.BeaconIntegration do
   end
 
   @impl true
-  def handle_call({:get_validator_duties, validator_index, epoch}, _from, _state) do
+  def handle_call({:get_validator_duties, validator_index, epoch}, _from, state) do
     case Map.get(state.active_duties, epoch) do
       {dvt_duties, _regular_duties} ->
         validator_duties =
@@ -422,12 +422,12 @@ defmodule ExWire.DVT.BeaconIntegration do
   end
 
   @impl true
-  def handle_call(:get_performance_metrics, _from, _state) do
+  def handle_call(:get_performance_metrics, _from, state) do
     {:reply, state.performance_metrics, state}
   end
 
   @impl true
-  def handle_cast({:update_beacon_state, new_beacon_state}, _state) do
+  def handle_cast({:update_beacon_state, new_beacon_state}, state) do
     # Update local beacon state and extract relevant information
     new_state = %{
       state
@@ -444,7 +444,7 @@ defmodule ExWire.DVT.BeaconIntegration do
 
   ## Private Implementation Functions
 
-  defp create_dvt_duty(duty, cluster_id, _state) do
+  defp create_dvt_duty(duty, cluster_id, state) do
     case duty.duty_type do
       :attestation ->
         create_attestation_dvt_duty(duty, cluster_id, state)
@@ -460,10 +460,10 @@ defmodule ExWire.DVT.BeaconIntegration do
     end
   end
 
-  defp create_attestation_dvt_duty(duty, cluster_id, _state) do
+  defp create_attestation_dvt_duty(duty, cluster_id, state) do
     # Get attestation data from current beacon state
     attestation_data =
-      case _state.beacon_state do
+      case state.beacon_state do
         nil ->
           # Fallback attestation data
           create_fallback_attestation_data(duty.slot)
@@ -488,7 +488,7 @@ defmodule ExWire.DVT.BeaconIntegration do
     }
   end
 
-  defp create_block_proposal_dvt_duty(duty, cluster_id, _state) do
+  defp create_block_proposal_dvt_duty(duty, cluster_id, state) do
     %{
       validator_index: duty.validator_index,
       cluster_id: cluster_id,
@@ -505,7 +505,7 @@ defmodule ExWire.DVT.BeaconIntegration do
     }
   end
 
-  defp create_sync_committee_dvt_duty(duty, cluster_id, _state) do
+  defp create_sync_committee_dvt_duty(duty, cluster_id, state) do
     sync_data =
       case state.beacon_state do
         nil ->
@@ -533,7 +533,7 @@ defmodule ExWire.DVT.BeaconIntegration do
     }
   end
 
-  defp create_aggregation_dvt_duty(duty, cluster_id, _state) do
+  defp create_aggregation_dvt_duty(duty, cluster_id, _state \\ nil) do
     %{
       validator_index: duty.validator_index,
       cluster_id: cluster_id,
@@ -566,12 +566,12 @@ defmodule ExWire.DVT.BeaconIntegration do
     DutyConsensus.submit_duty(dvt_duty.cluster_id, duty_assignment)
   end
 
-  defp produce_block_with_dvt_consensus(validator_index, cluster_id, slot, randao_reveal, _state) do
+  defp produce_block_with_dvt_consensus(validator_index, cluster_id, slot, randao_reveal, state) do
     # Check slashing protection first
     case check_block_proposal_safety(validator_index, slot, state) do
       :safe ->
         # Get block proposal from beacon state
-        case prepare_block_for_consensus(validator_index, slot, randao_reveal, _state) do
+        case prepare_block_for_consensus(validator_index, slot, randao_reveal, state) do
           {:ok, unsigned_block} ->
             # Submit for DVT consensus and signing
             case coordinate_block_signing(cluster_id, unsigned_block, state) do
@@ -593,19 +593,19 @@ defmodule ExWire.DVT.BeaconIntegration do
 
                 {:ok, signed_block}
 
-              {:error, _reason} ->
-                {:error, _reason}
+              {:error, reason} ->
+                {:error, reason}
             end
 
-          {:error, _reason} ->
-            {:error, _reason}
+          {:error, reason} ->
+            {:error, reason}
         end
 
       {:unsafe, reason} ->
         {:error, {:slashing_protection, reason}}
 
-      {:error, _reason} ->
-        {:error, _reason}
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -614,7 +614,7 @@ defmodule ExWire.DVT.BeaconIntegration do
          cluster_id,
          slot,
          committee_index,
-         _state
+         state
        ) do
     # Create attestation data
     case create_attestation_data(slot, committee_index, state.beacon_state) do
@@ -623,7 +623,7 @@ defmodule ExWire.DVT.BeaconIntegration do
         case SlashingProtection.check_attestation_safety(validator_index, attestation_data) do
           :safe ->
             # Submit for DVT consensus and signing
-            case coordinate_attestation_signing(cluster_id, attestation_data, _state) do
+            case coordinate_attestation_signing(cluster_id, attestation_data, state) do
               {:ok, signature} ->
                 signed_attestation = %{
                   message: %{
@@ -642,23 +642,23 @@ defmodule ExWire.DVT.BeaconIntegration do
 
                 {:ok, signed_attestation}
 
-              {:error, _reason} ->
-                {:error, _reason}
+              {:error, reason} ->
+                {:error, reason}
             end
 
           {:unsafe, reason} ->
             {:error, {:slashing_protection, reason}}
 
-          {:error, _reason} ->
-            {:error, _reason}
+          {:error, reason} ->
+            {:error, reason}
         end
 
-      {:error, _reason} ->
-        {:error, _reason}
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
-  defp produce_sync_message_with_dvt_consensus(validator_index, cluster_id, slot, _state) do
+  defp produce_sync_message_with_dvt_consensus(validator_index, cluster_id, slot, state) do
     case state.beacon_state do
       nil ->
         {:error, :beacon_state_not_available}
@@ -683,13 +683,13 @@ defmodule ExWire.DVT.BeaconIntegration do
 
             {:ok, sync_message}
 
-          {:error, _reason} ->
-            {:error, _reason}
+          {:error, reason} ->
+            {:error, reason}
         end
     end
   end
 
-  defp check_block_proposal_safety(validator_index, slot, _state) do
+  defp check_block_proposal_safety(validator_index, slot, _state \\ nil) do
     # Use slashing protection to check if proposal is safe
     proposal_data = %{
       slot: slot,
@@ -702,7 +702,7 @@ defmodule ExWire.DVT.BeaconIntegration do
     SlashingProtection.check_proposal_safety(validator_index, proposal_data)
   end
 
-  defp prepare_block_for_consensus(validator_index, slot, randao_reveal, _state) do
+  defp prepare_block_for_consensus(validator_index, slot, randao_reveal, state) do
     case state.beacon_state do
       nil ->
         {:error, :beacon_state_not_available}
@@ -738,7 +738,7 @@ defmodule ExWire.DVT.BeaconIntegration do
     end
   end
 
-  defp coordinate_block_signing(cluster_id, unsigned_block, _state) do
+  defp coordinate_block_signing(cluster_id, unsigned_block, _state \\ nil) do
     # Get signing domain for block proposals
     signing_domain = calculate_signing_domain(:beacon_proposer, unsigned_block.slot)
 
@@ -749,7 +749,7 @@ defmodule ExWire.DVT.BeaconIntegration do
     KeyManager.sign_message(cluster_id, signing_root)
   end
 
-  defp coordinate_attestation_signing(cluster_id, attestation_data, _state) do
+  defp coordinate_attestation_signing(cluster_id, attestation_data, _state \\ nil) do
     # Get signing domain for attestations
     signing_domain = calculate_signing_domain(:beacon_attester, attestation_data.slot)
 
@@ -760,7 +760,7 @@ defmodule ExWire.DVT.BeaconIntegration do
     KeyManager.sign_message(cluster_id, signing_root)
   end
 
-  defp coordinate_sync_message_signing(cluster_id, sync_message_data, _state) do
+  defp coordinate_sync_message_signing(cluster_id, sync_message_data, _state \\ nil) do
     # Get signing domain for sync committee messages
     signing_domain = calculate_signing_domain(:sync_committee, sync_message_data.slot)
 
@@ -810,7 +810,7 @@ defmodule ExWire.DVT.BeaconIntegration do
     }
   end
 
-  defp prepare_block_proposal_data(slot, _state) do
+  defp prepare_block_proposal_data(slot, state) do
     # Prepare data needed for block proposal consensus
     %{
       slot: slot,
@@ -885,7 +885,7 @@ defmodule ExWire.DVT.BeaconIntegration do
     <<bits::bitstring>>
   end
 
-  defp calculate_signing_domain(domain_type, _slot) do
+  defp calculate_signing_domain(domain_type, _slot \\ 0) do
     # Calculate signing domain for signature verification
     # This is a simplified implementation - production would use proper domain calculation
     domain_type_bytes =
@@ -915,7 +915,7 @@ defmodule ExWire.DVT.BeaconIntegration do
     :crypto.hash(:sha256, :erlang.term_to_binary(object))
   end
 
-  defp update_sync_committee_duties(_state) do
+  defp update_sync_committee_duties(state) do
     # Update sync committee duty assignments based on beacon state
     case state.beacon_state do
       nil ->
@@ -925,7 +925,7 @@ defmodule ExWire.DVT.BeaconIntegration do
         # Extract sync committee duties from beacon state
         # This would integrate with actual sync committee logic
         sync_duties = extract_sync_committee_duties(beacon_state)
-        %{_state | sync_committee_duties: sync_duties}
+        %{state | sync_committee_duties: sync_duties}
     end
   end
 

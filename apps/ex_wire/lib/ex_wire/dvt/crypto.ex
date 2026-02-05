@@ -86,7 +86,7 @@ defmodule ExWire.DVT.Crypto do
               secure_shares = Enum.map(hsm_key_ids, &create_hsm_key_reference/1)
               {:ok, {public_key_set, secure_shares}}
 
-            {:error, _reason} ->
+            {:error, reason} ->
               {:error, {:hsm_storage_failed, reason}}
           end
       end
