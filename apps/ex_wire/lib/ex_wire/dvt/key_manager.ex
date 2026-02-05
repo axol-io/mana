@@ -221,7 +221,7 @@ defmodule ExWire.DVT.KeyManager do
         {:create_cluster,
          {cluster_id, validator_pubkey, threshold, total_nodes, participants, opts}},
         _from,
-        _state
+        state
       ) do
     case validate_cluster_creation(cluster_id, threshold, total_nodes, participants, state) do
       :ok ->
@@ -232,7 +232,7 @@ defmodule ExWire.DVT.KeyManager do
                total_nodes,
                participants,
                opts,
-               _state
+               state
              ) do
           {:ok, cluster_config, new_state} ->
             # Audit log cluster creation
@@ -250,7 +250,7 @@ defmodule ExWire.DVT.KeyManager do
 
             {:reply, {:ok, cluster_config}, new_state}
 
-          {:error, _reason} = error ->
+          {:error, reason} = error ->
             audit_cluster_event(
               :cluster_creation_failed,
               cluster_id,
@@ -267,7 +267,7 @@ defmodule ExWire.DVT.KeyManager do
   end
 
   @impl true
-  def handle_call({:initialize_dkg, cluster_id, opts}, _from, _state) do
+  def handle_call({:initialize_dkg, cluster_id, opts}, _from, state) do
     case Map.get(state.clusters, cluster_id) do
       nil ->
         {:reply, {:error, :cluster_not_found}, state}
@@ -287,7 +287,7 @@ defmodule ExWire.DVT.KeyManager do
 
             {:reply, {:ok, dkg_data}, new_state}
 
-          {:error, _reason} = error ->
+          {:error, reason} = error ->
             audit_cluster_event(
               :dkg_initialization_failed,
               cluster_id,
@@ -301,7 +301,7 @@ defmodule ExWire.DVT.KeyManager do
   end
 
   @impl true
-  def handle_call({:sign_message, cluster_id, message, opts}, _from, _state) do
+  def handle_call({:sign_message, cluster_id, message, opts}, _from, state) do
     with {:ok, cluster_config} <- get_cluster_config(cluster_id, state),
          {:ok, _} <- check_signing_permissions(cluster_id, opts, state),
          {:ok, signature} <- perform_threshold_signing(cluster_config, message, opts, state) do
@@ -318,7 +318,7 @@ defmodule ExWire.DVT.KeyManager do
 
       {:reply, {:ok, signature}, state}
     else
-      {:error, _reason} = error ->
+      {:error, reason} = error ->
         audit_cluster_event(
           :signing_failed,
           cluster_id,
@@ -334,7 +334,7 @@ defmodule ExWire.DVT.KeyManager do
   end
 
   @impl true
-  def handle_call({:rotate_keys, cluster_id, opts}, _from, _state) do
+  def handle_call({:rotate_keys, cluster_id, opts}, _from, state) do
     with {:ok, cluster_config} <- get_cluster_config(cluster_id, state),
          {:ok, _} <- check_rotation_permissions(cluster_id, opts, state),
          {:ok, new_cluster_config, new_state} <- perform_key_rotation(cluster_config, opts, state) do
@@ -350,7 +350,7 @@ defmodule ExWire.DVT.KeyManager do
 
       {:reply, {:ok, new_cluster_config}, new_state}
     else
-      {:error, _reason} = error ->
+      {:error, reason} = error ->
         audit_cluster_event(
           :key_rotation_failed,
           cluster_id,
@@ -363,7 +363,7 @@ defmodule ExWire.DVT.KeyManager do
   end
 
   @impl true
-  def handle_call({:get_cluster, cluster_id}, _from, _state) do
+  def handle_call({:get_cluster, cluster_id}, _from, state) do
     case Map.get(state.clusters, cluster_id) do
       nil -> {:reply, {:error, :not_found}, state}
       cluster_config -> {:reply, {:ok, cluster_config}, state}
@@ -371,7 +371,7 @@ defmodule ExWire.DVT.KeyManager do
   end
 
   @impl true
-  def handle_call({:get_cluster_health, cluster_id}, _from, _state) do
+  def handle_call({:get_cluster_health, cluster_id}, _from, state) do
     case get_cluster_config(cluster_id, state) do
       {:ok, cluster_config} ->
         health_status = calculate_cluster_health(cluster_config, state)
@@ -383,7 +383,7 @@ defmodule ExWire.DVT.KeyManager do
   end
 
   @impl true
-  def handle_call({:get_node_public_key, cluster_id, node_id}, _from, _state) do
+  def handle_call({:get_node_public_key, cluster_id, node_id}, _from, state) do
     case get_cluster_config(cluster_id, state) do
       {:ok, cluster_config} ->
         case Map.get(cluster_config.participants, node_id) do
@@ -398,7 +398,7 @@ defmodule ExWire.DVT.KeyManager do
 
   # Periodic health check
   @impl true
-  def handle_info(:health_check, _state) do
+  def handle_info(:health_check, state) do
     perform_cluster_health_checks(state)
     schedule_health_checks()
     {:noreply, state}
@@ -406,7 +406,7 @@ defmodule ExWire.DVT.KeyManager do
 
   # Periodic key rotation check
   @impl true
-  def handle_info(:rotation_check, _state) do
+  def handle_info(:rotation_check, state) do
     check_and_perform_scheduled_rotations(state)
     schedule_key_rotation_checks()
     {:noreply, state}
@@ -414,7 +414,7 @@ defmodule ExWire.DVT.KeyManager do
 
   ## Private Implementation Functions
 
-  defp validate_cluster_creation(cluster_id, threshold, total_nodes, participants, _state) do
+  defp validate_cluster_creation(cluster_id, threshold, total_nodes, participants, state) do
     cond do
       Map.has_key?(state.clusters, cluster_id) ->
         {:error, :cluster_already_exists}
@@ -440,7 +440,7 @@ defmodule ExWire.DVT.KeyManager do
          total_nodes,
          participants,
          opts,
-         _state
+         state
        ) do
     compliance_level = Keyword.get(opts, :compliance_level, :standard)
 
@@ -484,7 +484,7 @@ defmodule ExWire.DVT.KeyManager do
     {:ok, cluster_config, new_state}
   end
 
-  defp initialize_dkg_impl(cluster_config, _opts, _state) do
+  defp initialize_dkg_impl(cluster_config, _opts, state) do
     cluster_id = cluster_config.cluster_id
     participants = Map.keys(cluster_config.participants)
     threshold = cluster_config.threshold
@@ -513,7 +513,7 @@ defmodule ExWire.DVT.KeyManager do
     end
   end
 
-  defp perform_threshold_signing(cluster_config, message, _opts, _state) do
+  defp perform_threshold_signing(cluster_config, message, _opts, state) do
     cluster_id = cluster_config.cluster_id
     threshold = cluster_config.threshold
 
@@ -551,7 +551,7 @@ defmodule ExWire.DVT.KeyManager do
     end
   end
 
-  defp perform_key_rotation(cluster_config, opts, _state) do
+  defp perform_key_rotation(cluster_config, opts, state) do
     cluster_id = cluster_config.cluster_id
 
     # Generate new keys using DKG
@@ -579,14 +579,14 @@ defmodule ExWire.DVT.KeyManager do
     end
   end
 
-  defp get_cluster_config(cluster_id, _state) do
+  defp get_cluster_config(cluster_id, state) do
     case Map.get(state.clusters, cluster_id) do
       nil -> {:error, :cluster_not_found}
-      config -> {:ok, _config}
+      config -> {:ok, config}
     end
   end
 
-  defp get_cluster_key_shares(cluster_id, _state) do
+  defp get_cluster_key_shares(cluster_id, state) do
     case Map.get(state.key_shares, cluster_id) do
       nil -> {:error, :no_key_shares}
       shares -> {:ok, Map.to_list(shares)}
@@ -610,7 +610,7 @@ defmodule ExWire.DVT.KeyManager do
     end
   end
 
-  defp check_signing_permissions(cluster_id, opts, _state) do
+  defp check_signing_permissions(cluster_id, opts, state) do
     case state.rbac_config do
       %{} = config when map_size(config) > 0 ->
         operator_id = Keyword.get(opts, :operator_id)
@@ -621,7 +621,7 @@ defmodule ExWire.DVT.KeyManager do
     end
   end
 
-  defp check_rotation_permissions(cluster_id, opts, _state) do
+  defp check_rotation_permissions(cluster_id, opts, state) do
     case state.rbac_config do
       %{} = config when map_size(config) > 0 ->
         operator_id = Keyword.get(opts, :operator_id)
@@ -632,7 +632,7 @@ defmodule ExWire.DVT.KeyManager do
     end
   end
 
-  defp calculate_cluster_health(cluster_config, _state) do
+  defp calculate_cluster_health(cluster_config, state) do
     participants = cluster_config.participants
     online_nodes = Enum.count(participants, fn {_id, info} -> info.status == :online end)
     total_nodes = cluster_config.total_nodes
