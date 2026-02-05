@@ -9,12 +9,8 @@ defmodule ExthCrypto.PropertyTests.CryptoPropertyTest do
   - Cryptographic operations handle edge cases gracefully
   """
 
-  use ExUnit.Case, async: true
-  use ExUnitProperties
-  import StreamData
+  use Blockchain.PropertyTesting.Framework
   import Bitwise
-  # TODO: Re-enable when Blockchain.PropertyTesting.Properties module is implemented
-  # import Blockchain.PropertyTesting.Properties
 
   alias ExthCrypto.Hash.Keccak
   alias ExthCrypto.{ECDSA, Key}

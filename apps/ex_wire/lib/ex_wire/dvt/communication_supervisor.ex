@@ -1,7 +1,7 @@
 defmodule ExWire.DVT.CommunicationSupervisor do
   @moduledoc """
   Supervisor for DVT Phase 3 Communication & Networking components.
-  
+
   Coordinates and manages:
   - P2P Protocol handler for secure operator communication
   - Message authentication and replay protection
@@ -26,16 +26,18 @@ defmodule ExWire.DVT.CommunicationSupervisor do
   """
   def get_communication_status() do
     children = Supervisor.which_children(__MODULE__)
-    
-    status = Enum.map(children, fn {id, pid, _type, _modules} ->
-      case pid do
-        pid when is_pid(pid) ->
-          {id, :running, get_component_health(id, pid)}
-        _ ->
-          {id, :not_running, nil}
-      end
-    end)
-    
+
+    status =
+      Enum.map(children, fn {id, pid, _type, _modules} ->
+        case pid do
+          pid when is_pid(pid) ->
+            {id, :running, get_component_health(id, pid)}
+
+          _ ->
+            {id, :not_running, nil}
+        end
+      end)
+
     %{
       supervisor_status: :running,
       components: status,
@@ -49,36 +51,41 @@ defmodule ExWire.DVT.CommunicationSupervisor do
   """
   def restart_component(component_id) do
     case Supervisor.restart_child(__MODULE__, component_id) do
-      {:ok, _pid} -> 
+      {:ok, _pid} ->
         Logger.info("Restarted DVT component: #{component_id}")
         :ok
-      {:ok, _pid, _info} -> 
+
+      {:ok, _pid, _info} ->
         Logger.info("Restarted DVT component: #{component_id}")
         :ok
-      {:error, reason} -> 
+
+      {:error, _reason} ->
         Logger.error("Failed to restart DVT component #{component_id}: #{inspect(reason)}")
-        {:error, reason}
+        {:error, _reason}
     end
   end
 
   @doc """
   Configure DVT communication for a new cluster.
   """
-  def configure_cluster(cluster_id, config) do
+  def configure_cluster(cluster_id, _config) do
     with :ok <- P2PProtocol.join_cluster(cluster_id, config.node_id, config.auth_key),
-         :ok <- PartitionDetector.monitor_cluster(
-                  cluster_id, 
-                  config.node_count, 
-                  config.threshold, 
-                  config.partition_tolerance
-                ),
+         :ok <-
+           PartitionDetector.monitor_cluster(
+             cluster_id,
+             config.node_count,
+             config.threshold,
+             config.partition_tolerance
+           ),
          :ok <- GossipSubOptimizer.configure_cluster_topics(cluster_id, config.topics) do
-      
       Logger.info("DVT communication configured for cluster #{cluster_id}")
       :ok
     else
-      {:error, reason} = error ->
-        Logger.error("Failed to configure DVT communication for cluster #{cluster_id}: #{inspect(reason)}")
+      {:error, _reason} = error ->
+        Logger.error(
+          "Failed to configure DVT communication for cluster #{cluster_id}: #{inspect(reason)}"
+        )
+
         error
     end
   end
@@ -90,7 +97,7 @@ defmodule ExWire.DVT.CommunicationSupervisor do
     # Gracefully leave cluster communication
     :ok = P2PProtocol.leave_cluster(cluster_id)
     :ok = PartitionDetector.unmonitor_cluster(cluster_id)
-    
+
     Logger.info("DVT communication unconfigured for cluster #{cluster_id}")
     :ok
   end
@@ -109,10 +116,11 @@ defmodule ExWire.DVT.CommunicationSupervisor do
     children = [
       # GossipSub Optimizer - Start first as other components depend on it
       {GossipSubOptimizer, [name: ExWire.DVT.GossipSubOptimizer] ++ gossipsub_opts},
-      
+
       # Partition Detector - Monitor network health
-      {PartitionDetector, [node_id: node_id, name: ExWire.DVT.PartitionDetector] ++ partition_opts},
-      
+      {PartitionDetector,
+       [node_id: node_id, name: ExWire.DVT.PartitionDetector] ++ partition_opts},
+
       # P2P Protocol Handler - Main communication coordinator
       {P2PProtocol, [node_id: node_id, name: ExWire.DVT.P2PProtocol] ++ p2p_opts}
     ]
@@ -127,7 +135,7 @@ defmodule ExWire.DVT.CommunicationSupervisor do
     ]
 
     Logger.info("Starting DVT Communication Supervisor", node_id: node_id)
-    
+
     Supervisor.init(children, opts)
   end
 
@@ -142,21 +150,23 @@ defmodule ExWire.DVT.CommunicationSupervisor do
       case component_id do
         ExWire.DVT.P2PProtocol ->
           P2PProtocol.get_network_status()
-          
+
         ExWire.DVT.PartitionDetector ->
           PartitionDetector.get_partition_status()
-          
+
         ExWire.DVT.GossipSubOptimizer ->
           GossipSubOptimizer.get_performance_stats()
-          
+
         _ ->
           %{status: :unknown}
       end
     catch
       :exit, {:noproc, _} ->
         %{status: :not_responding}
+
       :exit, {:timeout, _} ->
         %{status: :timeout}
+
       error ->
         %{status: :error, details: inspect(error)}
     end
@@ -164,8 +174,8 @@ defmodule ExWire.DVT.CommunicationSupervisor do
 
   defp count_healthy_components(status) do
     Enum.count(status, fn {_id, component_status, health} ->
-      component_status == :running and health != nil and 
-      (health[:status] not in [:error, :timeout, :not_responding])
+      component_status == :running and health != nil and
+        health[:status] not in [:error, :timeout, :not_responding]
     end)
   end
 end

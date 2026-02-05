@@ -10,11 +10,13 @@ defmodule ExWire.DVT.PartitionDetectorTest do
 
   setup do
     # Start the partition detector
-    {:ok, _pid} = PartitionDetector.start_link(
-      node_id: "test_node_001",
-      heartbeat_timeout: 1_000,  # Shorter timeout for testing
-      recovery_probe_interval: 500
-    )
+    {:ok, _pid} =
+      PartitionDetector.start_link(
+        node_id: "test_node_001",
+        # Shorter timeout for testing
+        heartbeat_timeout: 1_000,
+        recovery_probe_interval: 500
+      )
 
     on_exit(fn ->
       if Process.whereis(ExWire.DVT.PartitionDetector) do
@@ -27,7 +29,8 @@ defmodule ExWire.DVT.PartitionDetectorTest do
 
   describe "cluster monitoring" do
     test "can start monitoring a DVT cluster" do
-      assert :ok = PartitionDetector.monitor_cluster(@cluster_id, @node_count, @threshold, :minority)
+      assert :ok =
+               PartitionDetector.monitor_cluster(@cluster_id, @node_count, @threshold, :minority)
 
       status = PartitionDetector.get_partition_status()
       assert @cluster_id in status.monitored_clusters
@@ -57,11 +60,13 @@ defmodule ExWire.DVT.PartitionDetectorTest do
 
       assert cluster_status.cluster_id == @cluster_id
       assert cluster_status.total_nodes == @node_count
-      assert cluster_status.partition_state == :connected  # Initial state
+      # Initial state
+      assert cluster_status.partition_state == :connected
     end
 
     test "returns error for non-monitored cluster status" do
-      assert {:error, :not_monitored} = PartitionDetector.get_cluster_partition_status("unknown_cluster")
+      assert {:error, :not_monitored} =
+               PartitionDetector.get_cluster_partition_status("unknown_cluster")
     end
   end
 
@@ -106,13 +111,13 @@ defmodule ExWire.DVT.PartitionDetectorTest do
 
       # Wait for partition detection to run
       Process.sleep(100)
-      
+
       # Trigger partition check
       send(ExWire.DVT.PartitionDetector, :check_partitions)
       Process.sleep(100)
 
       {:ok, status} = PartitionDetector.get_cluster_partition_status(@cluster_id)
-      
+
       # Should detect some unreachable nodes
       assert length(status.unreachable_nodes) > 0
     end
@@ -138,9 +143,13 @@ defmodule ExWire.DVT.PartitionDetectorTest do
       :ok = PartitionDetector.record_consensus_activity(@cluster_id, 100, participating_nodes)
 
       {:ok, status} = PartitionDetector.get_cluster_partition_status(@cluster_id)
-      
+
       assert status.consensus_status.current_round == 100
-      assert MapSet.equal?(status.consensus_status.participating_nodes, MapSet.new(participating_nodes))
+
+      assert MapSet.equal?(
+               status.consensus_status.participating_nodes,
+               MapSet.new(participating_nodes)
+             )
     end
 
     test "tracks missing nodes in consensus" do
@@ -149,7 +158,7 @@ defmodule ExWire.DVT.PartitionDetectorTest do
       :ok = PartitionDetector.record_consensus_activity(@cluster_id, 101, participating_nodes)
 
       {:ok, status} = PartitionDetector.get_cluster_partition_status(@cluster_id)
-      
+
       # Should identify missing nodes
       expected_missing = MapSet.new([3, 4, 5])
       assert MapSet.equal?(status.consensus_status.missing_nodes, expected_missing)
@@ -160,7 +169,7 @@ defmodule ExWire.DVT.PartitionDetectorTest do
       :ok = PartitionDetector.record_consensus_activity(@cluster_id, 101, [1, 2, 3])
 
       {:ok, status} = PartitionDetector.get_cluster_partition_status(@cluster_id)
-      
+
       assert status.consensus_status.last_successful_round == 101
     end
   end
@@ -180,10 +189,11 @@ defmodule ExWire.DVT.PartitionDetectorTest do
       Process.sleep(100)
 
       {:ok, status} = PartitionDetector.get_cluster_partition_status(@cluster_id)
-      
+
       # Should detect partition or at least suspected partition
       assert status.partition_state in [:suspected, :partitioned]
-      assert length(status.unreachable_nodes) >= 3  # 4 out of 5 nodes unreachable
+      # 4 out of 5 nodes unreachable
+      assert length(status.unreachable_nodes) >= 3
     end
 
     test "maintains connected state with sufficient active nodes" do
@@ -202,15 +212,17 @@ defmodule ExWire.DVT.PartitionDetectorTest do
 
     test "tracks partition history" do
       # Create a partition condition
-      PartitionDetector.record_heartbeat(@cluster_id, 1)  # Only 1 node
+      # Only 1 node
+      PartitionDetector.record_heartbeat(@cluster_id, 1)
 
       # Trigger partition detection
       send(ExWire.DVT.PartitionDetector, :check_partitions)
-      Process.sleep(200)  # Give it time to detect
+      # Give it time to detect
+      Process.sleep(200)
 
       # Check partition history
       history = PartitionDetector.get_partition_history(10)
-      
+
       # Should have at least one partition event
       if length(history) > 0 do
         event = List.first(history)
@@ -223,24 +235,26 @@ defmodule ExWire.DVT.PartitionDetectorTest do
   describe "partition recovery" do
     setup do
       :ok = PartitionDetector.monitor_cluster(@cluster_id, @node_count, @threshold, :minority)
-      
+
       # Mock DutyConsensus for recovery testing
       :meck.new(DutyConsensus, [:passthrough])
+
       :meck.expect(DutyConsensus, :reset_consensus_round, fn cluster_id ->
         send(self(), {:consensus_reset, cluster_id})
         :ok
       end)
-      
+
       on_exit(fn ->
         :meck.unload(DutyConsensus)
       end)
-      
+
       :ok
     end
 
     test "can manually trigger partition recovery" do
       # Create partition condition first
-      PartitionDetector.record_heartbeat(@cluster_id, 1)  # Only 1 node
+      # Only 1 node
+      PartitionDetector.record_heartbeat(@cluster_id, 1)
       send(ExWire.DVT.PartitionDetector, :check_partitions)
       Process.sleep(100)
 
@@ -248,7 +262,7 @@ defmodule ExWire.DVT.PartitionDetectorTest do
       assert :ok = PartitionDetector.trigger_recovery(@cluster_id)
 
       {:ok, status} = PartitionDetector.get_cluster_partition_status(@cluster_id)
-      
+
       # Should attempt recovery (may still be partitioned but with recovery attempts)
       assert status.recovery_attempts > 0
     end
@@ -258,7 +272,7 @@ defmodule ExWire.DVT.PartitionDetectorTest do
       Enum.each(1..@node_count, fn node_id ->
         PartitionDetector.record_heartbeat(@cluster_id, node_id)
       end)
-      
+
       send(ExWire.DVT.PartitionDetector, :check_partitions)
       Process.sleep(100)
 
@@ -276,12 +290,13 @@ defmodule ExWire.DVT.PartitionDetectorTest do
       Enum.each(1..15, fn _ ->
         case PartitionDetector.trigger_recovery(@cluster_id) do
           :ok -> :ok
-          {:error, _} -> :ok  # May fail after max attempts
+          # May fail after max attempts
+          {:error, _} -> :ok
         end
       end)
 
       {:ok, status} = PartitionDetector.get_cluster_partition_status(@cluster_id)
-      
+
       # Should limit recovery attempts (max 10 by default)
       assert status.recovery_attempts <= 10
     end
@@ -302,10 +317,11 @@ defmodule ExWire.DVT.PartitionDetectorTest do
       Process.sleep(100)
 
       {:ok, status} = PartitionDetector.get_cluster_partition_status(@cluster_id)
-      
+
       # Should resolve to connected state
       assert status.partition_state == :connected
-      assert status.recovery_attempts == 0  # Reset on successful recovery
+      # Reset on successful recovery
+      assert status.recovery_attempts == 0
     end
   end
 
@@ -362,10 +378,11 @@ defmodule ExWire.DVT.PartitionDetectorTest do
       PartitionDetector.record_heartbeat(@cluster_id, 1)
 
       # Wait for automatic partition detection
-      Process.sleep(1_500)  # Wait longer than heartbeat timeout
+      # Wait longer than heartbeat timeout
+      Process.sleep(1_500)
 
       {:ok, status} = PartitionDetector.get_cluster_partition_status(@cluster_id)
-      
+
       # Should automatically detect partition
       assert status.partition_state in [:suspected, :partitioned]
     end
@@ -385,10 +402,11 @@ defmodule ExWire.DVT.PartitionDetectorTest do
       end)
 
       # Wait for recovery probe
-      Process.sleep(600)  # Recovery probe interval is 500ms
+      # Recovery probe interval is 500ms
+      Process.sleep(600)
 
       {:ok, status} = PartitionDetector.get_cluster_partition_status(@cluster_id)
-      
+
       # Should detect recovery
       assert status.partition_state == :connected
     end

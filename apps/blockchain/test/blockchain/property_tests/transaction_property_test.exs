@@ -7,10 +7,7 @@ defmodule Blockchain.PropertyTests.TransactionPropertyTest do
   and invalid data that traditional unit tests might miss.
   """
 
-  # TODO: Re-enable when Blockchain.PropertyTesting.Framework module is implemented
-  # use Blockchain.PropertyTesting.Framework
-  use ExUnit.Case, async: true
-  use ExUnitProperties
+  use Blockchain.PropertyTesting.Framework
 
   alias Blockchain.Transaction
   alias Blockchain.Transaction.Signature

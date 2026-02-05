@@ -1,7 +1,7 @@
 defmodule ExWire.DVT.SlashingProtection do
   @moduledoc """
   Advanced Anti-Slashing Protection for DVT Operations.
-  
+
   Implements comprehensive slashing protection mechanisms for Ethereum validators
   in DVT clusters, including double proposal prevention, double vote detection,
   and surround vote protection with distributed consensus validation.
@@ -22,52 +22,63 @@ defmodule ExWire.DVT.SlashingProtection do
 
   # Slashing protection record types
   @type attestation_record :: %{
-    validator_index: validator_index(),
-    source_epoch: epoch_number(),
-    target_epoch: epoch_number(),
-    target_root: block_root(),
-    source_root: block_root(),
-    slot: slot_number(),
-    signed_at: DateTime.t(),
-    signature: binary()
-  }
+          validator_index: validator_index(),
+          source_epoch: epoch_number(),
+          target_epoch: epoch_number(),
+          target_root: block_root(),
+          source_root: block_root(),
+          slot: slot_number(),
+          signed_at: DateTime.t(),
+          signature: binary()
+        }
 
   @type proposal_record :: %{
-    validator_index: validator_index(),
-    slot: slot_number(),
-    block_root: block_root(),
-    parent_root: block_root(),
-    state_root: block_root(),
-    signed_at: DateTime.t(),
-    signature: binary()
-  }
+          validator_index: validator_index(),
+          slot: slot_number(),
+          block_root: block_root(),
+          parent_root: block_root(),
+          state_root: block_root(),
+          signed_at: DateTime.t(),
+          signature: binary()
+        }
 
   # Slashing protection database state
   defstruct [
-    :db_path,              # Path to slashing protection database
-    :cluster_configs,      # DVT cluster configurations
-    :attestation_db,       # ETS table for attestation records  
-    :proposal_db,          # ETS table for proposal records
-    :sync_committee_db,    # ETS table for sync committee records
-    :validator_states,     # Current state for each validator
-    :audit_config,         # Audit logging configuration
-    :backup_locations,     # Database backup locations
-    :integrity_checks,     # Periodic integrity verification
-    :performance_stats     # Performance monitoring
+    # Path to slashing protection database
+    :db_path,
+    # DVT cluster configurations
+    :cluster_configs,
+    # ETS table for attestation records  
+    :attestation_db,
+    # ETS table for proposal records
+    :proposal_db,
+    # ETS table for sync committee records
+    :sync_committee_db,
+    # Current state for each validator
+    :validator_states,
+    # Audit logging configuration
+    :audit_config,
+    # Database backup locations
+    :backup_locations,
+    # Periodic integrity verification
+    :integrity_checks,
+    # Performance monitoring
+    :performance_stats
   ]
 
   # Type definition for validator state tracking
   @type validator_state :: %{
-    validator_index: validator_index(),
-    last_attestation_epoch: epoch_number(),
-    last_proposal_slot: slot_number(),
-    highest_source_epoch: epoch_number(),
-    highest_target_epoch: epoch_number(),
-    status: :active | :slashed | :exited | :withdrawn,               # :active | :slashed | :exited | :withdrawn
-    cluster_id: String.t(),
-    created_at: pos_integer(),
-    last_updated: pos_integer()
-  }
+          validator_index: validator_index(),
+          last_attestation_epoch: epoch_number(),
+          last_proposal_slot: slot_number(),
+          highest_source_epoch: epoch_number(),
+          highest_target_epoch: epoch_number(),
+          # :active | :slashed | :exited | :withdrawn
+          status: :active | :slashed | :exited | :withdrawn,
+          cluster_id: String.t(),
+          created_at: pos_integer(),
+          last_updated: pos_integer()
+        }
 
   ## Public API
 
@@ -79,15 +90,15 @@ defmodule ExWire.DVT.SlashingProtection do
   Register a validator for slashing protection.
   """
   @spec register_validator(validator_index(), String.t(), map()) :: :ok | {:error, atom()}
-  def register_validator(validator_index, cluster_id, config \\ %{}) do
+  def register_validator(validator_index, cluster_id, _config \\ %{}) do
     GenServer.call(__MODULE__, {:register_validator, validator_index, cluster_id, config})
   end
 
   @doc """
   Check if an attestation is safe to sign (no slashing conditions).
   """
-  @spec check_attestation_safety(validator_index(), attestation_data()) :: 
-    :safe | {:unsafe, atom()} | {:error, atom()}
+  @spec check_attestation_safety(validator_index(), attestation_data()) ::
+          :safe | {:unsafe, atom()} | {:error, atom()}
   def check_attestation_safety(validator_index, attestation_data) do
     GenServer.call(__MODULE__, {:check_attestation_safety, validator_index, attestation_data})
   end
@@ -95,8 +106,8 @@ defmodule ExWire.DVT.SlashingProtection do
   @doc """
   Check if a block proposal is safe to sign.
   """
-  @spec check_proposal_safety(validator_index(), proposal_data()) :: 
-    :safe | {:unsafe, atom()} | {:error, atom()}
+  @spec check_proposal_safety(validator_index(), proposal_data()) ::
+          :safe | {:unsafe, atom()} | {:error, atom()}
   def check_proposal_safety(validator_index, proposal_data) do
     GenServer.call(__MODULE__, {:check_proposal_safety, validator_index, proposal_data})
   end
@@ -104,17 +115,20 @@ defmodule ExWire.DVT.SlashingProtection do
   @doc """
   Record a signed attestation in the slashing protection database.
   """
-  @spec record_attestation(validator_index(), attestation_data(), binary()) :: 
-    :ok | {:error, atom()}
+  @spec record_attestation(validator_index(), attestation_data(), binary()) ::
+          :ok | {:error, atom()}
   def record_attestation(validator_index, attestation_data, signature) do
-    GenServer.call(__MODULE__, {:record_attestation, validator_index, attestation_data, signature})
+    GenServer.call(
+      __MODULE__,
+      {:record_attestation, validator_index, attestation_data, signature}
+    )
   end
 
   @doc """
   Record a signed block proposal in the slashing protection database.
   """
-  @spec record_proposal(validator_index(), proposal_data(), binary()) :: 
-    :ok | {:error, atom()}
+  @spec record_proposal(validator_index(), proposal_data(), binary()) ::
+          :ok | {:error, atom()}
   def record_proposal(validator_index, proposal_data, signature) do
     GenServer.call(__MODULE__, {:record_proposal, validator_index, proposal_data, signature})
   end
@@ -177,7 +191,13 @@ defmodule ExWire.DVT.SlashingProtection do
     validator_states = :ets.new(:dvt_validator_states, [:set, :named_table, :protected])
 
     # Load existing data from disk
-    load_slashing_data_from_disk(db_path, attestation_db, proposal_db, sync_committee_db, validator_states)
+    load_slashing_data_from_disk(
+      db_path,
+      attestation_db,
+      proposal_db,
+      sync_committee_db,
+      validator_states
+    )
 
     state = %__MODULE__{
       db_path: db_path,
@@ -197,11 +217,11 @@ defmodule ExWire.DVT.SlashingProtection do
     schedule_integrity_check()
 
     Logger.info("DVT Slashing Protection initialized", db_path: db_path)
-    {:ok, state}
+    {:ok, _state}
   end
 
   @impl true
-  def handle_call({:register_validator, validator_index, cluster_id, config}, _from, state) do
+  def handle_call({:register_validator, validator_index, cluster_id, _config}, _from, _state) do
     validator_state = %{
       validator_index: validator_index,
       last_attestation_epoch: 0,
@@ -217,87 +237,109 @@ defmodule ExWire.DVT.SlashingProtection do
     :ets.insert(state.validator_states, {validator_index, validator_state})
 
     # Audit log validator registration
-    audit_slashing_event(:validator_registered, validator_index, %{
-      cluster_id: cluster_id,
-      config: config
-    }, state.audit_config)
+    audit_slashing_event(
+      :validator_registered,
+      validator_index,
+      %{
+        cluster_id: cluster_id,
+        config: config
+      },
+      state.audit_config
+    )
 
     {:reply, :ok, state}
   end
 
   @impl true
-  def handle_call({:check_attestation_safety, validator_index, attestation_data}, _from, state) do
+  def handle_call({:check_attestation_safety, validator_index, attestation_data}, _from, _state) do
     case get_validator_state(validator_index, state) do
       {:ok, validator_state} ->
         # Comprehensive attestation safety checks
-        safety_result = check_attestation_slashing_conditions(
-          validator_index,
-          attestation_data,
-          validator_state,
-          state
-        )
+        safety_result =
+          check_attestation_slashing_conditions(
+            validator_index,
+            attestation_data,
+            validator_state,
+            state
+          )
 
         case safety_result do
           :safe ->
-            {:reply, :safe, state}
+            {:reply, :safe, _state}
 
           {:unsafe, reason} ->
             # Audit dangerous attestation attempt
-            audit_slashing_event(:unsafe_attestation_blocked, validator_index, %{
-              reason: reason,
-              attestation_data: attestation_data,
-              source_epoch: attestation_data.source.epoch,
-              target_epoch: attestation_data.target.epoch
-            }, state.audit_config)
+            audit_slashing_event(
+              :unsafe_attestation_blocked,
+              validator_index,
+              %{
+                reason: reason,
+                attestation_data: attestation_data,
+                source_epoch: attestation_data.source.epoch,
+                target_epoch: attestation_data.target.epoch
+              },
+              state.audit_config
+            )
 
             {:reply, {:unsafe, reason}, state}
         end
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:check_proposal_safety, validator_index, proposal_data}, _from, state) do
+  def handle_call({:check_proposal_safety, validator_index, proposal_data}, _from, _state) do
     case get_validator_state(validator_index, state) do
       {:ok, validator_state} ->
-        safety_result = check_proposal_slashing_conditions(
-          validator_index,
-          proposal_data,
-          validator_state,
-          state
-        )
+        safety_result =
+          check_proposal_slashing_conditions(
+            validator_index,
+            proposal_data,
+            validator_state,
+            state
+          )
 
         case safety_result do
           :safe ->
-            {:reply, :safe, state}
+            {:reply, :safe, _state}
 
           {:unsafe, reason} ->
-            audit_slashing_event(:unsafe_proposal_blocked, validator_index, %{
-              reason: reason,
-              slot: proposal_data.slot,
-              block_root: Base.encode16(proposal_data.block_root)
-            }, state.audit_config)
+            audit_slashing_event(
+              :unsafe_proposal_blocked,
+              validator_index,
+              %{
+                reason: reason,
+                slot: proposal_data.slot,
+                block_root: Base.encode16(proposal_data.block_root)
+              },
+              state.audit_config
+            )
 
             {:reply, {:unsafe, reason}, state}
         end
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:record_attestation, validator_index, attestation_data, signature}, _from, state) do
+  def handle_call(
+        {:record_attestation, validator_index, attestation_data, signature},
+        _from,
+        _state
+      ) do
     # Double-check safety before recording
     case check_attestation_safety(validator_index, attestation_data) do
       :safe ->
-        attestation_record = create_attestation_record(
-          validator_index, 
-          attestation_data, 
-          signature
-        )
+        attestation_record =
+          create_attestation_record(
+            validator_index,
+            attestation_data,
+            signature
+          )
 
         # Store in ETS
         record_key = {validator_index, attestation_data.target.epoch, attestation_data.slot}
@@ -309,11 +351,16 @@ defmodule ExWire.DVT.SlashingProtection do
         # Persist to disk asynchronously
         persist_record_to_disk(:attestation, record_key, attestation_record, state)
 
-        audit_slashing_event(:attestation_recorded, validator_index, %{
-          source_epoch: attestation_data.source.epoch,
-          target_epoch: attestation_data.target.epoch,
-          slot: attestation_data.slot
-        }, state.audit_config)
+        audit_slashing_event(
+          :attestation_recorded,
+          validator_index,
+          %{
+            source_epoch: attestation_data.source.epoch,
+            target_epoch: attestation_data.target.epoch,
+            slot: attestation_data.slot
+          },
+          state.audit_config
+        )
 
         {:reply, :ok, state}
 
@@ -321,13 +368,13 @@ defmodule ExWire.DVT.SlashingProtection do
         # Reject unsafe attestation
         {:reply, {:error, {:unsafe, reason}}, state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:record_proposal, validator_index, proposal_data, signature}, _from, state) do
+  def handle_call({:record_proposal, validator_index, proposal_data, signature}, _from, _state) do
     case check_proposal_safety(validator_index, proposal_data) do
       :safe ->
         proposal_record = create_proposal_record(validator_index, proposal_data, signature)
@@ -338,23 +385,28 @@ defmodule ExWire.DVT.SlashingProtection do
         update_validator_state_after_proposal(validator_index, proposal_data, state)
         persist_record_to_disk(:proposal, record_key, proposal_record, state)
 
-        audit_slashing_event(:proposal_recorded, validator_index, %{
-          slot: proposal_data.slot,
-          block_root: Base.encode16(proposal_data.block_root)
-        }, state.audit_config)
+        audit_slashing_event(
+          :proposal_recorded,
+          validator_index,
+          %{
+            slot: proposal_data.slot,
+            block_root: Base.encode16(proposal_data.block_root)
+          },
+          state.audit_config
+        )
 
         {:reply, :ok, state}
 
       {:unsafe, reason} ->
         {:reply, {:error, {:unsafe, reason}}, state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:get_validator_status, validator_index}, _from, state) do
+  def handle_call({:get_validator_status, validator_index}, _from, _state) do
     case :ets.lookup(state.validator_states, validator_index) do
       [{_index, validator_state}] ->
         # Get recent attestation and proposal counts
@@ -383,47 +435,58 @@ defmodule ExWire.DVT.SlashingProtection do
   end
 
   @impl true
-  def handle_call({:export_slashing_data, validator_index}, _from, state) do
-    export_result = case validator_index do
-      :all ->
-        export_all_slashing_data(state)
+  def handle_call({:export_slashing_data, validator_index}, _from, _state) do
+    export_result =
+      case validator_index do
+        :all ->
+          export_all_slashing_data(state)
 
-      index when is_integer(index) ->
-        export_validator_slashing_data(index, state)
-    end
+        index when is_integer(index) ->
+          export_validator_slashing_data(index, _state)
+      end
 
     case export_result do
       {:ok, export_data} ->
-        audit_slashing_event(:slashing_data_exported, validator_index, %{
-          export_size: byte_size(export_data),
-          exported_at: DateTime.utc_now()
-        }, state.audit_config)
+        audit_slashing_event(
+          :slashing_data_exported,
+          validator_index,
+          %{
+            export_size: byte_size(export_data),
+            exported_at: DateTime.utc_now()
+          },
+          state.audit_config
+        )
 
         {:reply, {:ok, export_data}, state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:import_slashing_data, backup_data}, _from, state) do
+  def handle_call({:import_slashing_data, backup_data}, _from, _state) do
     case import_slashing_data_impl(backup_data, state) do
       {:ok, import_stats} ->
-        audit_slashing_event(:slashing_data_imported, :system, %{
-          import_stats: import_stats,
-          imported_at: DateTime.utc_now()
-        }, state.audit_config)
+        audit_slashing_event(
+          :slashing_data_imported,
+          :system,
+          %{
+            import_stats: import_stats,
+            imported_at: DateTime.utc_now()
+          },
+          state.audit_config
+        )
 
         {:reply, {:ok, import_stats}, state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call(:verify_database_integrity, _from, state) do
+  def handle_call(:verify_database_integrity, _from, _state) do
     integrity_result = perform_database_integrity_check(state)
 
     case integrity_result do
@@ -431,43 +494,53 @@ defmodule ExWire.DVT.SlashingProtection do
         updated_checks = Map.put(state.integrity_checks, :last_check, DateTime.utc_now())
         new_state = %{state | integrity_checks: updated_checks}
 
-        audit_slashing_event(:integrity_check_completed, :system, %{
-          integrity_report: integrity_report
-        }, state.audit_config)
+        audit_slashing_event(
+          :integrity_check_completed,
+          :system,
+          %{
+            integrity_report: integrity_report
+          },
+          state.audit_config
+        )
 
         {:reply, {:ok, integrity_report}, new_state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   @impl true
-  def handle_call({:cleanup_old_records, keep_epochs}, _from, state) do
+  def handle_call({:cleanup_old_records, keep_epochs}, _from, _state) do
     cleanup_result = cleanup_old_records_impl(keep_epochs, state)
 
     case cleanup_result do
       {:ok, cleanup_stats} ->
-        audit_slashing_event(:old_records_cleaned, :system, %{
-          cleanup_stats: cleanup_stats,
-          keep_epochs: keep_epochs
-        }, state.audit_config)
+        audit_slashing_event(
+          :old_records_cleaned,
+          :system,
+          %{
+            cleanup_stats: cleanup_stats,
+            keep_epochs: keep_epochs
+          },
+          state.audit_config
+        )
 
         {:reply, {:ok, cleanup_stats}, state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, _reason} ->
+        {:reply, {:error, _reason}, state}
     end
   end
 
   # Periodic backup handling
   @impl true
-  def handle_info(:periodic_backup, state) do
+  def handle_info(:periodic_backup, _state) do
     case perform_backup(state) do
       {:ok, backup_info} ->
         Logger.info("Periodic slashing protection backup completed", backup_info: backup_info)
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Periodic backup failed", reason: reason)
     end
 
@@ -477,14 +550,14 @@ defmodule ExWire.DVT.SlashingProtection do
 
   # Periodic integrity check
   @impl true
-  def handle_info(:integrity_check, state) do
+  def handle_info(:integrity_check, _state) do
     case perform_database_integrity_check(state) do
       {:ok, integrity_report} ->
         if integrity_report.issues_found > 0 do
           Logger.warning("Database integrity issues found", report: integrity_report)
         end
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Logger.error("Integrity check failed", reason: reason)
     end
 
@@ -494,10 +567,15 @@ defmodule ExWire.DVT.SlashingProtection do
 
   ## Private Implementation Functions
 
-  defp check_attestation_slashing_conditions(validator_index, attestation_data, validator_state, state) do
+  defp check_attestation_slashing_conditions(
+         validator_index,
+         attestation_data,
+         validator_state,
+         _state
+       ) do
     source_epoch = attestation_data.source.epoch
     target_epoch = attestation_data.target.epoch
-    
+
     # Check 1: Attestation epochs must be valid
     cond do
       source_epoch >= target_epoch ->
@@ -523,7 +601,7 @@ defmodule ExWire.DVT.SlashingProtection do
     end
   end
 
-  defp check_proposal_slashing_conditions(validator_index, proposal_data, validator_state, state) do
+  defp check_proposal_slashing_conditions(validator_index, proposal_data, validator_state, _state) do
     slot = proposal_data.slot
 
     cond do
@@ -544,12 +622,12 @@ defmodule ExWire.DVT.SlashingProtection do
     end
   end
 
-  defp find_conflicting_attestation(validator_index, target_epoch, attestation_data, state) do
+  defp find_conflicting_attestation(validator_index, target_epoch, attestation_data, _state) do
     # Search for existing attestation at the same target epoch
     match_pattern = {{validator_index, target_epoch, :_}, :_}
-    
+
     case :ets.match(state.attestation_db, match_pattern) do
-      [] -> 
+      [] ->
         nil
 
       matches ->
@@ -562,27 +640,29 @@ defmodule ExWire.DVT.SlashingProtection do
     end
   end
 
-  defp check_surround_vote_violation(validator_index, source_epoch, target_epoch, state) do
+  defp check_surround_vote_violation(validator_index, source_epoch, target_epoch, _state) do
     # Check for surround vote violations
     # This implements the surround vote slashing condition from ETH2 spec
-    
+
     # Look for attestations that could create surround violations
     match_pattern = {{validator_index, :_, :_}, :_}
     existing_attestations = :ets.match(state.attestation_db, match_pattern)
-    
+
     # Check for surrounding (this attestation surrounds an existing one)
-    surround_violation = Enum.find(existing_attestations, fn [existing] ->
-      existing.source_epoch > source_epoch and existing.target_epoch < target_epoch
-    end)
-    
+    surround_violation =
+      Enum.find(existing_attestations, fn [existing] ->
+        existing.source_epoch > source_epoch and existing.target_epoch < target_epoch
+      end)
+
     if surround_violation do
       :surround_vote
     else
       # Check for being surrounded (an existing attestation surrounds this one)
-      surrounded_violation = Enum.find(existing_attestations, fn [existing] ->
-        existing.source_epoch < source_epoch and existing.target_epoch > target_epoch
-      end)
-      
+      surrounded_violation =
+        Enum.find(existing_attestations, fn [existing] ->
+          existing.source_epoch < source_epoch and existing.target_epoch > target_epoch
+        end)
+
       if surrounded_violation do
         :surrounded_vote
       else
@@ -593,12 +673,13 @@ defmodule ExWire.DVT.SlashingProtection do
 
   defp check_attestation_consistency(_validator_index, attestation_data, _validator_state, _state) do
     # Additional consistency checks beyond slashing conditions
-    
+
     # Check if attestation timing is reasonable
     current_time = DateTime.utc_now()
     slot_time = calculate_slot_time(attestation_data.slot)
-    
-    if DateTime.diff(current_time, slot_time, :second) > 384 do # More than 32 slots old
+
+    # More than 32 slots old
+    if DateTime.diff(current_time, slot_time, :second) > 384 do
       {:unsafe, :attestation_too_old}
     else
       :safe
@@ -609,17 +690,18 @@ defmodule ExWire.DVT.SlashingProtection do
     # Check proposal consistency and timing
     current_time = DateTime.utc_now()
     slot_time = calculate_slot_time(proposal_data.slot)
-    
-    if DateTime.diff(current_time, slot_time, :second) > 12 do # More than 1 slot old
+
+    # More than 1 slot old
+    if DateTime.diff(current_time, slot_time, :second) > 12 do
       {:unsafe, :proposal_too_old}
     else
       :safe
     end
   end
 
-  defp find_conflicting_proposal(validator_index, slot, proposal_data, state) do
+  defp find_conflicting_proposal(validator_index, slot, proposal_data, _state) do
     case :ets.lookup(state.proposal_db, {validator_index, slot}) do
-      [] -> 
+      [] ->
         nil
 
       [{_key, existing_proposal}] ->
@@ -657,80 +739,87 @@ defmodule ExWire.DVT.SlashingProtection do
     }
   end
 
-  defp get_validator_state(validator_index, state) do
+  defp get_validator_state(validator_index, _state) do
     case :ets.lookup(state.validator_states, validator_index) do
       [{_index, validator_state}] -> {:ok, validator_state}
       [] -> {:error, :validator_not_registered}
     end
   end
 
-  defp update_validator_state_after_attestation(validator_index, attestation_data, state) do
+  defp update_validator_state_after_attestation(validator_index, attestation_data, _state) do
     case :ets.lookup(state.validator_states, validator_index) do
       [{_index, validator_state}] ->
-        updated_state = %{validator_state |
-          last_attestation_epoch: max(validator_state.last_attestation_epoch, attestation_data.target.epoch),
-          highest_source_epoch: max(validator_state.highest_source_epoch, attestation_data.source.epoch),
-          highest_target_epoch: max(validator_state.highest_target_epoch, attestation_data.target.epoch),
-          last_updated: DateTime.utc_now()
+        updated_state = %{
+          validator_state
+          | last_attestation_epoch:
+              max(validator_state.last_attestation_epoch, attestation_data.target.epoch),
+            highest_source_epoch:
+              max(validator_state.highest_source_epoch, attestation_data.source.epoch),
+            highest_target_epoch:
+              max(validator_state.highest_target_epoch, attestation_data.target.epoch),
+            last_updated: DateTime.utc_now()
         }
-        
+
         :ets.insert(state.validator_states, {validator_index, updated_state})
 
       [] ->
-        Logger.warning("Attempted to update non-existent validator state", 
-          validator_index: validator_index)
+        Logger.warning("Attempted to update non-existent validator state",
+          validator_index: validator_index
+        )
     end
   end
 
-  defp update_validator_state_after_proposal(validator_index, proposal_data, state) do
+  defp update_validator_state_after_proposal(validator_index, proposal_data, _state) do
     case :ets.lookup(state.validator_states, validator_index) do
       [{_index, validator_state}] ->
-        updated_state = %{validator_state |
-          last_proposal_slot: max(validator_state.last_proposal_slot, proposal_data.slot),
-          last_updated: DateTime.utc_now()
+        updated_state = %{
+          validator_state
+          | last_proposal_slot: max(validator_state.last_proposal_slot, proposal_data.slot),
+            last_updated: DateTime.utc_now()
         }
-        
+
         :ets.insert(state.validator_states, {validator_index, updated_state})
 
       [] ->
-        Logger.warning("Attempted to update non-existent validator state", 
-          validator_index: validator_index)
+        Logger.warning("Attempted to update non-existent validator state",
+          validator_index: validator_index
+        )
     end
   end
 
-  defp count_recent_attestations(validator_index, state) do
+  defp count_recent_attestations(validator_index, _state) do
     # Count attestations in the last 100 epochs
     current_epoch = get_current_epoch()
     cutoff_epoch = max(0, current_epoch - 100)
-    
+
     match_pattern = {{validator_index, :"$1", :_}, :_}
     guard = [{:>, :"$1", cutoff_epoch}]
-    
+
     length(:ets.select(state.attestation_db, [{match_pattern, guard, [:"$_"]}]))
   end
 
-  defp count_recent_proposals(validator_index, state) do
+  defp count_recent_proposals(validator_index, _state) do
     # Count proposals in the last 3200 slots (100 epochs)
     current_slot = get_current_slot()
     cutoff_slot = max(0, current_slot - 3200)
-    
+
     match_pattern = {{validator_index, :"$1"}, :_}
     guard = [{:>, :"$1", cutoff_slot}]
-    
+
     length(:ets.select(state.proposal_db, [{match_pattern, guard, [:"$_"]}]))
   end
 
-  defp export_all_slashing_data(state) do
+  defp export_all_slashing_data(_state) do
     try do
       # Export all validator states
       all_validators = :ets.tab2list(state.validator_states)
-      
+
       # Export all attestation records
       all_attestations = :ets.tab2list(state.attestation_db)
-      
+
       # Export all proposal records  
       all_proposals = :ets.tab2list(state.proposal_db)
-      
+
       export_data = %{
         format_version: "1.0",
         exported_at: DateTime.utc_now(),
@@ -743,31 +832,31 @@ defmodule ExWire.DVT.SlashingProtection do
           total_proposals: length(all_proposals)
         }
       }
-      
+
       serialized_data = :erlang.term_to_binary(export_data, [:compressed])
       {:ok, serialized_data}
-      
     catch
       error -> {:error, {:export_failed, error}}
     end
   end
 
-  defp export_validator_slashing_data(validator_index, state) do
+  defp export_validator_slashing_data(validator_index, _state) do
     try do
       # Get validator state
-      validator_state = case :ets.lookup(state.validator_states, validator_index) do
-        [{_index, state}] -> state
-        [] -> nil
-      end
-      
+      validator_state =
+        case :ets.lookup(state.validator_states, validator_index) do
+          [{_index, _state}] -> state
+          [] -> nil
+        end
+
       # Get validator attestations
       att_pattern = {{validator_index, :_, :_}, :_}
       validator_attestations = :ets.match_object(state.attestation_db, att_pattern)
-      
+
       # Get validator proposals
       prop_pattern = {{validator_index, :_}, :_}
       validator_proposals = :ets.match_object(state.proposal_db, prop_pattern)
-      
+
       export_data = %{
         format_version: "1.0",
         validator_index: validator_index,
@@ -776,91 +865,93 @@ defmodule ExWire.DVT.SlashingProtection do
         attestation_records: validator_attestations,
         proposal_records: validator_proposals
       }
-      
+
       serialized_data = :erlang.term_to_binary(export_data, [:compressed])
       {:ok, serialized_data}
-      
     catch
       error -> {:error, {:export_failed, error}}
     end
   end
 
-  defp import_slashing_data_impl(backup_data, state) do
+  defp import_slashing_data_impl(backup_data, _state) do
     try do
       import_data = :erlang.binary_to_term(backup_data)
-      
+
       case import_data.format_version do
         "1.0" ->
-          import_v1_data(import_data, state)
-        
+          import_v1_data(import_data, _state)
+
         other ->
           {:error, {:unsupported_format, other}}
       end
-      
     catch
       error -> {:error, {:import_failed, error}}
     end
   end
 
-  defp import_v1_data(import_data, state) do
+  defp import_v1_data(import_data, _state) do
     _imported_validators = 0
-    _imported_attestations = 0  
+    _imported_attestations = 0
     _imported_proposals = 0
-    
+
     # Import validator states
     if Map.has_key?(import_data, :validator_states) do
       Enum.each(import_data.validator_states, fn {validator_index, validator_state} ->
         :ets.insert(state.validator_states, {validator_index, validator_state})
       end)
+
       _imported_validators = length(import_data.validator_states)
     end
-    
+
     # Import attestation records
     if Map.has_key?(import_data, :attestation_records) do
       Enum.each(import_data.attestation_records, fn {key, record} ->
         :ets.insert(state.attestation_db, {key, record})
       end)
+
       _imported_attestations = length(import_data.attestation_records)
     end
-    
+
     # Import proposal records
     if Map.has_key?(import_data, :proposal_records) do
       Enum.each(import_data.proposal_records, fn {key, record} ->
         :ets.insert(state.proposal_db, {key, record})
       end)
+
       _imported_proposals = length(import_data.proposal_records)
     end
-    
+
     import_stats = %{
       imported_validators: 0,
       imported_attestations: 0,
       imported_proposals: 0,
       import_completed_at: DateTime.utc_now()
     }
-    
+
     {:ok, import_stats}
   end
 
-  defp perform_database_integrity_check(state) do
+  defp perform_database_integrity_check(_state) do
     try do
       _issues_found = 0
       total_checks = 0
-      
+
       # Check validator state consistency
       validator_issues = check_validator_state_consistency(state)
-      
+
       # Check attestation record integrity
       attestation_issues = check_attestation_integrity(state)
-      
+
       # Check proposal record integrity
       proposal_issues = check_proposal_integrity(state)
-      
+
       # Check for orphaned records
       orphaned_records = check_for_orphaned_records(state)
-      
-      total_issues = length(validator_issues) + length(attestation_issues) + 
-                     length(proposal_issues) + length(orphaned_records)
-      
+
+      total_issues =
+        length(validator_issues) + length(attestation_issues) +
+          length(proposal_issues) + length(orphaned_records)
+
       integrity_report = %{
         checked_at: DateTime.utc_now(),
         total_checks: total_checks,
@@ -870,9 +961,8 @@ defmodule ExWire.DVT.SlashingProtection do
         proposal_issues: proposal_issues,
         orphaned_records: orphaned_records
       }
-      
+
       {:ok, integrity_report}
-      
     catch
       error -> {:error, {:integrity_check_failed, error}}
     end
@@ -898,45 +988,45 @@ defmodule ExWire.DVT.SlashingProtection do
     []
   end
 
-  defp cleanup_old_records_impl(keep_epochs, state) do
+  defp cleanup_old_records_impl(keep_epochs, _state) do
     current_epoch = get_current_epoch()
     cutoff_epoch = current_epoch - keep_epochs
-    
+
     # Clean old attestation records
     att_pattern = {{:_, :"$1", :_}, :_}
     att_guard = [{:<, :"$1", cutoff_epoch}]
     old_attestations = :ets.select(state.attestation_db, [{att_pattern, att_guard, [:"$_"]}])
-    
+
     Enum.each(old_attestations, fn {key, _record} ->
       :ets.delete(state.attestation_db, key)
     end)
-    
+
     # Clean old proposal records (keep_epochs * 32 slots)
     cutoff_slot = (current_epoch - keep_epochs) * 32
     prop_pattern = {{:_, :"$1"}, :_}
     prop_guard = [{:<, :"$1", cutoff_slot}]
     old_proposals = :ets.select(state.proposal_db, [{prop_pattern, prop_guard, [:"$_"]}])
-    
+
     Enum.each(old_proposals, fn {key, _record} ->
       :ets.delete(state.proposal_db, key)
     end)
-    
+
     cleanup_stats = %{
       cleaned_attestations: length(old_attestations),
       cleaned_proposals: length(old_proposals),
       cutoff_epoch: cutoff_epoch,
       cleaned_at: DateTime.utc_now()
     }
-    
+
     {:ok, cleanup_stats}
   end
 
-  defp perform_backup(state) do
+  defp perform_backup(_state) do
     case export_all_slashing_data(state) do
       {:ok, backup_data} ->
         backup_filename = "slashing_backup_#{DateTime.utc_now() |> DateTime.to_unix()}.bin"
         backup_path = Path.join(state.db_path, backup_filename)
-        
+
         case File.write(backup_path, backup_data) do
           :ok ->
             backup_info = %{
@@ -944,18 +1034,18 @@ defmodule ExWire.DVT.SlashingProtection do
               backup_size: byte_size(backup_data),
               created_at: DateTime.utc_now()
             }
-            
+
             # Copy to additional backup locations if configured
             copy_to_backup_locations(backup_path, backup_data, state.backup_locations)
-            
+
             {:ok, backup_info}
-            
-          {:error, reason} ->
+
+          {:error, _reason} ->
             {:error, {:backup_write_failed, reason}}
         end
-        
-      {:error, reason} ->
-        {:error, reason}
+
+      {:error, _reason} ->
+        {:error, _reason}
     end
   end
 
@@ -966,18 +1056,24 @@ defmodule ExWire.DVT.SlashingProtection do
         dest_path = Path.join(location, backup_filename)
         File.write!(dest_path, backup_data)
       catch
-        error -> 
-          Logger.warning("Failed to copy backup to location", 
-            location: location, error: error)
+        error ->
+          Logger.warning("Failed to copy backup to location", location: location, error: error)
       end
     end)
   end
 
-  defp load_slashing_data_from_disk(db_path, _attestation_db, _proposal_db, _sync_committee_db, _validator_states) do
+  defp load_slashing_data_from_disk(
+         db_path,
+         _attestation_db,
+         _proposal_db,
+         _sync_committee_db,
+         _validator_states
+       ) do
     # Load data from disk if files exist
     # This is a simplified implementation - production would use more robust storage
-    
+
     attestation_file = Path.join(db_path, "attestations.ets")
+
     if File.exists?(attestation_file) do
       try do
         :ets.file2tab(String.to_charlist(attestation_file))
@@ -985,7 +1081,7 @@ defmodule ExWire.DVT.SlashingProtection do
         _ -> Logger.warning("Failed to load attestation data from disk")
       end
     end
-    
+
     # Similar loading for other tables...
   end
 
@@ -997,38 +1093,44 @@ defmodule ExWire.DVT.SlashingProtection do
           :attestation ->
             # Persist attestation record
             :ok
-            
+
           :proposal ->
             # Persist proposal record
             :ok
         end
       catch
-        error -> 
-          Logger.warning("Failed to persist record to disk", 
-            record_type: record_type, key: key, error: error)
+        error ->
+          Logger.warning("Failed to persist record to disk",
+            record_type: record_type,
+            key: key,
+            error: error
+          )
       end
     end)
   end
 
   defp calculate_slot_time(slot) do
     # Calculate the time for a given slot based on ETH2 genesis
-    genesis_time = DateTime.from_unix!(1606824023) # ETH2 mainnet genesis
+    # ETH2 mainnet genesis
+    genesis_time = DateTime.from_unix!(1_606_824_023)
     DateTime.add(genesis_time, slot * 12, :second)
   end
 
   defp get_current_epoch do
     # Calculate current epoch based on current time
-    genesis_time = DateTime.from_unix!(1606824023)
+    genesis_time = DateTime.from_unix!(1_606_824_023)
     current_time = DateTime.utc_now()
     seconds_since_genesis = DateTime.diff(current_time, genesis_time, :second)
-    div(seconds_since_genesis, 32 * 12) # 32 slots per epoch, 12 seconds per slot
+    # 32 slots per epoch, 12 seconds per slot
+    div(seconds_since_genesis, 32 * 12)
   end
 
   defp get_current_slot do
-    genesis_time = DateTime.from_unix!(1606824023)
+    genesis_time = DateTime.from_unix!(1_606_824_023)
     current_time = DateTime.utc_now()
     seconds_since_genesis = DateTime.diff(current_time, genesis_time, :second)
-    div(seconds_since_genesis, 12) # 12 seconds per slot
+    # 12 seconds per slot
+    div(seconds_since_genesis, 12)
   end
 
   defp initialize_performance_stats do
@@ -1054,15 +1156,22 @@ defmodule ExWire.DVT.SlashingProtection do
   defp audit_slashing_event(event_type, validator_index, metadata, audit_config) do
     case audit_config do
       %{} = config when map_size(config) > 0 ->
-        AuditLogger.log_event(:dvt_slashing_protection, event_type, %{
-          validator_index: validator_index,
-          timestamp: DateTime.utc_now(),
-          metadata: metadata
-        }, config)
-        
+        AuditLogger.log_event(
+          :dvt_slashing_protection,
+          event_type,
+          %{
+            validator_index: validator_index,
+            timestamp: DateTime.utc_now(),
+            metadata: metadata
+          },
+          config
+        )
+
       _ ->
-        Logger.info("DVT Slashing Protection Event: #{event_type} for validator #{validator_index}", 
-          metadata: metadata)
+        Logger.info(
+          "DVT Slashing Protection Event: #{event_type} for validator #{validator_index}",
+          metadata: metadata
+        )
     end
   end
 end

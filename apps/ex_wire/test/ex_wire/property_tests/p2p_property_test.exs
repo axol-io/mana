@@ -7,10 +7,7 @@ defmodule ExWire.PropertyTests.P2PPropertyTest do
   edge cases gracefully across different peer interactions.
   """
 
-  use ExUnitProperties
-  import StreamData
-  import Blockchain.PropertyTesting.Generators
-  import Blockchain.PropertyTesting.Properties
+  use Blockchain.PropertyTesting.Framework
 
   alias ExWire.P2P.Protocol
   alias ExWire.Message
