@@ -1,14 +1,8 @@
 # Mana Ethereum Client
 
-[![Hex.pm](https://img.shields.io/hexpm/v/mana.svg)](https://hex.pm/packages/mana)
-[![Hex Docs](https://img.shields.io/badge/hex-docs-purple.svg)](https://hexdocs.pm/mana)
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/axol-io/mana/tree/master.svg?style=shield)](https://dl.circleci.com/status-badge/redirect/gh/axol-io/mana/tree/master)
 [![GitHub Actions](https://github.com/axol-io/mana/workflows/CI/badge.svg)](https://github.com/axol-io/mana/actions)
-[![Consensus Spec Tests](https://github.com/axol-io/mana/workflows/Ethereum%20Consensus%20Spec%20Tests/badge.svg)](https://github.com/axol-io/mana/actions/workflows/consensus-spec-tests.yml)
-[![codecov](https://codecov.io/gh/axol-io/mana/branch/master/graph/badge.svg)](https://codecov.io/gh/axol-io/mana)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE_APACHE)
 [![Elixir Version](https://img.shields.io/badge/Elixir-~%3E%201.18-purple)](https://elixir-lang.org/)
-[![Deneb Support](https://img.shields.io/badge/Deneb%20(EIP--4844)-Compliant-brightgreen)](https://github.com/axol-io/mana/actions/workflows/consensus-spec-tests.yml)
 
 High-performance distributed Ethereum client with ultra-performance optimizations, multi-datacenter operation, and enterprise features.
 
